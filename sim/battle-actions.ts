@@ -853,13 +853,16 @@ export class BattleActions {
 		move.totalDamage = 0;
 		pokemon.lastDamage = 0;
 		let targetHits = move.multihit || 1;
+
+		const hasDice = pokemon.hasItem('loadeddice') || pokemon.hasItem('typedice');
+
 		if (Array.isArray(targetHits)) {
 			// yes, it's hardcoded... meh
 			if (targetHits[0] === 2 && targetHits[1] === 5) {
 				if (this.battle.gen >= 5) {
 					// 35-35-15-15 out of 100 for 2-3-4-5 hits
 					targetHits = this.battle.sample([2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5]);
-					if (targetHits < 4 && pokemon.hasItem('loadeddice')) {
+					if (targetHits < 4 && hasDice) {
 						targetHits = 5 - this.battle.random(2);
 					}
 				} else {
@@ -869,7 +872,7 @@ export class BattleActions {
 				targetHits = this.battle.random(targetHits[0], targetHits[1] + 1);
 			}
 		}
-		if (targetHits === 10 && pokemon.hasItem('loadeddice')) targetHits -= this.battle.random(7);
+		if (targetHits === 10 && hasDice) targetHits -= this.battle.random(7);
 		targetHits = Math.floor(targetHits);
 		let nullDamage = true;
 		let moveDamage: (number | boolean | undefined)[] = [];

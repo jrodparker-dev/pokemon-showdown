@@ -440,6 +440,7 @@ export class Pokemon {
 		// Every Pokemon has a Terastal type
 		this.teraType = this.set.teraType || this.types[0];
 
+
 		this.switchFlag = false;
 		this.forceSwitchFlag = false;
 		this.skipBeforeSwitchOutEventFlag = false;

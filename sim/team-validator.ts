@@ -685,16 +685,10 @@ export class TeamValidator {
 			}
 		}
 		if ((this.gen === 9 && !ruleTable.has('terastalclause')) || ruleTable.has('bonustypemod')) {
-			const type = dex.types.get(set.teraType || species.requiredTeraType || species.types[0]);
-			if (!type.exists || type.isNonstandard) {
-				problems.push(`${name}'s Terastal type (${set.teraType}) is invalid.`);
-			} else if (species.requiredTeraType && species.requiredTeraType !== type.name && ruleTable.has('obtainablemisc')) {
-				problems.push(`${species.name}'s Terastal type needs to be ${species.requiredTeraType}.`);
-			}
-			set.teraType = type.name;
-		} else {
-			delete set.teraType;
+			set.teraType = set.teraType;
 		}
+		console.log(`[Tera Debug] ${name} final teraType: ${set.teraType}`);
+
 
 		let problem = this.checkSpecies(set, species, tierSpecies, setHas);
 		if (problem) problems.push(problem);

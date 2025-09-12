@@ -892,4 +892,303 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 			return bp;
 		},
 	},
+	// In data/conditions.ts
+twinvines: {
+    // This is a volatile status. It should be a standalone object.
+    name: 'twinvines',
+    duration: 1,
+
+    onStart(pokemon, source) {
+        // We capture the source here to use it later for the damage calculation.
+        this.effectState.source = source;
+		this.effectState.didProc = false;
+        this.add('-start', pokemon, 'Twin Vines', '[silent]');
+    },
+    
+
+    onEnd(pokemon) {
+
+		if (this.effectState.didProc) return;
+		this.effectState.didProc = true;
+		const source = this.effectState.source;
+        if (!source || source.fainted || !pokemon.hp || pokemon.fainted) {
+            this.debug('Ending Twin Vines effect due to fainted source or target');
+            pokemon.removeVolatile('twinvines');
+            return;
+        }
+		const moveData = {
+			id: 'boop' as ID,
+            name: 'Boop',
+            accuracy: 100,
+            basePower: 60,
+            category: 'Physical',
+            type: 'Grass',
+            flags: {},
+            priority: 0,
+            target: 'normal',
+		}
+
+
+        // This is the correct way to get damage from a basePower.
+        const damage = this.actions.getDamage(source, pokemon, moveData as any);
+        if (typeof damage === 'number' && damage > 0) {
+            this.damage(damage, pokemon, source, this.effect);
+            this.add('-message', `${pokemon.name} was hit by the Twin Vines end-of-turn attack!`);
+        }  
+		this.add('-end', pokemon, 'Twin Vines')
+    },
+},
+// data/conditions.ts
+darkterrain: {
+  name: "Dark Terrain",
+  effectType: 'Terrain',
+  duration: 5,
+  durationCallback(source, effect) {
+    if (source?.hasItem?.('terrainextender')) return 8;
+    return 5;
+  },
+  onFieldStart(field, source, effect) {
+    if (effect?.effectType === 'Ability') {
+      this.add('-fieldstart', 'move: Dark Terrain', '[from] ability: ' + effect.name, '[of] ' + source);
+    } else {
+      this.add('-fieldstart', 'move: Dark Terrain');
+    }
+  },
+  onFieldEnd() {
+    this.add('-fieldend', 'Dark Terrain');
+  },
+
+  // Global accuracy modifier (like Gravity). This is the important one.
+  onModifyAccuracy(accuracy, target, source, move) {
+    if (typeof accuracy !== 'number') return;
+    // Only affect grounded users (source is the attacker)
+    if (!source || !source.isGrounded() || source.isSemiInvulnerable()) return;
+    this.debug('dark terrain accuracy drop (global)');
+    // 0.7× in fixed-point: 0.7 * 4096 ≈ 2867
+    return this.chainModify([2867, 4096]);
+  },
+
+  // Optional: keep this too; some code paths consult source-side hooks
+  onSourceModifyAccuracy(accuracy, attacker, defender, move) {
+    if (typeof accuracy !== 'number') return;
+    if (!attacker.isGrounded() || attacker.isSemiInvulnerable()) return;
+    this.debug('dark terrain accuracy drop (source)');
+    return this.chainModify([2867, 4096]);
+  },
+},
+burningfield: {
+  name: "Burning Field",
+
+  // use the side residual hook (not onResidual)
+  onSideResidualOrder: 6,
+  onSideResidual(side) {
+    for (const mon of side.active) {
+      if (!mon || mon.fainted) continue;
+
+      // 12.5% max HP chip
+      this.damage(mon.baseMaxhp / 8, mon, null, this.dex.conditions.get('burningfield'));
+
+      // 15% burn chance (respects immunities like Fire-type, Safeguard, etc.)
+      if (!mon.status && mon.runStatusImmunity('brn') && this.randomChance(3, 20)) {
+        mon.trySetStatus('brn', null, this.dex.conditions.get('burningfield'));
+      }
+    }
+  },
+
+  onSideStart(side) {
+    this.add('-sidestart', side, 'Burning Field');
+  },
+
+  onSwitchIn(pokemon) {
+    if (pokemon.hasType('Water') && pokemon.side.getSideCondition('burningfield')) {
+      pokemon.side.removeSideCondition('burningfield');
+      this.add('-sideend', pokemon.side, 'Burning Field', '[from] Water-type switch-in');
+    }
+  },
+
+  onSideEnd(side) {
+    this.add('-sideend', side, 'Burning Field');
+  },
+},
+ultimateberrypriority: {
+    name: "Ultimate Berry (Priority)",
+    onStart(pokemon) {
+      (this.effectState as any).primed = false;
+    },
+
+    // End-of-turn: arm it so it applies starting next turn
+    onResidualOrder: 15,
+    onResidualSubOrder: 1,
+    onResidual(pokemon) {
+      const st = this.effectState as any;
+      if (!st.primed) {
+        st.primed = true;
+        // optional debug
+         this.add('-message', `priority primed for ${pokemon.name}'s next action`);
+      }
+    },
+
+    // Give +1 priority only if we’re primed (i.e., starting the turn after it was applied)
+    onModifyPriority(priority, pokemon, _target, move) {
+      if (!move) return;
+      const st = this.effectState as any;
+      if (!st.primed) return;          // not active this turn
+      return priority + 1;              // active next turn
+    },
+
+    // Consume after the holder actually attempts a move (hit or miss)
+    onAfterMove(pokemon) {
+      const st = this.effectState as any;
+      if (st.primed) pokemon.removeVolatile('ultimateberrypriority');
+    },
+
+    // If their action is aborted (flinch/full-para/etc.), still consume
+    onMoveAborted(pokemon) {
+      const st = this.effectState as any;
+      if (st.primed) pokemon.removeVolatile('ultimateberrypriority');
+    },
+
+    // Clean up on switch
+    onSwitchOut(pokemon) {
+      if (pokemon.volatiles['ultimateberrypriority']) {
+        pokemon.removeVolatile('ultimateberrypriority');
+      }
+    },
+  },
+aidofrevivalwatch: {
+    name: 'Aid of Revival Watch',
+
+    // Keep a simple "pending" toggle – the engine will force the revived mon
+    // to switch in immediately after the slot condition is set.
+    onSideStart(this: Battle, side: Side) {
+      // effectState is safe to mutate; initialize a small state blob
+      (this.effectState as any).pending = true;
+    },
+
+    onSwitchIn(this: Battle, pokemon: Pokemon) {
+      const st = this.effectState as any;
+      if (!st.pending) return;
+
+      // We only want to act once – on the revived mon that just switched in.
+      st.pending = false;
+
+      // --- Begin makeover logic ---
+
+      // 1) pick a random fully-evolved, standard species (no megas, no battleOnly, no Gmax)
+      const all = this.dex.species.all().filter(s =>
+        s.exists && !s.prevo && !s.nfe &&
+        !(s as any).battleOnly && !(s as any).isNonstandard &&
+        !(s as any).isMega && !(s as any).isPrimal && !(s as any).isGigantamax
+      );
+      const species = this.sample(all);
+
+      // 2) build 3-move kit with preference for STABs
+      const learnsets = (this.dex.data as any).Learnsets as
+        Record<string, {learnset?: Record<string, AnyObject>}>;
+      const ls = learnsets?.[species.id];
+      let moveIds: ID[] = [];
+
+      if (ls?.learnset) {
+        const allIds = Object.keys(ls.learnset).filter(id => this.dex.moves.get(id).exists);
+        const mObjs = allIds.map(id => this.dex.moves.get(id));
+        const isDamaging = (m: Move) => m.category !== 'Status' && (m.basePower > 0 || (m as any).damage || (m as any).ohko);
+
+        const [t1, t2] = species.types;
+        const stab1 = mObjs.filter(m => m.type === t1 && isDamaging(m)).map(m => m.id as ID);
+        const stab2 = t2 ? mObjs.filter(m => m.type === t2 && isDamaging(m)).map(m => m.id as ID) : [];
+
+        const takeOne = (arr: ID[]) => {
+          if (!arr.length) return;
+          const pick = this.sample(arr);
+          if (!moveIds.includes(pick)) moveIds.push(pick);
+        };
+
+        takeOne(stab1);
+        if (t2) takeOne(stab2);
+
+        const damagingLeft = mObjs.filter(m => isDamaging(m) && !moveIds.includes(m.id as ID)).map(m => m.id as ID);
+        while (moveIds.length < 3 && damagingLeft.length) {
+          const pick = damagingLeft.splice(this.random(damagingLeft.length), 1)[0];
+          if (!moveIds.includes(pick)) moveIds.push(pick);
+        }
+
+        const fillers = allIds.filter(id => !moveIds.includes(id as ID)).map(id => id as ID);
+        while (moveIds.length < 3 && fillers.length) {
+          moveIds.push(fillers.splice(this.random(fillers.length), 1)[0]);
+        }
+      }
+
+      if (moveIds.length < 3) moveIds = ['tackle' as ID, 'protect' as ID, 'substitute' as ID];
+
+      // 3) ability – random from species’ ability slots
+      const abilVals = Object.values((species as any).abilities || {}).filter(Boolean) as string[];
+      const abilityId: ID = abilVals.length ? this.toID(this.sample(abilVals)) as ID : '' as ID;
+
+      // 4) curated item pool + Z-Crystals
+      const curated: ID[] = [
+        'airballoon','assaultvest','blunderpolicy','choicescarf','choiceband','choicespecs',
+        'covertcloak','expertbelt','focussash','heavydutyboots','kingsrock','leftovers',
+        'lifeorb','lightclay','quickclaw','redcard','rockyhelmet','safetygoggles','scopelens',
+        'shellbell','sitrusberry','weaknesspolicy','widelens','wiseglasses','muscleband',
+        'charcoal','mysticwater','magnet','miracleseed','hardstone','sharpbeak','spelltag',
+        'twistedspoon','metalcoat','dragonfang','nevermeltice','softsand','silverpowder',
+        'poisonbarb','blackglasses','pixieplate',
+      ].map(x => this.toID(x)) as ID[];
+
+      const fixedItems = curated.map(id => this.dex.items.get(id)).filter(it => it?.exists);
+      const zCrystals = this.dex.items.all().filter(it => it.exists && ((it as any).zMove || (it as any).zMoveType));
+      const items = [...new Map([...fixedItems, ...zCrystals].map(it => [it.id, it])).values()];
+      const itemId: ID = items.length ? (this.sample(items) as Item).id as ID : '' as ID;
+
+      // 5) apply makeover
+      // species
+      const newForme = this.dex.species.get(species.id);
+      // The third argument (true) bypasses ability/move legality checks; intended for scripted changes.
+      pokemon.formeChange(newForme, this.effect, true);
+
+      // ability
+      if (abilityId) pokemon.setAbility(abilityId);
+
+      // item
+      if (itemId) pokemon.setItem(itemId);
+
+      // --- overwrite moves (in place) ---
+pokemon.moveSlots.splice(0, pokemon.moveSlots.length);
+    (pokemon.baseMoveSlots as any).splice(0, (pokemon.baseMoveSlots as any).length);
+
+    for (const id of moveIds) {
+      const mv = this.dex.moves.get(id);
+      const slot = {
+        move: mv.name,
+        id: mv.id as ID,
+        pp: mv.pp,
+        maxpp: mv.pp,
+        target: mv.target,
+        disabled: false,
+        disabledSource: '',
+        used: false,            // many forks require this field
+      };
+      pokemon.moveSlots.push({ ...slot });
+      (pokemon.baseMoveSlots as any).push({ ...slot });
+    }
+     pokemon.hp = pokemon.maxhp;
+	pokemon.fainted = false;
+	this.add('-heal', pokemon, pokemon.getHealth, '[from] move: Aid of Revival');
+
+    },
+
+	// --- End makeover logic ---
+    // If the side condition is still around another turn (rare), don’t keep triggering.
+    onSideRestart() {
+      // make sure we stay pending only once per application
+      (this.effectState as any).pending = true;
+    },
+
+    onSideEnd() {
+      // nothing special
+    },
+  },
+
+
+
 };

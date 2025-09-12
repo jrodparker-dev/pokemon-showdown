@@ -35,7 +35,12 @@ Ratings and how they work:
 export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	noability: {
 		isNonstandard: "Past",
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "No Ability",
 		rating: 0.1,
 		num: 0,
@@ -49,7 +54,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return 2;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Adaptability",
 		rating: 4,
 		num: 91,
@@ -70,7 +80,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onBasePower(basePower, pokemon, target, move) {
 			if (move.typeChangerBoosted === this.effect) return this.chainModify([4915, 4096]);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Aerilate",
 		rating: 4,
 		num: 184,
@@ -82,7 +97,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.damage(source.baseMaxhp / 4, source, target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Aftermath",
 		rating: 2,
 		num: 106,
@@ -94,6 +114,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			((this.effect as any).onStart as (p: Pokemon) => void).call(this, pokemon);
 		},
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			pokemon.abilityState.ending = false; // Clear the ending flag
 			this.eachEvent('WeatherChange', this.effect);
 		},
@@ -102,7 +125,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.eachEvent('WeatherChange', this.effect);
 		},
 		suppressWeather: true,
-		flags: {},
+		
+flags: {},
 		name: "Air Lock",
 		rating: 1.5,
 		num: 76,
@@ -123,7 +147,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([5325, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Analytic",
 		rating: 2.5,
 		num: 148,
@@ -135,7 +164,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: 12 }, target, target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Anger Point",
 		rating: 1,
 		num: 83,
@@ -171,13 +205,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: 1, spa: 1, spe: 1, def: -1, spd: -1 }, target, target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Anger Shell",
 		rating: 3,
 		num: 271,
 	},
 	anticipation: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			for (const target of pokemon.foes()) {
 				for (const moveSlot of target.moveSlots) {
 					const move = this.dex.moves.get(moveSlot.move);
@@ -193,7 +235,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Anticipation",
 		rating: 0.5,
 		num: 107,
@@ -212,7 +255,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.maybeTrapped = true;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Arena Trap",
 		rating: 5,
 		num: 71,
@@ -231,7 +279,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return false;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Armor Tail",
 		rating: 2.5,
 		num: 296,
@@ -246,7 +299,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Aroma Veil",
 		rating: 2,
 		num: 165,
@@ -254,6 +312,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	asoneglastrier: {
 		onSwitchInPriority: 1,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.effectState.unnerved) return;
 			this.add('-ability', pokemon, 'As One');
 			this.add('-ability', pokemon, 'Unnerve');
@@ -270,7 +331,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: length }, source, source, this.dex.abilities.get('chillingneigh'));
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "As One (Glastrier)",
 		rating: 3.5,
 		num: 266,
@@ -278,6 +340,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	asonespectrier: {
 		onSwitchInPriority: 1,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.effectState.unnerved) return;
 			this.add('-ability', pokemon, 'As One');
 			this.add('-ability', pokemon, 'Unnerve');
@@ -294,20 +359,25 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spa: length }, source, source, this.dex.abilities.get('grimneigh'));
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "As One (Spectrier)",
 		rating: 3.5,
 		num: 267,
 	},
 	aurabreak: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.add('-ability', pokemon, 'Aura Break');
 		},
 		onAnyTryPrimaryHit(target, source, move) {
 			if (target === source || move.category === 'Status') return;
 			move.hasAuraBreak = true;
 		},
-		flags: { breakable: 1 },
+		
+flags: { breakable: 1 },
 		name: "Aura Break",
 		rating: 1,
 		num: 188,
@@ -323,13 +393,23 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Bad Dreams",
 		rating: 1.5,
 		num: 123,
 	},
 	ballfetch: {
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Ball Fetch",
 		rating: 0,
 		num: 237,
@@ -342,14 +422,24 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([5325, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Battery",
 		rating: 0,
 		num: 217,
 	},
 	battlearmor: {
 		onCriticalHit: false,
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Battle Armor",
 		rating: 1,
 		num: 4,
@@ -371,13 +461,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				move.multihit = 3;
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "Battle Bond",
 		rating: 3.5,
 		num: 210,
 	},
 	beadsofruin: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.suppressingAbility(pokemon)) return;
 			this.add('-ability', pokemon, 'Beads of Ruin');
 		},
@@ -389,7 +487,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.debug('Beads of Ruin SpD drop');
 			return this.chainModify(0.75);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Beads of Ruin",
 		rating: 4.5,
 		num: 284,
@@ -401,7 +500,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ [bestStat]: length }, source);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Beast Boost",
 		rating: 3.5,
 		num: 224,
@@ -437,7 +541,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spa: 1 }, target, target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Berserk",
 		rating: 2,
 		num: 201,
@@ -452,7 +561,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Big Pecks",
 		rating: 0.5,
 		num: 145,
@@ -472,7 +586,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Blaze",
 		rating: 2,
 		num: 66,
@@ -484,7 +603,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Bulletproof",
 		rating: 3,
 		num: 171,
@@ -493,7 +617,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onEatItem(item, pokemon) {
 			this.heal(pokemon.baseMaxhp / 3);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Cheek Pouch",
 		rating: 2,
 		num: 167,
@@ -504,7 +633,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: length }, source);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Chilling Neigh",
 		rating: 3,
 		num: 264,
@@ -515,7 +649,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(2);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Chlorophyll",
 		rating: 3,
 		num: 34,
@@ -535,7 +674,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add("-fail", target, "unboost", "[from] ability: Clear Body", `[of] ${target}`);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Clear Body",
 		rating: 2,
 		num: 29,
@@ -547,6 +691,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			((this.effect as any).onStart as (p: Pokemon) => void).call(this, pokemon);
 		},
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			pokemon.abilityState.ending = false; // Clear the ending flag
 			this.eachEvent('WeatherChange', this.effect);
 		},
@@ -555,7 +702,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.eachEvent('WeatherChange', this.effect);
 		},
 		suppressWeather: true,
-		flags: {},
+		
+flags: {},
 		name: "Cloud Nine",
 		rating: 1.5,
 		num: 13,
@@ -580,13 +728,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Color Change",
 		rating: 0,
 		num: 16,
 	},
 	comatose: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.add('-ability', pokemon, 'Comatose');
 		},
 		onSetStatus(status, target, source, effect) {
@@ -596,7 +752,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			return false;
 		},
 		// Permanent sleep "status" implemented in the relevant sleep-checking effects
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "Comatose",
 		rating: 4,
 		num: 213,
@@ -607,6 +764,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			((this.effect as any).onUpdate as (p: Pokemon) => void).call(this, this.effectState.target);
 		},
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			((this.effect as any).onUpdate as (p: Pokemon) => void).call(this, pokemon);
 		},
 		onUpdate(pokemon) {
@@ -637,7 +797,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.removeVolatile('commanding');
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1 },
 		name: "Commander",
 		rating: 0,
 		num: 279,
@@ -658,7 +819,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spa: 2 }, target, target, null, false, true);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Competitive",
 		rating: 2.5,
 		num: 172,
@@ -670,7 +836,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.debug('compoundeyes - enhancing accuracy');
 			return this.chainModify([5325, 4096]);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Compound Eyes",
 		rating: 3,
 		num: 14,
@@ -683,14 +854,24 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				boost[i]! *= -1;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Contrary",
 		rating: 4.5,
 		num: 126,
 	},
 	corrosion: {
 		// Implemented in sim/pokemon.js:Pokemon#setStatus
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Corrosion",
 		rating: 2.5,
 		num: 212,
@@ -698,6 +879,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	costar: {
 		onSwitchInPriority: -2,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			const ally = pokemon.allies()[0];
 			if (!ally) return;
 
@@ -717,7 +901,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			this.add('-copyboost', pokemon, ally, '[from] ability: Costar');
 		},
-		flags: {},
+		
+flags: {},
 		name: "Costar",
 		rating: 0,
 		num: 294,
@@ -734,7 +919,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spe: -1 }, pokemon, target, null, true);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Cotton Down",
 		rating: 2,
 		num: 238,
@@ -768,19 +958,28 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			},
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Cud Chew",
 		rating: 2,
 		num: 291,
 	},
 	curiousmedicine: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			for (const ally of pokemon.adjacentAllies()) {
 				ally.clearBoosts();
 				this.add('-clearboost', ally, '[from] ability: Curious Medicine', `[of] ${pokemon}`);
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Curious Medicine",
 		rating: 0,
 		num: 261,
@@ -794,7 +993,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Cursed Body",
 		rating: 2,
 		num: 130,
@@ -807,7 +1011,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Cute Charm",
 		rating: 0.5,
 		num: 56,
@@ -825,13 +1034,23 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return false;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Damp",
 		rating: 0.5,
 		num: 6,
 	},
 	dancer: {
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Dancer",
 		// implemented in runMove in scripts.js
 		rating: 1.5,
@@ -839,6 +1058,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	},
 	darkaura: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.suppressingAbility(pokemon)) return;
 			this.add('-ability', pokemon, 'Dark Aura');
 		},
@@ -849,18 +1071,23 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			if (move.auraBooster !== this.effectState.target) return;
 			return this.chainModify([move.hasAuraBreak ? 3072 : 5448, 4096]);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Dark Aura",
 		rating: 3,
 		num: 186,
 	},
 	dauntlessshield: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.shieldBoost) return;
 			pokemon.shieldBoost = true;
 			this.boost({ def: 1 }, pokemon);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Dauntless Shield",
 		rating: 3.5,
 		num: 235,
@@ -879,7 +1106,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return false;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Dazzling",
 		rating: 2.5,
 		num: 219,
@@ -897,7 +1129,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Defeatist",
 		rating: -1,
 		num: 129,
@@ -918,13 +1155,22 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: 2 }, target, target, null, false, true);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Defiant",
 		rating: 3,
 		num: 128,
 	},
 	deltastream: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.field.setWeather('deltastream');
 		},
 		onAnySetWeather(target, source, weather) {
@@ -942,13 +1188,18 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			this.field.clearWeather();
 		},
-		flags: {},
+		
+flags: {},
 		name: "Delta Stream",
 		rating: 4,
 		num: 191,
 	},
 	desolateland: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.field.setWeather('desolateland');
 		},
 		onAnySetWeather(target, source, weather) {
@@ -966,7 +1217,7 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			this.field.clearWeather();
 		},
-		flags: {},
+flags: {},
 		name: "Desolate Land",
 		rating: 4.5,
 		num: 190,
@@ -1010,7 +1261,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.damage(pokemon.baseMaxhp / 8, pokemon, pokemon, this.dex.species.get(speciesid));
 			}
 		},
-		flags: {
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {
 			failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1,
 			breakable: 1, notransform: 1,
 		},
@@ -1020,6 +1276,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	},
 	download: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			let totaldef = 0;
 			let totalspd = 0;
 			for (const target of pokemon.foes()) {
@@ -1032,7 +1291,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: 1 });
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Download",
 		rating: 3.5,
 		num: 88,
@@ -1052,27 +1312,42 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Dragon's Maw",
 		rating: 3.5,
 		num: 263,
 	},
 	drizzle: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (source.species.id === 'kyogre' && source.item === 'blueorb') return;
 			this.field.setWeather('raindance');
 		},
-		flags: {},
+		
+flags: {},
 		name: "Drizzle",
 		rating: 4,
 		num: 2,
 	},
 	drought: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (source.species.id === 'groudon' && source.item === 'redorb') return;
 			this.field.setWeather('sunnyday');
 		},
-		flags: {},
+		
+flags: {},
 		name: "Drought",
 		rating: 4,
 		num: 70,
@@ -1100,13 +1375,23 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.damage(target.baseMaxhp / 8, target, target);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Dry Skin",
 		rating: 3,
 		num: 87,
 	},
 	earlybird: {
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Early Bird",
 		// Implemented in statuses.js
 		rating: 1.5,
@@ -1121,7 +1406,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Earth Eater",
 		rating: 3.5,
 		num: 297,
@@ -1139,16 +1429,26 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Effect Spore",
 		rating: 2,
 		num: 27,
 	},
 	electricsurge: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.field.setTerrain('electricterrain');
 		},
-		flags: {},
+		
+flags: {},
 		name: "Electric Surge",
 		rating: 4,
 		num: 226,
@@ -1158,59 +1458,80 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onDamagingHit(damage, target, source, move) {
 			target.addVolatile('charge');
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Electromorphosis",
 		rating: 3,
 		num: 280,
 	},
 	embodyaspectcornerstone: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.baseSpecies.name === 'Ogerpon-Cornerstone-Tera' && pokemon.terastallized &&
 				this.effectState.embodied !== pokemon.previouslySwitchedIn) {
 				this.effectState.embodied = pokemon.previouslySwitchedIn;
 				this.boost({ def: 1 }, pokemon);
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
 		name: "Embody Aspect (Cornerstone)",
 		rating: 3.5,
 		num: 304,
 	},
 	embodyaspecthearthflame: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.baseSpecies.name === 'Ogerpon-Hearthflame-Tera' && pokemon.terastallized &&
 				this.effectState.embodied !== pokemon.previouslySwitchedIn) {
 				this.effectState.embodied = pokemon.previouslySwitchedIn;
 				this.boost({ atk: 1 }, pokemon);
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
 		name: "Embody Aspect (Hearthflame)",
 		rating: 3.5,
 		num: 303,
 	},
 	embodyaspectteal: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.baseSpecies.name === 'Ogerpon-Teal-Tera' && pokemon.terastallized &&
 				this.effectState.embodied !== pokemon.previouslySwitchedIn) {
 				this.effectState.embodied = pokemon.previouslySwitchedIn;
 				this.boost({ spe: 1 }, pokemon);
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
 		name: "Embody Aspect (Teal)",
 		rating: 3.5,
 		num: 301,
 	},
 	embodyaspectwellspring: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.baseSpecies.name === 'Ogerpon-Wellspring-Tera' && pokemon.terastallized &&
 				this.effectState.embodied !== pokemon.previouslySwitchedIn) {
 				this.effectState.embodied = pokemon.previouslySwitchedIn;
 				this.boost({ spd: 1 }, pokemon);
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
+	
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
 		name: "Embody Aspect (Wellspring)",
 		rating: 3.5,
 		num: 302,
@@ -1226,13 +1547,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			target.switchFlag = true;
 			this.add('-activate', target, 'ability: Emergency Exit');
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Emergency Exit",
 		rating: 1,
 		num: 194,
 	},
 	fairyaura: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.suppressingAbility(pokemon)) return;
 			this.add('-ability', pokemon, 'Fairy Aura');
 		},
@@ -1243,7 +1572,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			if (move.auraBooster !== this.effectState.target) return;
 			return this.chainModify([move.hasAuraBreak ? 3072 : 5448, 4096]);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Fairy Aura",
 		rating: 3,
 		num: 187,
@@ -1255,7 +1585,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.75);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Filter",
 		rating: 3,
 		num: 111,
@@ -1268,7 +1603,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Flame Body",
 		rating: 2,
 		num: 49,
@@ -1280,7 +1620,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Flare Boost",
 		rating: 2,
 		num: 138,
@@ -1321,7 +1666,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-end', target, 'ability: Flash Fire', '[silent]');
 			},
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Flash Fire",
 		rating: 3.5,
 		num: 18,
@@ -1329,6 +1679,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	flowergift: {
 		onSwitchInPriority: -2,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.singleEvent('WeatherChange', this.effect, this.effectState, pokemon);
 		},
 		onWeatherChange(pokemon) {
@@ -1358,7 +1711,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, breakable: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, breakable: 1 },
 		name: "Flower Gift",
 		rating: 1,
 		num: 122,
@@ -1397,7 +1751,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Flower Veil",
 		rating: 0,
 		num: 166,
@@ -1409,7 +1768,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			if (move.flags['contact']) mod /= 2;
 			return this.chainModify(mod);
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Fluffy",
 		rating: 3.5,
 		num: 218,
@@ -1417,6 +1781,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	forecast: {
 		onSwitchInPriority: -2,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.singleEvent('WeatherChange', this.effect, this.effectState, pokemon);
 		},
 		onWeatherChange(pokemon) {
@@ -1443,13 +1810,17 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.formeChange(forme, this.effect, false, '0', '[msg]');
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
 		name: "Forecast",
 		rating: 2,
 		num: 59,
 	},
 	forewarn: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			let warnMoves: (Move | Pokemon)[][] = [];
 			let warnBp = 1;
 			for (const target of pokemon.foes()) {
@@ -1472,7 +1843,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			const [warnMoveName, warnTarget] = this.sample(warnMoves);
 			this.add('-activate', pokemon, 'ability: Forewarn', warnMoveName, `[of] ${warnTarget}`);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Forewarn",
 		rating: 0.5,
 		num: 108,
@@ -1484,20 +1856,29 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.75);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Friend Guard",
 		rating: 0,
 		num: 132,
 	},
 	frisk: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			for (const target of pokemon.foes()) {
 				if (target.item) {
 					this.add('-item', target, target.getItem().name, '[from] ability: Frisk', `[of] ${pokemon}`);
 				}
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Frisk",
 		rating: 1.5,
 		num: 119,
@@ -1517,7 +1898,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add("-fail", target, "unboost", "[from] ability: Full Metal Body", `[of] ${target}`);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Full Metal Body",
 		rating: 2,
 		num: 230,
@@ -1527,7 +1913,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyDef(def) {
 			return this.chainModify(2);
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Fur Coat",
 		rating: 4,
 		num: 169,
@@ -1536,7 +1927,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyPriority(priority, pokemon, target, move) {
 			if (move?.type === 'Flying' && pokemon.hp === pokemon.maxhp) return priority + 1;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Gale Wings",
 		rating: 1.5,
 		num: 177,
@@ -1557,19 +1953,28 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onBasePower(basePower, pokemon, target, move) {
 			if (move.typeChangerBoosted === this.effect) return this.chainModify([4915, 4096]);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Galvanize",
 		rating: 4,
 		num: 206,
 	},
 	gluttony: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			pokemon.abilityState.gluttony = true;
 		},
 		onDamage(item, pokemon) {
 			pokemon.abilityState.gluttony = true;
 		},
-		flags: {},
+		
+flags: {},
 		name: "Gluttony",
 		rating: 1.5,
 		num: 82,
@@ -1581,7 +1986,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Good as Gold",
 		rating: 5,
 		num: 283,
@@ -1593,13 +2003,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spe: -1 }, source, target, null, true);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Gooey",
 		rating: 2,
 		num: 183,
 	},
 	gorillatactics: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			pokemon.abilityState.choiceLock = "";
 		},
 		onBeforeMove(pokemon, target, move) {
@@ -1636,7 +2054,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onEnd(pokemon) {
 			pokemon.abilityState.choiceLock = "";
 		},
-		flags: {},
+		
+flags: {},
 		name: "Gorilla Tactics",
 		rating: 4.5,
 		num: 255,
@@ -1646,16 +2065,26 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyDef(pokemon) {
 			if (this.field.isTerrain('grassyterrain')) return this.chainModify(1.5);
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Grass Pelt",
 		rating: 0.5,
 		num: 179,
 	},
 	grassysurge: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.field.setTerrain('grassyterrain');
 		},
-		flags: {},
+		
+flags: {},
 		name: "Grassy Surge",
 		rating: 4,
 		num: 229,
@@ -1666,7 +2095,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spa: length }, source);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Grim Neigh",
 		rating: 3,
 		num: 265,
@@ -1684,7 +2118,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: 1 }, target, target, null, false, true);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Guard Dog",
 		rating: 2,
 		num: 275,
@@ -1709,7 +2148,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				source.formeChange(forme, effect);
 			}
 		},
-		flags: { cantsuppress: 1, notransform: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { cantsuppress: 1, notransform: 1 },
 		name: "Gulp Missile",
 		rating: 2.5,
 		num: 241,
@@ -1721,13 +2165,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Guts",
 		rating: 3.5,
 		num: 62,
 	},
 	hadronengine: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (!this.field.setTerrain('electricterrain') && this.field.isTerrain('electricterrain')) {
 				this.add('-activate', pokemon, 'ability: Hadron Engine');
 			}
@@ -1739,7 +2191,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([5461, 4096]);
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Hadron Engine",
 		rating: 4.5,
 		num: 289,
@@ -1756,7 +2209,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Harvest",
 		rating: 2.5,
 		num: 139,
@@ -1772,7 +2230,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Healer",
 		rating: 0,
 		num: 131,
@@ -1797,7 +2260,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return damage / 2;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Heatproof",
 		rating: 2,
 		num: 85,
@@ -1807,13 +2275,23 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyWeight(weighthg) {
 			return weighthg * 2;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Heavy Metal",
 		rating: 0,
 		num: 134,
 	},
 	honeygather: {
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Honey Gather",
 		rating: 0,
 		num: 118,
@@ -1821,11 +2299,15 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	hospitality: {
 		onSwitchInPriority: -2,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			for (const ally of pokemon.adjacentAllies()) {
 				this.heal(ally.baseMaxhp / 4, ally, pokemon);
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Hospitality",
 		rating: 0,
 		num: 299,
@@ -1835,7 +2317,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyAtk(atk) {
 			return this.chainModify(2);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Huge Power",
 		rating: 5,
 		num: 37,
@@ -1847,7 +2334,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			const targetForme = pokemon.species.name === 'Morpeko' ? 'Morpeko-Hangry' : 'Morpeko';
 			pokemon.formeChange(targetForme);
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
 		name: "Hunger Switch",
 		rating: 1,
 		num: 258,
@@ -1864,7 +2356,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([3277, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Hustle",
 		rating: 3.5,
 		num: 55,
@@ -1879,7 +2376,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.cureStatus();
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Hydration",
 		rating: 1.5,
 		num: 93,
@@ -1894,7 +2396,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Hyper Cutter",
 		rating: 1.5,
 		num: 52,
@@ -1908,7 +2415,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onImmunity(type, pokemon) {
 			if (type === 'hail') return false;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Ice Body",
 		rating: 1,
 		num: 115,
@@ -1916,6 +2428,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	iceface: {
 		onSwitchInPriority: -2,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.field.isWeather(['hail', 'snowscape']) && pokemon.species.id === 'eiscuenoice') {
 				this.add('-activate', pokemon, 'ability: Ice Face');
 				this.effectState.busted = false;
@@ -1962,7 +2477,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.formeChange('Eiscue', this.effect, true);
 			}
 		},
-		flags: {
+		
+flags: {
 			failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1,
 			breakable: 1, notransform: 1,
 		},
@@ -1976,7 +2492,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.5);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Ice Scales",
 		rating: 4,
 		num: 246,
@@ -1994,7 +2515,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyMove(move) {
 			move.ignoreEvasion = true;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Illuminate",
 		rating: 0.5,
 		num: 35,
@@ -2035,7 +2561,18 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onFaint(pokemon) {
 			pokemon.illusion = null;
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1 },
+		onStart(pokemon) {
+  let cur;
+  if (pokemon.illusion) {
+    // Show the typing of the disguise instead of the true typing
+    cur = pokemon.illusion.getTypes(true).join('/');
+  } else {
+    cur = pokemon.getTypes(true).join('/');
+  }
+  this.add('-start', pokemon, 'typechange', cur);
+},
+
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1 },
 		name: "Illusion",
 		rating: 4.5,
 		num: 149,
@@ -2054,7 +2591,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			return false;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Immunity",
 		rating: 2,
 		num: 17,
@@ -2070,7 +2612,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.transformInto(target, this.dex.abilities.get('imposter'));
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
 		name: "Imposter",
 		rating: 5,
 		num: 150,
@@ -2079,7 +2626,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyMove(move) {
 			move.infiltrates = true;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Infiltrator",
 		rating: 2.5,
 		num: 151,
@@ -2091,7 +2643,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.damage(target.getUndynamaxedHP(damage), source, target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Innards Out",
 		rating: 4,
 		num: 215,
@@ -2106,7 +2663,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-fail', target, 'unboost', 'Attack', '[from] ability: Inner Focus', `[of] ${target}`);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Inner Focus",
 		rating: 1,
 		num: 39,
@@ -2131,13 +2693,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Insomnia",
 		rating: 1.5,
 		num: 15,
 	},
 	intimidate: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			let activated = false;
 			for (const target of pokemon.adjacentFoes()) {
 				if (!activated) {
@@ -2151,18 +2721,23 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Intimidate",
 		rating: 3.5,
 		num: 22,
 	},
 	intrepidsword: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.swordBoost) return;
 			pokemon.swordBoost = true;
 			this.boost({ atk: 1 }, pokemon);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Intrepid Sword",
 		rating: 4,
 		num: 234,
@@ -2174,7 +2749,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.damage(source.baseMaxhp / 8, source, target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Iron Barbs",
 		rating: 2.5,
 		num: 160,
@@ -2187,7 +2767,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([4915, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Iron Fist",
 		rating: 3,
 		num: 89,
@@ -2198,7 +2783,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: 1 });
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Justified",
 		rating: 2.5,
 		num: 154,
@@ -2216,7 +2806,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyMove(move) {
 			move.ignoreEvasion = true;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Keen Eye",
 		rating: 0.5,
 		num: 51,
@@ -2227,9 +2822,13 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onSwitchInPriority: 1,
 		// Item suppression implemented in Pokemon.ignoringItem() within sim/pokemon.js
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.singleEvent('End', pokemon.getItem(), pokemon.itemState, pokemon);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Klutz",
 		rating: -1,
 		num: 103,
@@ -2249,14 +2848,24 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Leaf Guard",
 		rating: 0.5,
 		num: 102,
 	},
 	levitate: {
 		// airborneness implemented in sim/pokemon.js:Pokemon#isGrounded
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Levitate",
 		rating: 3.5,
 		num: 26,
@@ -2272,7 +2881,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-start', source, 'typechange', type, '[from] ability: Libero');
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Libero",
 		rating: 4,
 		num: 236,
@@ -2281,7 +2895,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyWeight(weighthg) {
 			return this.trunc(weighthg / 2);
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Light Metal",
 		rating: 1,
 		num: 135,
@@ -2306,7 +2925,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.effectState.target;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Lightning Rod",
 		rating: 3,
 		num: 31,
@@ -2325,7 +2949,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			return false;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Limber",
 		rating: 2,
 		num: 7,
@@ -2343,7 +2972,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Lingering Aroma",
 		rating: 2,
 		num: 268,
@@ -2357,7 +2991,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return 0;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Liquid Ooze",
 		rating: 2.5,
 		num: 64,
@@ -2369,7 +3008,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				move.type = 'Water';
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Liquid Voice",
 		rating: 1.5,
 		num: 204,
@@ -2378,7 +3022,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyMove(move) {
 			delete move.flags['contact'];
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Long Reach",
 		rating: 1,
 		num: 203,
@@ -2406,7 +3055,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			move.hasBounced = true; // only bounce once in free-for-all battles
 			return null;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Magic Bounce",
 		rating: 4,
 		num: 156,
@@ -2418,7 +3072,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return false;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Magic Guard",
 		rating: 4,
 		num: 98,
@@ -2442,7 +3101,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Magician",
 		rating: 1,
 		num: 170,
@@ -2457,7 +3121,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onImmunity(type, pokemon) {
 			if (type === 'frz') return false;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Magma Armor",
 		rating: 0.5,
 		num: 40,
@@ -2475,7 +3144,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.maybeTrapped = true;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Magnet Pull",
 		rating: 4,
 		num: 42,
@@ -2487,7 +3161,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Marvel Scale",
 		rating: 2.5,
 		num: 63,
@@ -2499,7 +3178,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Mega Launcher",
 		rating: 3,
 		num: 178,
@@ -2508,7 +3192,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyCritRatio(critRatio, source, target) {
 			if (target && ['psn', 'tox'].includes(target.status)) return 5;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Merciless",
 		rating: 1.5,
 		num: 196,
@@ -2516,6 +3205,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	mimicry: {
 		onSwitchInPriority: -1,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.singleEvent('TerrainChange', this.effect, this.effectState, pokemon);
 		},
 		onTerrainChange(pokemon) {
@@ -2546,7 +3238,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-end', pokemon, 'typechange', '[silent]');
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Mimicry",
 		rating: 0,
 		num: 250,
@@ -2570,7 +3263,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				move.ignoreImmunity['Normal'] = true;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Mind's Eye",
 		rating: 0,
 		num: 300,
@@ -2584,7 +3282,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Minus",
 		rating: 0,
 		num: 58,
@@ -2607,28 +3310,42 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Mirror Armor",
 		rating: 2,
 		num: 240,
 	},
 	mistysurge: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.field.setTerrain('mistyterrain');
 		},
-		flags: {},
+		
+flags: {},
 		name: "Misty Surge",
 		rating: 3.5,
 		num: 228,
 	},
 	moldbreaker: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.add('-ability', pokemon, 'Mold Breaker');
 		},
 		onModifyMove(move) {
 			move.ignoreAbility = true;
 		},
-		flags: {},
+		
+flags: {},
 		name: "Mold Breaker",
 		rating: 3,
 		num: 104,
@@ -2662,7 +3379,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 
 			this.boost(boost, pokemon, pokemon);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Moody",
 		rating: 5,
 		num: 141,
@@ -2676,7 +3398,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Motor Drive",
 		rating: 3,
 		num: 78,
@@ -2687,7 +3414,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: length }, source);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Moxie",
 		rating: 3,
 		num: 153,
@@ -2699,14 +3431,24 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.5);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Multiscale",
 		rating: 3.5,
 		num: 136,
 	},
 	multitype: {
 		// Multitype's type-changing itself is implemented in statuses.js
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "Multitype",
 		rating: 4,
 		num: 121,
@@ -2724,7 +3466,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Mummy",
 		rating: 2,
 		num: 152,
@@ -2741,7 +3488,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				move.ignoreAbility = true;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Mycelium Might",
 		rating: 2,
 		num: 298,
@@ -2824,7 +3576,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			// (once you know a Pokemon has Natural Cure, its cures are always known)
 			if (!pokemon.showCure) pokemon.showCure = undefined;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Natural Cure",
 		rating: 2.5,
 		num: 30,
@@ -2835,7 +3592,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([5120, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Neuroforce",
 		rating: 2.5,
 		num: 233,
@@ -2844,6 +3606,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		// Ability suppression implemented in sim/pokemon.ts:Pokemon#ignoringAbility
 		onSwitchInPriority: 2,
 		onSwitchIn(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+			const base = pokemon.species.types.join('/'); // species types 
+			this.add('-start', pokemon, 'typechange', cur);
 			this.add('-ability', pokemon, 'Neutralizing Gas');
 			pokemon.abilityState.ending = false;
 			const strongWeathers = ['desolateland', 'primordialsea', 'deltastream'];
@@ -2900,7 +3665,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
 		name: "Neutralizing Gas",
 		rating: 3.5,
 		num: 256,
@@ -2916,7 +3682,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			return accuracy;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "No Guard",
 		rating: 4,
 		num: 99,
@@ -2938,7 +3709,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onBasePower(basePower, pokemon, target, move) {
 			if (move.typeChangerBoosted === this.effect) return this.chainModify([4915, 4096]);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Normalize",
 		rating: 0,
 		num: 96,
@@ -2971,7 +3747,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-fail', target, 'unboost', 'Attack', '[from] ability: Oblivious', `[of] ${target}`);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Oblivious",
 		rating: 1.5,
 		num: 12,
@@ -3018,13 +3799,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onEnd() {
 			delete this.effectState.boosts;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Opportunist",
 		rating: 3,
 		num: 290,
 	},
 	orichalcumpulse: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.field.setWeather('sunnyday')) {
 				this.add('-activate', pokemon, 'Orichalcum Pulse', '[source]');
 			} else if (this.field.isWeather('sunnyday')) {
@@ -3038,7 +3827,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([5461, 4096]);
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Orichalcum Pulse",
 		rating: 4.5,
 		num: 288,
@@ -3054,7 +3844,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Overcoat",
 		rating: 2,
 		num: 142,
@@ -3074,7 +3869,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Overgrow",
 		rating: 2,
 		num: 65,
@@ -3100,7 +3900,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-fail', target, 'unboost', 'Attack', '[from] ability: Own Tempo', `[of] ${target}`);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Own Tempo",
 		rating: 1.5,
 		num: 20,
@@ -3119,13 +3924,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return secondaries.filter(effect => effect.volatileStatus === 'flinch');
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Parental Bond",
 		rating: 4.5,
 		num: 185,
 	},
 	pastelveil: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			for (const ally of pokemon.alliesAndSelf()) {
 				if (['psn', 'tox'].includes(ally.status)) {
 					this.add('-activate', pokemon, 'ability: Pastel Veil');
@@ -3157,7 +3970,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			return false;
 		},
-		flags: { breakable: 1 },
+		
+flags: { breakable: 1 },
 		name: "Pastel Veil",
 		rating: 2,
 		num: 257,
@@ -3169,7 +3983,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			source.addVolatile('perishsong');
 			target.addVolatile('perishsong');
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Perish Body",
 		rating: 1,
 		num: 253,
@@ -3192,7 +4011,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-item', target, yourItem, '[from] ability: Pickpocket', `[of] ${source}`);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Pickpocket",
 		rating: 1,
 		num: 124,
@@ -3212,7 +4036,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.add('-item', pokemon, this.dex.items.get(item), '[from] ability: Pickup');
 			pokemon.setItem(item);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Pickup",
 		rating: 0.5,
 		num: 53,
@@ -3233,7 +4062,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onBasePower(basePower, pokemon, target, move) {
 			if (move.typeChangerBoosted === this.effect) return this.chainModify([4915, 4096]);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Pixilate",
 		rating: 4,
 		num: 182,
@@ -3247,7 +4081,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Plus",
 		rating: 0,
 		num: 57,
@@ -3260,7 +4099,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return false;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Poison Heal",
 		rating: 4,
 		num: 90,
@@ -3273,7 +4117,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Poison Point",
 		rating: 1.5,
 		num: 38,
@@ -3286,7 +4135,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				target.addVolatile('confusion');
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1 },
 		name: "Poison Puppeteer",
 		rating: 3,
 		num: 310,
@@ -3301,7 +4155,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Poison Touch",
 		rating: 2,
 		num: 143,
@@ -3315,7 +4174,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			pokemon.formeChange('Zygarde-Complete', this.effect, true);
 			pokemon.formeRegression = true;
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "Power Construct",
 		rating: 5,
 		num: 211,
@@ -3329,7 +4193,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-ability', this.effectState.target, ability, '[from] ability: Power of Alchemy', `[of] ${target}`);
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
 		name: "Power of Alchemy",
 		rating: 0,
 		num: 223,
@@ -3342,7 +4211,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([5325, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Power Spot",
 		rating: 0,
 		num: 249,
@@ -3354,26 +4228,39 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return priority + 1;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Prankster",
 		rating: 4,
 		num: 158,
 	},
 	pressure: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.add('-ability', pokemon, 'Pressure');
 		},
 		onDeductPP(target, source) {
 			if (target.isAlly(source)) return;
 			return 1;
 		},
-		flags: {},
+		
+flags: {},
 		name: "Pressure",
 		rating: 2.5,
 		num: 46,
 	},
 	primordialsea: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.field.setWeather('primordialsea');
 		},
 		onAnySetWeather(target, source, weather) {
@@ -3391,7 +4278,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			this.field.clearWeather();
 		},
-		flags: {},
+		
+flags: {},
 		name: "Primordial Sea",
 		rating: 4.5,
 		num: 189,
@@ -3403,7 +4291,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.75);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Prism Armor",
 		rating: 3,
 		num: 232,
@@ -3414,7 +4307,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			// most of the implementation is in Battle#getTarget
 			move.tracksTarget = move.target !== 'scripted';
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Propeller Tail",
 		rating: 0,
 		num: 239,
@@ -3430,7 +4328,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-start', source, 'typechange', type, '[from] ability: Protean');
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Protean",
 		rating: 4,
 		num: 168,
@@ -3438,6 +4341,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	protosynthesis: {
 		onSwitchInPriority: -2,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.singleEvent('WeatherChange', this.effect, this.effectState, pokemon);
 		},
 		onWeatherChange(pokemon) {
@@ -3497,16 +4403,22 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-end', pokemon, 'Protosynthesis');
 			},
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
 		name: "Protosynthesis",
 		rating: 3,
 		num: 281,
 	},
 	psychicsurge: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.field.setTerrain('psychicterrain');
 		},
-		flags: {},
+		
+flags: {},
 		name: "Psychic Surge",
 		rating: 4,
 		num: 227,
@@ -3525,17 +4437,27 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.5);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Punk Rock",
 		rating: 3.5,
 		num: 244,
 	},
 	purepower: {
-		onModifyAtkPriority: 5,
-		onModifyAtk(atk) {
+		onModifySpAPriority: 5,
+		onModifySpA(spa) {
 			return this.chainModify(2);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Pure Power",
 		rating: 5,
 		num: 74,
@@ -3567,7 +4489,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.5);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Purifying Salt",
 		rating: 4,
 		num: 272,
@@ -3575,6 +4502,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	quarkdrive: {
 		onSwitchInPriority: -2,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.singleEvent('TerrainChange', this.effect, this.effectState, pokemon);
 		},
 		onTerrainChange(pokemon) {
@@ -3633,7 +4563,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-end', pokemon, 'Quark Drive');
 			},
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, notransform: 1 },
 		name: "Quark Drive",
 		rating: 3,
 		num: 282,
@@ -3652,7 +4583,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return false;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Queenly Majesty",
 		rating: 2.5,
 		num: 214,
@@ -3665,7 +4601,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return 0.1;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Quick Draw",
 		rating: 2.5,
 		num: 259,
@@ -3676,7 +4617,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Quick Feet",
 		rating: 2.5,
 		num: 95,
@@ -3688,7 +4634,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.heal(target.baseMaxhp / 16);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Rain Dish",
 		rating: 1.5,
 		num: 44,
@@ -3704,7 +4655,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spe: 1 });
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Rattled",
 		rating: 1,
 		num: 155,
@@ -3718,7 +4674,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-ability', this.effectState.target, ability, '[from] ability: Receiver', `[of] ${target}`);
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
 		name: "Receiver",
 		rating: 0,
 		num: 222,
@@ -3731,7 +4692,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([4915, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Reckless",
 		rating: 3,
 		num: 120,
@@ -3752,7 +4718,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onBasePower(basePower, pokemon, target, move) {
 			if (move.typeChangerBoosted === this.effect) return this.chainModify([4915, 4096]);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Refrigerate",
 		rating: 4,
 		num: 174,
@@ -3761,7 +4732,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onSwitchOut(pokemon) {
 			pokemon.heal(pokemon.baseMaxhp / 3);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Regenerator",
 		rating: 4.5,
 		num: 144,
@@ -3800,7 +4776,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			// Record if the pokemon ate a berry to resist the attack
 			pokemon.abilityState.berryWeaken = weakenBerries.includes(item.name);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Ripen",
 		rating: 2,
 		num: 247,
@@ -3818,14 +4799,24 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Rivalry",
 		rating: 0,
 		num: 79,
 	},
 	rkssystem: {
 		// RKS System's type-changing itself is implemented in statuses.js
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "RKS System",
 		rating: 4,
 		num: 225,
@@ -3837,7 +4828,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				if (this.activeMove.id !== 'struggle') return null;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Rock Head",
 		rating: 3,
 		num: 69,
@@ -3857,7 +4853,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Rocky Payload",
 		rating: 3.5,
 		num: 276,
@@ -3869,13 +4870,23 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.damage(source.baseMaxhp / 8, source, target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Rough Skin",
 		rating: 2.5,
 		num: 24,
 	},
 	runaway: {
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Run Away",
 		rating: 0,
 		num: 50,
@@ -3893,7 +4904,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onImmunity(type, pokemon) {
 			if (type === 'sandstorm') return false;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Sand Force",
 		rating: 2,
 		num: 159,
@@ -3907,7 +4923,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onImmunity(type, pokemon) {
 			if (type === 'sandstorm') return false;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Sand Rush",
 		rating: 3,
 		num: 146,
@@ -3916,16 +4937,26 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onDamagingHit(damage, target, source, move) {
 			this.field.setWeather('sandstorm');
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Sand Spit",
 		rating: 1,
 		num: 245,
 	},
 	sandstream: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.field.setWeather('sandstorm');
 		},
-		flags: {},
+		
+flags: {},
 		name: "Sand Stream",
 		rating: 4,
 		num: 45,
@@ -3942,7 +4973,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([3277, 4096]);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Sand Veil",
 		rating: 1.5,
 		num: 8,
@@ -3963,7 +4999,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: 1 }, this.effectState.target);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Sap Sipper",
 		rating: 3,
 		num: 157,
@@ -3971,6 +5012,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	schooling: {
 		onSwitchInPriority: -1,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.baseSpecies.baseSpecies !== 'Wishiwashi' || pokemon.level < 20 || pokemon.transformed) return;
 			if (pokemon.hp > pokemon.maxhp / 4) {
 				if (pokemon.species.id === 'wishiwashi') {
@@ -3998,7 +5042,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "Schooling",
 		rating: 3,
 		num: 208,
@@ -4018,13 +5063,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-fail', target, 'unboost', 'Attack', '[from] ability: Scrappy', `[of] ${target}`);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Scrappy",
 		rating: 3,
 		num: 113,
 	},
 	screencleaner: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			let activated = false;
 			for (const sideCondition of ['reflect', 'lightscreen', 'auroraveil']) {
 				for (const side of [pokemon.side, ...pokemon.side.foeSidesWithConditions()]) {
@@ -4038,7 +5091,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Screen Cleaner",
 		rating: 2,
 		num: 251,
@@ -4047,7 +5101,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onDamagingHit(damage, target, source, move) {
 			this.field.setTerrain('grassyterrain');
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Seed Sower",
 		rating: 2.5,
 		num: 269,
@@ -4063,7 +5122,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			if (move.self?.chance) move.self.chance *= 2;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Serene Grace",
 		rating: 3.5,
 		num: 32,
@@ -4075,7 +5139,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Shadow Shield",
 		rating: 3.5,
 		num: 231,
@@ -4093,7 +5162,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.maybeTrapped = true;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Shadow Tag",
 		rating: 5,
 		num: 23,
@@ -4106,7 +5180,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Sharpness",
 		rating: 3.5,
 		num: 292,
@@ -4121,7 +5200,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.cureStatus();
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Shed Skin",
 		rating: 3,
 		num: 61,
@@ -4141,14 +5225,24 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onBasePower(basePower, pokemon, target, move) {
 			if (move.hasSheerForce) return this.chainModify([5325, 4096]);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Sheer Force",
 		rating: 3.5,
 		num: 125,
 	},
 	shellarmor: {
 		onCriticalHit: false,
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Shell Armor",
 		rating: 1,
 		num: 75,
@@ -4158,7 +5252,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.debug('Shield Dust prevent secondary');
 			return secondaries.filter(effect => !!effect.self);
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Shield Dust",
 		rating: 2,
 		num: 19,
@@ -4166,6 +5265,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	shieldsdown: {
 		onSwitchInPriority: -1,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.baseSpecies.baseSpecies !== 'Minior' || pokemon.transformed) return;
 			if (pokemon.hp > pokemon.maxhp / 2) {
 				if (pokemon.species.forme !== 'Meteor') {
@@ -4203,7 +5305,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.add('-immune', target, '[from] ability: Shields Down');
 			return null;
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "Shields Down",
 		rating: 3,
 		num: 197,
@@ -4216,7 +5319,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				boost[i]! *= 2;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Simple",
 		rating: 4,
 		num: 86,
@@ -4230,13 +5338,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				delete move.multiaccuracy;
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Skill Link",
 		rating: 3,
 		num: 92,
 	},
 	slowstart: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			pokemon.addVolatile('slowstart');
 		},
 		onEnd(pokemon) {
@@ -4266,7 +5382,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-end', target, 'Slow Start');
 			},
 		},
-		flags: {},
+		
+flags: {},
 		name: "Slow Start",
 		rating: -1,
 		num: 112,
@@ -4277,7 +5394,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(2);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Slush Rush",
 		rating: 3,
 		num: 202,
@@ -4289,7 +5411,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Sniper",
 		rating: 2,
 		num: 97,
@@ -4306,16 +5433,26 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([3277, 4096]);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Snow Cloak",
 		rating: 1.5,
 		num: 81,
 	},
 	snowwarning: {
 		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.field.setWeather('snowscape');
 		},
-		flags: {},
+		
+flags: {},
 		name: "Snow Warning",
 		rating: 4,
 		num: 117,
@@ -4333,7 +5470,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.damage(target.baseMaxhp / 8, target, target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Solar Power",
 		rating: 2,
 		num: 94,
@@ -4345,7 +5487,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.75);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Solid Rock",
 		rating: 3,
 		num: 116,
@@ -4355,7 +5502,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onAnyFaint() {
 			this.boost({ spa: 1 }, this.effectState.target);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Soul-Heart",
 		rating: 3.5,
 		num: 220,
@@ -4372,7 +5524,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-immune', this.effectState.target, '[from] ability: Soundproof');
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Soundproof",
 		rating: 2,
 		num: 43,
@@ -4385,7 +5542,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spe: 1 });
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Speed Boost",
 		rating: 4.5,
 		num: 3,
@@ -4405,14 +5567,24 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(2);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Stakeout",
 		rating: 4.5,
 		num: 198,
 	},
 	stall: {
 		onFractionalPriority: -0.1,
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Stall",
 		rating: -1,
 		num: 100,
@@ -4423,7 +5595,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			// most of the implementation is in Battle#getTarget
 			move.tracksTarget = move.target !== 'scripted';
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Stalwart",
 		rating: 0,
 		num: 242,
@@ -4432,7 +5609,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onDamagingHit(damage, target, source, effect) {
 			this.boost({ def: 1 });
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Stamina",
 		rating: 4,
 		num: 192,
@@ -4445,7 +5627,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			const targetForme = (move.id === 'kingsshield' ? 'Aegislash' : 'Aegislash-Blade');
 			if (attacker.species.name !== targetForme) attacker.formeChange(targetForme);
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "Stance Change",
 		rating: 4,
 		num: 176,
@@ -4458,7 +5645,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Static",
 		rating: 2,
 		num: 9,
@@ -4467,7 +5659,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onFlinch(pokemon) {
 			this.boost({ spe: 1 });
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Steadfast",
 		rating: 1,
 		num: 80,
@@ -4478,7 +5675,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spe: 6 });
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Steam Engine",
 		rating: 2,
 		num: 243,
@@ -4498,7 +5700,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Steelworker",
 		rating: 3.5,
 		num: 200,
@@ -4511,7 +5718,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Steely Spirit",
 		rating: 3.5,
 		num: 252,
@@ -4531,7 +5743,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				});
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Stench",
 		rating: 0.5,
 		num: 1,
@@ -4545,7 +5762,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return false;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Sticky Hold",
 		rating: 1.5,
 		num: 60,
@@ -4570,7 +5792,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.effectState.target;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Storm Drain",
 		rating: 3,
 		num: 114,
@@ -4582,7 +5809,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Strong Jaw",
 		rating: 3.5,
 		num: 173,
@@ -4601,7 +5833,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return target.hp - 1;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Sturdy",
 		rating: 3,
 		num: 5,
@@ -4612,7 +5849,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.add('-activate', pokemon, 'ability: Suction Cups');
 			return null;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Suction Cups",
 		rating: 1,
 		num: 21,
@@ -4621,13 +5863,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyCritRatio(critRatio) {
 			return critRatio + 1;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Super Luck",
 		rating: 1.5,
 		num: 105,
 	},
 	supersweetsyrup: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.syrupTriggered) return;
 			pokemon.syrupTriggered = true;
 			this.add('-ability', pokemon, 'Supersweet Syrup');
@@ -4639,13 +5889,17 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Supersweet Syrup",
 		rating: 1.5,
 		num: 306,
 	},
 	supremeoverlord: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.side.totalFainted) {
 				this.add('-activate', pokemon, 'ability: Supreme Overlord');
 				const fallen = Math.min(pokemon.side.totalFainted, 5);
@@ -4664,7 +5918,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([powMod[this.effectState.fallen], 4096]);
 			}
 		},
-		flags: {},
+		
+flags: {},
 		name: "Supreme Overlord",
 		rating: 4,
 		num: 293,
@@ -4675,7 +5930,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(2);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Surge Surfer",
 		rating: 3,
 		num: 207,
@@ -4695,7 +5955,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Swarm",
 		rating: 2,
 		num: 68,
@@ -4717,7 +5982,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Sweet Veil",
 		rating: 2,
 		num: 175,
@@ -4728,7 +5998,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(2);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Swift Swim",
 		rating: 3,
 		num: 33,
@@ -4748,7 +6023,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			this.add('-activate', source, 'ability: Symbiosis', myItem, `[of] ${pokemon}`);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Symbiosis",
 		rating: 0,
 		num: 180,
@@ -4763,13 +6043,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			// and show messages when activating against it.
 			source.trySetStatus(status, target, { status: status.id, id: 'synchronize' } as Effect);
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Synchronize",
 		rating: 2,
 		num: 28,
 	},
 	swordofruin: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.suppressingAbility(pokemon)) return;
 			this.add('-ability', pokemon, 'Sword of Ruin');
 		},
@@ -4781,13 +6069,17 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.debug('Sword of Ruin Def drop');
 			return this.chainModify(0.75);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Sword of Ruin",
 		rating: 4.5,
 		num: 285,
 	},
 	tabletsofruin: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.suppressingAbility(pokemon)) return;
 			this.add('-ability', pokemon, 'Tablets of Ruin');
 		},
@@ -4799,7 +6091,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.debug('Tablets of Ruin Atk drop');
 			return this.chainModify(0.75);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Tablets of Ruin",
 		rating: 4.5,
 		num: 284,
@@ -4813,7 +6106,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.5);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Tangled Feet",
 		rating: 1,
 		num: 77,
@@ -4825,7 +6123,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ spe: -1 }, source, target, null, true);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Tangling Hair",
 		rating: 2,
 		num: 221,
@@ -4840,7 +6143,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Technician",
 		rating: 3.5,
 		num: 101,
@@ -4852,7 +6160,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Telepathy",
 		rating: 0,
 		num: 140,
@@ -4866,7 +6179,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.field.clearTerrain();
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1 },
 		name: "Teraform Zero",
 		rating: 3,
 		num: 309,
@@ -4880,7 +6198,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onAnyAfterMove() {
 			delete this.effectState.resisted;
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, breakable: 1 },
 		name: "Tera Shell",
 		rating: 3.5,
 		num: 308,
@@ -4894,19 +6217,28 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.formeChange('Terapagos-Terastal', this.effect, true);
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1, notransform: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1, notransform: 1 },
 		name: "Tera Shift",
 		rating: 3,
 		num: 307,
 	},
 	teravolt: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.add('-ability', pokemon, 'Teravolt');
 		},
 		onModifyMove(move) {
 			move.ignoreAbility = true;
 		},
-		flags: {},
+		
+flags: {},
 		name: "Teravolt",
 		rating: 3,
 		num: 164,
@@ -4930,7 +6262,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			return false;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Thermal Exchange",
 		rating: 2.5,
 		num: 270,
@@ -4950,7 +6287,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(0.5);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Thick Fat",
 		rating: 3.5,
 		num: 47,
@@ -4962,7 +6304,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(2);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Tinted Lens",
 		rating: 4,
 		num: 110,
@@ -4982,7 +6329,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Torrent",
 		rating: 2,
 		num: 67,
@@ -4994,7 +6346,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([5325, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Tough Claws",
 		rating: 3.5,
 		num: 181,
@@ -5006,7 +6363,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify(1.5);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Toxic Boost",
 		rating: 3,
 		num: 137,
@@ -5020,7 +6382,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				target.trySetStatus('tox', source);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Toxic Chain",
 		rating: 4.5,
 		num: 305,
@@ -5034,13 +6401,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				side.addSideCondition('toxicspikes', target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Toxic Debris",
 		rating: 3.5,
 		num: 295,
 	},
 	trace: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.effectState.seek = true;
 			// n.b. only affects Hackmons
 			// interaction with No Ability is complicated: https://www.smogon.com/forums/threads/pokemon-sun-moon-battle-mechanics-research.3586701/page-76#post-7790209
@@ -5070,7 +6445,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-ability', pokemon, ability, '[from] ability: Trace', `[of] ${target}`);
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
+		
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1 },
 		name: "Trace",
 		rating: 2.5,
 		num: 36,
@@ -5090,7 +6466,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([5325, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Transistor",
 		rating: 3.5,
 		num: 262,
@@ -5099,13 +6480,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyPriority(priority, pokemon, target, move) {
 			if (move?.flags['heal']) return priority + 3;
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Triage",
 		rating: 3.5,
 		num: 205,
 	},
 	truant: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			pokemon.removeVolatile('truant');
 			if (pokemon.activeTurns && (pokemon.moveThisTurnResult !== undefined || !this.queue.willMove(pokemon))) {
 				pokemon.addVolatile('truant');
@@ -5120,19 +6509,24 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			pokemon.addVolatile('truant');
 		},
 		condition: {},
-		flags: {},
+		
+flags: {},
 		name: "Truant",
 		rating: -1,
 		num: 54,
 	},
 	turboblaze: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			this.add('-ability', pokemon, 'Turboblaze');
 		},
 		onModifyMove(move) {
 			move.ignoreAbility = true;
 		},
-		flags: {},
+		
+flags: {},
 		name: "Turboblaze",
 		rating: 3,
 		num: 163,
@@ -5153,7 +6547,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				boosts['accuracy'] = 0;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Unaware",
 		rating: 4,
 		num: 109,
@@ -5176,7 +6575,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			},
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Unburden",
 		rating: 3.5,
 		num: 84,
@@ -5184,6 +6588,9 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	unnerve: {
 		onSwitchInPriority: 1,
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.effectState.unnerved) return;
 			this.add('-ability', pokemon, 'Unnerve');
 			this.effectState.unnerved = true;
@@ -5194,7 +6601,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onFoeTryEatItem() {
 			return !this.effectState.unnerved;
 		},
-		flags: {},
+		
+flags: {},
 		name: "Unnerve",
 		rating: 1,
 		num: 127,
@@ -5203,13 +6611,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onModifyMove(move) {
 			if (move.flags['contact']) delete move.flags['protect'];
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Unseen Fist",
 		rating: 2,
 		num: 260,
 	},
 	vesselofruin: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (this.suppressingAbility(pokemon)) return;
 			this.add('-ability', pokemon, 'Vessel of Ruin');
 		},
@@ -5221,7 +6637,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.debug('Vessel of Ruin SpA drop');
 			return this.chainModify(0.75);
 		},
-		flags: {},
+		
+flags: {},
 		name: "Vessel of Ruin",
 		rating: 4.5,
 		num: 284,
@@ -5233,7 +6650,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return this.chainModify([4506, 4096]);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Victory Star",
 		rating: 2,
 		num: 162,
@@ -5258,7 +6680,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Vital Spirit",
 		rating: 1.5,
 		num: 72,
@@ -5272,7 +6699,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Volt Absorb",
 		rating: 3.5,
 		num: 10,
@@ -5294,7 +6726,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				target.setAbility(sourceAbility);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Wandering Spirit",
 		rating: 2.5,
 		num: 254,
@@ -5308,7 +6745,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Water Absorb",
 		rating: 3.5,
 		num: 11,
@@ -5349,7 +6791,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			return false;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Water Bubble",
 		rating: 4.5,
 		num: 199,
@@ -5360,7 +6807,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ def: 2 });
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Water Compaction",
 		rating: 1.5,
 		num: 195,
@@ -5379,7 +6831,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 			return false;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Water Veil",
 		rating: 2,
 		num: 41,
@@ -5390,7 +6847,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ def: -1, spe: 2 }, target, target);
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Weak Armor",
 		rating: 1,
 		num: 133,
@@ -5404,7 +6866,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Well-Baked Body",
 		rating: 3.5,
 		num: 273,
@@ -5424,7 +6891,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add("-fail", target, "unboost", "[from] ability: White Smoke", `[of] ${target}`);
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "White Smoke",
 		rating: 2,
 		num: 73,
@@ -5440,7 +6912,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			target.switchFlag = true;
 			this.add('-activate', target, 'ability: Wimp Out');
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Wimp Out",
 		rating: 1,
 		num: 193,
@@ -5458,13 +6935,21 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				pokemon.addVolatile('charge');
 			}
 		},
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Wind Power",
 		rating: 1,
 		num: 277,
 	},
 	windrider: {
 		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
 			if (pokemon.side.sideConditions['tailwind']) {
 				this.boost({ atk: 1 }, pokemon, pokemon);
 			}
@@ -5483,7 +6968,8 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.boost({ atk: 1 }, pokemon, pokemon);
 			}
 		},
-		flags: { breakable: 1 },
+		
+flags: { breakable: 1 },
 		name: "Wind Rider",
 		rating: 3.5,
 		// We do not want Brambleghast to get Infiltrator in Randbats
@@ -5503,7 +6989,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return null;
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, failskillswap: 1, breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, failskillswap: 1, breakable: 1 },
 		name: "Wonder Guard",
 		rating: 5,
 		num: 25,
@@ -5516,7 +7007,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				return 50;
 			}
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Wonder Skin",
 		rating: 2,
 		num: 147,
@@ -5556,7 +7052,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			},
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1 },
 		name: "Zen Mode",
 		rating: 0,
 		num: 161,
@@ -5575,7 +7076,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.effectState.heroMessageDisplayed = true;
 			}
 		},
-		flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1, notransform: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1, failskillswap: 1, cantsuppress: 1, notransform: 1 },
 		name: "Zero to Hero",
 		rating: 5,
 		num: 278,
@@ -5595,7 +7101,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			}
 		},
 		isNonstandard: "CAP",
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Mountaineer",
 		rating: 3,
 		num: -1,
@@ -5628,7 +7139,12 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			move.hasBounced = true; // only bounce once in free-for-all battles
 			return null;
 		},
-		flags: { breakable: 1 },
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: { breakable: 1 },
 		name: "Rebound",
 		rating: 3,
 		num: -2,
@@ -5636,9 +7152,1242 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 	persistent: {
 		isNonstandard: "CAP",
 		// implemented in the corresponding move
-		flags: {},
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
 		name: "Persistent",
 		rating: 3,
 		num: -3,
 	},
+	typesponge: {
+  name: "Type Sponge",
+  shortDesc:
+    "When hit, add the move's type (max 5; reverts on switch). STAB is 2 (2.25 if already 2). When hit by a damaging move: +1 Def if Physical, +1 SpD if Special (max once/turn).",
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/'); // runtime types 
+	const base = pokemon.species.types.join('/'); // species types 
+	this.add('-start', pokemon, 'typechange', cur);
+    (this.effectState as any).lastBoostTurn = -1;
+  },
+
+  // STAB: keep your 2 -> 2.25 behavior
+  onModifySTAB(stab, source, target, move) {
+    if (move.forceSTAB || source.hasType(move.type)) {
+      if (stab === 2) return 2.25;
+      return 2;
+    }
+  },
+
+  // ===== Damaging hits: add type + gated defensive boost =====
+  onDamagingHit(damage, target, source, move) {
+    // 1) Type absorb from this hit
+    const t = this.dex.types.get(move.type)?.name;
+    if (t && t !== '???' && t !== 'Stellar') {
+      if (!target.terastallized && !target.hasAbility('multitype') && !target.hasAbility('rkssystem')) {
+        const cur = target.getTypes();
+        if (!cur.includes(t) && cur.length < 5) {
+          if (!(target as any)._typeSpongeOrig) (target as any)._typeSpongeOrig = cur.slice();
+          const next = cur.concat(t);
+          if (target.setType(next)) {
+            this.add('-start', target, 'typechange', next.join('/'), '[from] ability: Type Sponge');
+          }
+        }
+      }
+    }
+
+    // 2) Defensive boost: once per turn, only for damaging moves
+    if ((this.effectState as any).lastBoostTurn === this.turn) return;
+    if (!move || move.category === 'Status') return;
+
+    if (move.category === 'Physical') {
+      this.boost({def: 1}, target, target, this.effect);
+    } else if (move.category === 'Special') {
+      this.boost({spd: 1}, target, target, this.effect);
+    }
+    (this.effectState as any).lastBoostTurn = this.turn;
+  },
+
+  // ===== Status hits: add type ONLY (no defenses) =====
+  onHit(target, source, move) {
+    if (!move || move.category !== 'Status') return;
+
+    const t = this.dex.types.get(move.type)?.name;
+    if (!t || t === '???' || t === 'Stellar') return;
+
+    if (target.terastallized) return;
+    if (target.hasAbility('multitype') || target.hasAbility('rkssystem')) return;
+
+    const cur = target.getTypes();
+    if (cur.includes(t) || cur.length >= 5) return;
+
+    if (!(target as any)._typeSpongeOrig) {
+      (target as any)._typeSpongeOrig = cur.slice();
+    }
+
+    const next = cur.concat(t);
+    if (target.setType(next)) {
+      this.add('-start', target, 'typechange', next.join('/'), '[from] ability: Type Sponge');
+    }
+  },
+
+  onSwitchOut(pokemon) {
+    const orig: string[] | undefined = (pokemon as any)._typeSpongeOrig;
+    if (!orig) return;
+    if (pokemon.terastallized) return; // respect Tera lock
+    pokemon.setType(orig);
+    this.add('-end', pokemon, 'typechange', '[from] ability: Type Sponge');
+    delete (pokemon as any)._typeSpongeOrig;
+  },
+},
+
+unpredictable: {
+  name: "Unpredictable",
+  shortDesc: "On item loss: +2 Atk/SpA. While frenzied, each time it acts the chosen move is replaced by a random usable one.",
+  rating: 3,
+  onStart(pokemon) { 
+	const cur = pokemon.getTypes(true).join('/'); // runtime types 
+	const base = pokemon.species.types.join('/'); // species types 
+	this.add('-start', pokemon, 'typechange', cur);
+		},
+
+  // ————— trigger frenzy on item loss/consumption —————
+  onAfterUseItem(item, pokemon) {
+    if (pokemon.fainted) return;
+    this.add('-message', `Losing its item has launched ${pokemon.name} into a frenzy!`);
+    this.boost({atk: 2, spa: 2}, pokemon, pokemon, this.effect);
+    (pokemon as any).m ??= {};
+    (pokemon as any).m.unpredictableFrenzy = true;
+    (pokemon as any).m.unpredictableResolving = false;
+  },
+  onTakeItem(item, pokemon) {
+    if (pokemon.fainted) return;
+    this.add('-message', `Losing its item has launched ${pokemon.name} into a frenzy!`);
+    this.boost({atk: 2, spa: 2}, pokemon, pokemon, this.effect);
+    (pokemon as any).m ??= {};
+    (pokemon as any).m.unpredictableFrenzy = true;
+    (pokemon as any).m.unpredictableResolving = false;
+  },
+
+  // optional: clear on switch out; delete this block if you want it to persist
+  onSwitchOut(pokemon) {
+    if ((pokemon as any).m) (pokemon as any).m.unpredictableFrenzy = false;
+  },
+
+  // ————— enforce random cast at execution time (server-side) —————
+  onBeforeMove(pokemon, target, move) {
+    const m = (pokemon as any).m;
+    if (!m?.unpredictableFrenzy) return;         // not active
+    if (m.unpredictableResolving) return;         // prevent recursion
+
+    // Build usable pool (respects Taunt/Disable/Encore/Imprison/Choice/PP)
+    const usable = pokemon.getMoves().filter(ms =>
+      !ms.disabled && (ms.pp ?? 0) > 0 && this.dex.moves.get(ms.id).id !== 'struggle'
+    );
+    if (!usable.length) return;                   // let Struggle happen
+
+    const pick = this.sample(usable);
+    const picked = this.dex.moves.get(pick.id);
+    if (picked.id === move.id) return;            // RNG matched selection → do nothing
+
+    // Announce (optional)
+    this.add('-ability', pokemon, 'Unpredictable');
+    this.add('-message', `${pokemon.name} is in a frenzy and used ${picked.name}!`);
+
+    // Fire the replacement move now; cancel the original
+m.unpredictableResolving = true;
+
+const activeMove = this.dex.getActiveMove(picked);
+
+// ✅ Let the engine pick the legal target; no target arg needed
+this.actions.useMove(activeMove, pokemon);
+
+m.unpredictableResolving = false;
+
+return false; // cancels the originally queued move
+
+  },
+},
+boilingpoint: {
+  name: "Boiling Point",
+  shortDesc:
+    "On switch-in, randomly sets Fire→Boost/Water→Drop or Water→Boost/Fire→Drop. " +
+    "When hit by the boost type: +1 all stats; by the other: -1 all (once/turn).",
+  rating: 3,
+
+  // Pick orientation on entry (also re-pick each time it re-enters)
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/'); // runtime types 
+	const base = pokemon.species.types.join('/'); // species types 
+	this.add('-start', pokemon, 'typechange', cur);
+    const fireBoost = this.randomChance(1, 2);
+    this.effectState.boostType = (fireBoost ? 'Fire' : 'Water');
+    this.effectState.dropType  = (fireBoost ? 'Water' : 'Fire');
+    this.effectState.lastTurn  = -1 as number;
+
+    // Announce mapping (optional)
+    const boost = this.effectState.boostType;
+    const drop  = this.effectState.dropType;
+    this.add('-ability', pokemon, 'Steamflip');
+    this.add('-message', `${pokemon.name}'s Steamflip: ${boost} empowers, ${drop} weakens!`);
+  },
+  onSwitchIn(pokemon) {
+    // Re-randomize each time it comes back in
+    const fireBoost = this.randomChance(1, 2);
+    this.effectState.boostType = (fireBoost ? 'Fire' : 'Water');
+    this.effectState.dropType  = (fireBoost ? 'Water' : 'Fire');
+    this.effectState.lastTurn  = -1 as number;
+
+    const boost = this.effectState.boostType;
+    const drop  = this.effectState.dropType;
+    this.add('-ability', pokemon, 'Steamflip');
+    this.add('-message', `${pokemon.name}'s Steamflip: ${boost} empowers, ${drop} weakens!`);
+  },
+
+  // Apply effects when struck
+  onDamagingHit(damage, target, source, move) {
+    if (!damage) return; // only if it actually dealt damage
+    if (!move || move.category === 'Status') return;
+    if (this.effectState.lastTurn === this.turn) return; // once per turn
+
+    if (move.type === this.effectState.boostType) {
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+      this.add('-message', `${target.name} is empowered by ${move.type}!`);
+      this.effectState.lastTurn = this.turn;
+    } else if (move.type === this.effectState.dropType) {
+      this.boost({atk: -1, def: -1, spa: -1, spd: -1, spe: -1}, target, target, this.effect);
+      this.add('-message', `${target.name} is weakened by ${move.type}...`);
+      this.effectState.lastTurn = this.turn;
+    }
+  },
+},
+
+stronger: {
+  name: "Stronger",
+  shortDesc:
+    "When hit super effectively: +1 all. When hit for resisted damage: -1 all. Neutral hits: 15% chance to +1 all (once/turn).",
+  rating: 3,
+
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/'); // runtime types 
+	const base = pokemon.species.types.join('/'); // species types 
+	this.add('-start', pokemon, 'typechange', cur);
+    (this.effectState as any).lastTurn = -1;
+  },
+
+  onDamagingHit(damage, target, source, move) {
+    if (!damage) return;                         // only if it actually dealt damage
+    if (!move || move.category === 'Status') return;
+    if ((this.effectState as any).lastTurn === this.turn) return; // once per turn
+
+    // Compute effectiveness vs the target's current types (handles dual types)
+    const types = target.getTypes ? target.getTypes() : (target as any).types;
+    let typeMod = 0;
+    for (const t of types) {
+      // Dex.getEffectiveness returns -1 (resist), 0 (neutral), 1 (super), etc.
+      typeMod += this.dex.getEffectiveness(move.type, t);
+    }
+
+    if (typeMod > 0) {
+      // Super-effective → omni-boost
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+      this.add('-message', `${target.name} grew stronger from the super-effective hit!`);
+      (this.effectState as any).lastTurn = this.turn;
+    } else if (typeMod < 0) {
+      // Resisted → omni-drop
+      this.boost({atk: -1, def: -1, spa: -1, spd: -1, spe: -1}, target, target, this.effect);
+      this.add('-message', `${target.name} faltered from the resisted hit...`);
+      (this.effectState as any).lastTurn = this.turn;
+    } else {
+      // Neutral → 15% chance to omni-boost
+      if (this.randomChance(3, 20)) {
+        this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+        this.add('-message', `${target.name} powered up from the blow!`);
+        (this.effectState as any).lastTurn = this.turn;
+      }
+    }
+  },
+},
+ghostlyaura: {
+		onStart(pokemon) {
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+			const base = pokemon.species.types.join('/'); // species types 
+			this.add('-start', pokemon, 'typechange', cur);
+			if (this.suppressingAbility(pokemon)) return;
+			this.add('-ability', pokemon, 'Ghostly Aura');
+		},
+		onAnyBasePowerPriority: 20,
+		onAnyBasePower(basePower, source, target, move) {
+		  if (target === source || move.category === 'Status') return;
+
+		  const isBoosted = (move.type === 'Ghost' || move.type === 'Dark');
+		  const isWeakened = (move.type === 'Fighting' || move.type === 'Fairy');
+		  if (!isBoosted && !isWeakened) return;
+
+		  // Ensure only one Ghostly Aura applies (no stacking with multiple holders)
+		  if (!move.auraBooster?.hasAbility('Ghostly Aura')) {
+		    move.auraBooster = this.effectState.target;
+		  }
+		  if (move.auraBooster !== this.effectState.target) return;
+
+		  // Standard Aura numbers: 5448/4096 ≈ 1.33x, 3072/4096 = 0.75x
+		  const mult = isBoosted
+		    ? (move.hasAuraBreak ? 3072 : 5448)  // Ghost/Dark: boost, Aura Break flips to weaken
+		    : (move.hasAuraBreak ? 5448 : 3072); // Fighting/Fairy: weaken, Aura Break flips to boost
+
+		  return this.chainModify([mult, 4096]);
+},
+		
+flags: {},
+		name: "Ghostly Aura",
+		rating: 3,
+	},
+	endurance: {
+		onDamagingHit(damage, target, source, effect) {
+			this.boost({ spd: 1 });
+		},
+		onStart(pokemon) { 
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+		flags: {},
+		name: "Endurance",
+		rating: 4,
+		num: 192,
+	},
+
+	bipolar: {
+  onDamagingHit(damage, target, source, move) {
+    if (!move || move.category === 'Status') return;
+    if (this.effectState.lastTurn === this.turn) return; // once per turn
+
+    const pool: BoostID[] = ['atk','def','spa','spd','spe'];
+
+    const upChoices = pool.filter(s => target.boosts[s] < 6);
+    const statUp = this.sample(upChoices.length ? upChoices : pool);
+
+    const downChoices = pool.filter(s => s !== statUp && target.boosts[s] > -6);
+    const statDown = this.sample(downChoices.length ? downChoices : pool.filter(s => s !== statUp));
+
+    this.boost({[statUp]: 2}, target, target);
+    this.boost({[statDown]: -1}, target, target);
+
+    this.effectState.lastTurn = this.turn;
+  },
+  onStart(pokemon) { 
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);},
+  name: "Bipolar",
+  shortDesc: "When hit by a damaging move: +2 to a random stat and -1 to a different one (once/turn).",
+  rating: 3,
+},
+wondershield: {
+  name: "Wonder Shield",
+  shortDesc: "When hit by a move, gains permanent immunity to that move's type. Announces immunities each turn.",
+  rating: 3.5,
+
+  // Cosmetic: show current runtime types on entry
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+  },
+
+  // NEW: Per-hit immunity check (fires before each primary hit of multi-hit moves)
+  onTryPrimaryHit(target, source, move) {
+    const t = move?.type as string | undefined;
+    const set = target?.m?.wsImmunities as Set<string> | undefined;
+    if (t && set && set.has(t)) {
+      this.add('-immune', target, '[from] ability: Wonder Shield');
+      return null; // cancel this hit
+    }
+  },
+
+  // (Optional) keep the broader onTryHit for single-hit moves & other edge timings
+  onTryHit(target, source, move) {
+    const t = move?.type as string | undefined;
+    const set = target?.m?.wsImmunities as Set<string> | undefined;
+    if (t && set && set.has(t)) {
+      this.add('-immune', target, '[from] ability: Wonder Shield');
+      return null;
+    }
+  },
+
+  // Learn a new immunity as soon as a damaging hit connects
+  onDamagingHit(damage, target, source, move) {
+    if (!move || move.category === 'Status') return;
+    const t = move.type as string | undefined;
+    if (!t || t === '???' || t === 'Stellar') return;
+
+    // init storage that persists through switching
+    (target as any).m = target.m || {};
+    const set = (target.m.wsImmunities ||= new Set<string>());
+
+    if (!set.has(t)) {
+      set.add(t);
+      this.add('-ability', target, 'Wonder Shield');
+      this.add('-message', `${target.name} became immune to ${t}-type moves!`);
+      // From this point on, subsequent hits of a multi-hit move will be blocked
+      // by onTryPrimaryHit above.
+    }
+  },
+
+  // Start of each turn: announce current immunities (once per turn)
+  onUpdate(pokemon) {
+    const set = pokemon?.m?.wsImmunities as Set<string> | undefined;
+    if (!set || set.size === 0) return;
+    if (pokemon.m.wsLastAnnounceTurn === this.turn) return;
+    pokemon.m.wsLastAnnounceTurn = this.turn;
+    const list = Array.from(set).join('/');
+    this.add('-message', `${pokemon.name} immunities: ${list}`);
+  },
+},
+
+mirageview: {
+  name: "Mirageview",
+  shortDesc:
+    "On 1st switch-in: first damaging hit is negated and Illusion breaks. On later switch-ins: first damaging hit is 0.75× and Illusion breaks.",
+  rating: 4,
+
+  // Arm the correct mode each time this Pokémon enters
+  onBeforeSwitchIn(pokemon) {
+    // Pick a disguise from later, healthy teammates (respecting your Tera exceptions)
+    const pool = pokemon.side.pokemon.filter((p, idx) =>
+      idx > pokemon.position &&
+      !p.fainted &&
+      (!pokemon.terastallized || !['Ogerpon','Terapagos'].includes(p.species.baseSpecies))
+    );
+    pokemon.illusion = pool.length ? this.sample(pool) : null;
+
+    // Per-battle flag: have we already spent the full immunity?
+    const usedImmune = (pokemon as any)._mirageImmuneUsed === true;
+
+    // Fresh volatile to track this stint on the field
+    pokemon.addVolatile('mirageviewstate');
+    const st = pokemon.volatiles['mirageviewstate'] as any;
+    if (st) {
+      st.armed = true;                     // first damaging hit this stint
+      st.mode = usedImmune ? 'reduced' : 'immune'; // decide which benefit we get
+    }
+  },
+
+  onStart(pokemon) {
+    const cur = pokemon.illusion
+      ? pokemon.illusion.getTypes(true).join('/')
+      : pokemon.getTypes(true).join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+  },
+
+  // If mode=immune and armed: negate the very first damaging hit, break Illusion immediately
+  onTryHit(target, source, move) {
+    if (!move || move.category === 'Status') return;
+    const st = target.volatiles['mirageviewstate'] as any;
+    if (!st || !st.armed || st.mode !== 'immune') return;
+
+    st.armed = false;                           // consume for this stint
+    (target as any)._mirageImmuneUsed = true;   // mark immunity used for the battle
+    this.add('-immune', target, '[from] ability: Mirageview');
+
+    if (target.illusion) {
+      const realName = target.species.name;
+      target.illusion = null;
+      this.add('-end', target, 'Illusion');
+      this.add('-formechange', target, realName, '[from] ability: Mirageview');
+    }
+    return null; // negate this hit
+  },
+
+  // If mode=reduced and armed: 0.75x the first damaging hit this stint
+  onSourceModifyDamage(damage, source, target, move) {
+    if (!move || move.category === 'Status') return;
+    const st = target.volatiles['mirageviewstate'] as any;
+    if (st && st.armed && st.mode === 'reduced' && target.illusion) {
+      // Only reduce the specific “breaking” hit (illusion must still be up)
+      return this.chainModify([3072, 4096]); // 0.75x
+    }
+  },
+
+  // When a damaging hit actually connects, if we were in reduced mode and armed, break Illusion now
+  onDamagingHit(_dmg, target, _source, move) {
+    if (!move || move.category === 'Status') return;
+    const st = target.volatiles['mirageviewstate'] as any;
+    if (!target.illusion) return;
+
+    // If we were in reduced mode, this first connecting hit is the one we reduced
+    if (st && st.mode === 'reduced' && st.armed) {
+      st.armed = false; // prevent multi-hit from getting reduced again
+    }
+
+    // Break Illusion on the first connecting damaging hit (immune case already broke in onTryHit)
+    const realName = target.species.name;
+    target.illusion = null;
+    this.add('-end', target, 'Illusion');
+    this.add('-formechange', target, realName, '[from] ability: Mirageview');
+  },
+
+  // Volatile container defaults
+  condition: {
+    onStart() {
+      if (this.effectState.armed === undefined) this.effectState.armed = true;
+      if (this.effectState.mode === undefined) this.effectState.mode = 'immune';
+    },
+  },
+},
+
+
+
+
+resourceful: {
+  name: "Resourceful",
+  shortDesc: "Whenever this Pokémon loses its item, it equips a random item from a curated list.",
+	onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);},
+  onAfterUseItem(item, pokemon) {
+    if (pokemon.fainted || pokemon.item) return;
+    const curatedIds = [
+      'airballoon','assaultvest','blunderpolicy','choicescarf','choiceband','choicespecs',
+      'covertcloak','expertbelt','focussash','heavydutyboots','kingsrock','leftovers','lifeorb',
+      'lightclay','quickclaw','redcard','rockyhelmet','safetygoggles','scopelens','shellbell',
+      'sitrusberry','weaknesspolicy','widelens','wiseglasses','muscleband',
+      'charcoal','mysticwater','magnet','miracleseed','hardstone','sharpbeak','spelltag',
+      'twistedspoon','metalcoat','dragonfang','nevermeltice','softsand','silverpowder',
+      'poisonbarb','blackglasses','pixieplate',
+
+      // Brushes (all 18 types)
+      'normalbrush','firebrush','waterbrush','electricbrush','grassbrush','icebrush',
+      'fightingbrush','poisonbrush','groundbrush','flyingbrush','psychicbrush','bugbrush',
+      'rockbrush','ghostbrush','dragonbrush','darkbrush','steelbrush','fairybrush',
+
+      // Custom items
+      'heavyarmor','typedice','cookies','bulletproofvest','elegantcloth','armoredshell',
+      'fuzzymushroom','adrenalineshot','speedbelt','typedrugs','typebulb',
+    ];
+    const id = this.sample(curatedIds);
+    const newItem = this.dex.items.get(id);
+    if (pokemon.setItem(newItem)) {
+      this.add('-item', pokemon, newItem, '[from] ability: Resourceful');
+    }
+  },
+
+  onTakeItem(item, pokemon, source) {
+    this.add('-ability', pokemon, 'Resourceful');
+    this.effectState.pendingRefill = true;
+  },
+  onAfterMoveSecondarySelf(pokemon, target, move) {
+    if (!this.effectState.pendingRefill) return;
+    this.effectState.pendingRefill = false;
+    if (pokemon.fainted || pokemon.item) return;
+    const curatedIds = [
+      'airballoon','assaultvest','blunderpolicy','choicescarf','choiceband','choicespecs',
+      'covertcloak','expertbelt','focussash','heavydutyboots','kingsrock','leftovers','lifeorb',
+      'lightclay','quickclaw','redcard','rockyhelmet','safetygoggles','scopelens','shellbell',
+      'sitrusberry','weaknesspolicy','widelens','wiseglasses','muscleband',
+      'charcoal','mysticwater','magnet','miracleseed','hardstone','sharpbeak','spelltag',
+      'twistedspoon','metalcoat','dragonfang','nevermeltice','softsand','silverpowder',
+      'poisonbarb','blackglasses','pixieplate',
+      'normalbrush','firebrush','waterbrush','electricbrush','grassbrush','icebrush',
+      'fightingbrush','poisonbrush','groundbrush','flyingbrush','psychicbrush','bugbrush',
+      'rockbrush','ghostbrush','dragonbrush','darkbrush','steelbrush','fairybrush',
+      'heavyarmor','typedice','cookies','bulletproofvest','elegantcloth','armoredshell',
+      'fuzzymushroom','adrenalineshot','speedbelt','typedrugs','typebulb',
+    ];
+    const id = this.sample(curatedIds);
+    const newItem = this.dex.items.get(id);
+    if (pokemon.setItem(newItem)) {
+      this.add('-item', pokemon, newItem, '[from] ability: Resourceful');
+    }
+  },
+
+  onUpdate(pokemon) {
+    if (pokemon.item) return;
+    if (this.effectState.checkedTurn === this.turn) return;
+    this.effectState.checkedTurn = this.turn;
+    const curatedIds = [
+      'airballoon','assaultvest','blunderpolicy','choicescarf','choiceband','choicespecs',
+      'covertcloak','expertbelt','focussash','heavydutyboots','kingsrock','leftovers','lifeorb',
+      'lightclay','quickclaw','redcard','rockyhelmet','safetygoggles','scopelens','shellbell',
+      'sitrusberry','weaknesspolicy','widelens','wiseglasses','muscleband',
+      'charcoal','mysticwater','magnet','miracleseed','hardstone','sharpbeak','spelltag',
+      'twistedspoon','metalcoat','dragonfang','nevermeltice','softsand','silverpowder',
+      'poisonbarb','blackglasses','pixieplate',
+      'normalbrush','firebrush','waterbrush','electricbrush','grassbrush','icebrush',
+      'fightingbrush','poisonbrush','groundbrush','flyingbrush','psychicbrush','bugbrush',
+      'rockbrush','ghostbrush','dragonbrush','darkbrush','steelbrush','fairybrush',
+      'heavyarmor','typedice','cookies','bulletproofvest','elegantcloth','armoredshell',
+      'fuzzymushroom','adrenalineshot','speedbelt','typedrugs','typebulb',
+    ];
+    const id = this.sample(curatedIds);
+    const newItem = this.dex.items.get(id);
+    if (pokemon.setItem(newItem)) {
+      this.add('-item', pokemon, newItem, '[from] ability: Resourceful');
+    }
+  },
+
+  rating: 3,
+},
+blastfurnace: {
+  name: "Blast Furnace",
+  shortDesc: "When hit by Fire: +3 random stat. After 5 hits: deal fixed 500 to foes, faint, then set Burning Field on both sides.",
+
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+    (pokemon as any).m ||= {};
+    pokemon.m.bfHits = 0;
+    pokemon.m.bfExploding = false;
+  },
+
+  onDamagingHit(damage, target, source, move) {
+    if (!move || move.category === 'Status') return;
+    if (move.type !== 'Fire') return;
+
+    // +3 to a random non-capped stat (fallback to any if all capped)
+    const pool: BoostID[] = ['atk','def','spa','spd','spe'];
+    const upChoices = pool.filter(s => target.boosts[s] < 6);
+    const statUp = this.sample(upChoices.length ? upChoices : pool);
+    this.boost({[statUp]: 3}, target, target);
+
+    // Count Fire hits
+    target.m.bfHits = (target.m.bfHits || 0) + 1;
+
+    // Trigger at 3 Fire hits
+    if (target.m.bfHits >= 3 && !target.m.bfExploding) {
+      target.m.bfExploding = true;
+      this.add('-activate', target, 'ability: Blast Furnace');
+
+      // Fixed 500 direct damage to each opposing active (ignores abilities/screens/typing)
+      const foes = target.side.foe.active;
+      for (const foe of foes) {
+        if (!foe || foe.fainted) continue;
+        this.damage(500, foe, target); // direct HP loss, not a calculated move
+      }
+
+      // Apply Burning Field to BOTH sides
+      const sides = [target.side, target.side.foe];
+      for (const side of sides) {
+        if (!side.getSideCondition('burningfield')) {
+          side.addSideCondition('burningfield');
+        }
+      }
+
+      // Faint the user after the blast
+      if (!target.fainted) {
+        this.add('-message', target.name + "'s Blast Furnace detonated!");
+        target.faint();
+      }
+
+      // Reset for potential future cycles
+      target.m.bfHits = 0;
+      target.m.bfExploding = false;
+    }
+  },
+
+  // If you prefer to reset on switch, uncomment:
+  // onSwitchOut(pokemon) { if (pokemon?.m) pokemon.m.bfHits = 0; },
+
+  rating: 4,
+},
+staticcollapse: {
+  name: "Static Collapse",
+  shortDesc: "On switch-in, randomly sets Electric→Boost/Ground→Drop or vice versa. When hit by the boost type: +1 all; by the other: -1 all (once/turn).",
+  rating: 3,
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Electric' : 'Ground';
+    this.effectState.dropType  = pick ? 'Ground'   : 'Electric';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Static Collapse');
+    this.add('-message', `${pokemon.name}'s Static Collapse: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onSwitchIn(pokemon) {
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Electric' : 'Ground';
+    this.effectState.dropType  = pick ? 'Ground'   : 'Electric';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Static Collapse');
+    this.add('-message', `${pokemon.name}'s Static Collapse: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onDamagingHit(damage, target, source, move) {
+    if (!damage || !move || move.category === 'Status') return;
+    if (this.effectState.lastTurn === this.turn) return;
+    if (move.type === this.effectState.boostType) {
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+      this.add('-message', `${target.name} is empowered by ${move.type}!`);
+      this.effectState.lastTurn = this.turn;
+    } else if (move.type === this.effectState.dropType) {
+      this.boost({atk: -1, def: -1, spa: -1, spd: -1, spe: -1}, target, target, this.effect);
+      this.add('-message', `${target.name} is weakened by ${move.type}...`);
+      this.effectState.lastTurn = this.turn;
+    }
+  },
+},
+
+thawbloom: {
+  name: "Thaw Bloom",
+  shortDesc: "On switch-in, randomly sets Grass→Boost/Ice→Drop or vice versa. When hit by the boost type: +1 all; by the other: -1 all (once/turn).",
+  rating: 3,
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Grass' : 'Ice';
+    this.effectState.dropType  = pick ? 'Ice'   : 'Grass';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Thaw Bloom');
+    this.add('-message', `${pokemon.name}'s Thaw Bloom: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onSwitchIn(pokemon) {
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Grass' : 'Ice';
+    this.effectState.dropType  = pick ? 'Ice'   : 'Grass';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Thaw Bloom');
+    this.add('-message', `${pokemon.name}'s Thaw Bloom: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onDamagingHit(damage, target, source, move) {
+    if (!damage || !move || move.category === 'Status') return;
+    if (this.effectState.lastTurn === this.turn) return;
+    if (move.type === this.effectState.boostType) {
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+      this.add('-message', `${target.name} is empowered by ${move.type}!`);
+      this.effectState.lastTurn = this.turn;
+    } else if (move.type === this.effectState.dropType) {
+      this.boost({atk: -1, def: -1, spa: -1, spd: -1, spe: -1}, target, target, this.effect);
+      this.add('-message', `${target.name} is weakened by ${move.type}...`);
+      this.effectState.lastTurn = this.turn;
+    }
+  },
+},
+
+mythicbalance: {
+  name: "Mythic Balance",
+  shortDesc: "On switch-in, randomly sets Dragon→Boost/Fairy→Drop or vice versa. When hit by the boost type: +1 all; by the other: -1 all (once/turn).",
+  rating: 3,
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Dragon' : 'Fairy';
+    this.effectState.dropType  = pick ? 'Fairy'  : 'Dragon';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Mythic Balance');
+    this.add('-message', `${pokemon.name}'s Mythic Balance: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onSwitchIn(pokemon) {
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Dragon' : 'Fairy';
+    this.effectState.dropType  = pick ? 'Fairy'  : 'Dragon';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Mythic Balance');
+    this.add('-message', `${pokemon.name}'s Mythic Balance: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onDamagingHit(damage, target, source, move) {
+    if (!damage || !move || move.category === 'Status') return;
+    if (this.effectState.lastTurn === this.turn) return;
+    if (move.type === this.effectState.boostType) {
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+      this.add('-message', `${target.name} is empowered by ${move.type}!`);
+      this.effectState.lastTurn = this.turn;
+    } else if (move.type === this.effectState.dropType) {
+      this.boost({atk: -1, def: -1, spa: -1, spd: -1, spe: -1}, target, target, this.effect);
+      this.add('-message', `${target.name} is weakened by ${move.type}...`);
+      this.effectState.lastTurn = this.turn;
+    }
+  },
+},
+
+zenfury: {
+  name: "Zen Fury",
+  shortDesc: "On switch-in, randomly sets Fighting→Boost/Psychic→Drop or vice versa. When hit by the boost type: +1 all; by the other: -1 all (once/turn).",
+  rating: 3,
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Fighting' : 'Psychic';
+    this.effectState.dropType  = pick ? 'Psychic'  : 'Fighting';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Zen Fury');
+    this.add('-message', `${pokemon.name}'s Zen Fury: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onSwitchIn(pokemon) {
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Fighting' : 'Psychic';
+    this.effectState.dropType  = pick ? 'Psychic'  : 'Fighting';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Zen Fury');
+    this.add('-message', `${pokemon.name}'s Zen Fury: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onDamagingHit(damage, target, source, move) {
+    if (!damage || !move || move.category === 'Status') return;
+    if (this.effectState.lastTurn === this.turn) return;
+    if (move.type === this.effectState.boostType) {
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+      this.add('-message', `${target.name} is empowered by ${move.type}!`);
+      this.effectState.lastTurn = this.turn;
+    } else if (move.type === this.effectState.dropType) {
+      this.boost({atk: -1, def: -1, spa: -1, spd: -1, spe: -1}, target, target, this.effect);
+      this.add('-message', `${target.name} is weakened by ${move.type}...`);
+      this.effectState.lastTurn = this.turn;
+    }
+  },
+},
+
+twilightharmony: {
+  name: "Twilight Harmony",
+  shortDesc: "On switch-in, randomly sets Dark→Boost/Fairy→Drop or vice versa. When hit by the boost type: +1 all; by the other: -1 all (once/turn).",
+  rating: 3,
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Dark' : 'Fairy';
+    this.effectState.dropType  = pick ? 'Fairy' : 'Dark';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Twilight Harmony');
+    this.add('-message', `${pokemon.name}'s Twilight Harmony: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onSwitchIn(pokemon) {
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Dark' : 'Fairy';
+    this.effectState.dropType  = pick ? 'Fairy' : 'Dark';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Twilight Harmony');
+    this.add('-message', `${pokemon.name}'s Twilight Harmony: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onDamagingHit(damage, target, source, move) {
+    if (!damage || !move || move.category === 'Status') return;
+    if (this.effectState.lastTurn === this.turn) return;
+    if (move.type === this.effectState.boostType) {
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+      this.add('-message', `${target.name} is empowered by ${move.type}!`);
+      this.effectState.lastTurn = this.turn;
+    } else if (move.type === this.effectState.dropType) {
+      this.boost({atk: -1, def: -1, spa: -1, spd: -1, spe: -1}, target, target, this.effect);
+      this.add('-message', `${target.name} is weakened by ${move.type}...`);
+      this.effectState.lastTurn = this.turn;
+    }
+  },
+},
+
+corrosioncore: {
+  name: "Corrosion Core",
+  shortDesc: "On switch-in, randomly sets Steel→Boost/Poison→Drop or vice versa. When hit by the boost type: +1 all; by the other: -1 all (once/turn).",
+  rating: 3,
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Steel' : 'Poison';
+    this.effectState.dropType  = pick ? 'Poison' : 'Steel';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Corrosion Core');
+    this.add('-message', `${pokemon.name}'s Corrosion Core: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onSwitchIn(pokemon) {
+    const pick = this.randomChance(1, 2);
+    this.effectState.boostType = pick ? 'Steel' : 'Poison';
+    this.effectState.dropType  = pick ? 'Poison' : 'Steel';
+    this.effectState.lastTurn  = -1 as number;
+    this.add('-ability', pokemon, 'Corrosion Core');
+    this.add('-message', `${pokemon.name}'s Corrosion Core: ${this.effectState.boostType} empowers, ${this.effectState.dropType} weakens!`);
+  },
+  onDamagingHit(damage, target, source, move) {
+    if (!damage || !move || move.category === 'Status') return;
+    if (this.effectState.lastTurn === this.turn) return;
+    if (move.type === this.effectState.boostType) {
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+      this.add('-message', `${target.name} is empowered by ${move.type}!`);
+      this.effectState.lastTurn = this.turn;
+    } else if (move.type === this.effectState.dropType) {
+      this.boost({atk: -1, def: -1, spa: -1, spd: -1, spe: -1}, target, target, this.effect);
+      this.add('-message', `${target.name} is weakened by ${move.type}...`);
+      this.effectState.lastTurn = this.turn;
+    }
+  },
+},
+
+pinata: {
+  name: "Pinata",
+  shortDesc:
+    "When this Pokémon faints, it scatters a random assortment of hazards (Stealth Rock, Spikes, Toxic Spikes, Sticky Web) onto the opposing side.",
+  rating: 3,
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+  },
+
+  onFaint(pokemon) {
+    const foeSide = pokemon.side.foe;
+    const hazards = ['spikes', 'toxicspikes', 'stealthrock', 'stickyweb'];
+
+    for (const h of hazards) {
+      let max = 1;
+      if (h === 'spikes') max = 3;
+      if (h === 'toxicspikes') max = 2;
+
+      // Pick random number of layers (0..max)
+      const layers = this.random(max + 1);
+
+      for (let i = 0; i < layers; i++) {
+        foeSide.addSideCondition(h, pokemon);
+      }
+    }
+
+    this.add('-message', `${pokemon.name}'s Piñata scattered hazards everywhere!`);
+  },
+},
+berrymaster: {
+  name: "Berry Master",
+  shortDesc: "Ripen + Gluttony + Cud Chew + Cheek Pouch.",
+
+  // --- Gluttony flag (used by item/berry checks in PS) ---
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+    pokemon.abilityState.gluttony = true;
+  },
+  onDamage(_damage, pokemon) {
+    // preserve your gluttony flag refresh
+    pokemon.abilityState.gluttony = true;
+  },
+
+  // --- Cheek Pouch heal + Cud Chew bookkeeping + Ripen weaken tracking ---
+  onEatItem(item, pokemon) {
+  if (!item.isBerry) return;
+
+  // Cheek Pouch: heal 1/3 max HP
+  this.heal(pokemon.baseMaxhp / 3);
+
+  // Ripen: remember if it was a resist berry
+  const weakenBerries = [
+    'Babiri Berry','Charti Berry','Chilan Berry','Chople Berry','Coba Berry','Colbur Berry',
+    'Haban Berry','Kasib Berry','Kebia Berry','Occa Berry','Passho Berry','Payapa Berry',
+    'Rindo Berry','Roseli Berry','Shuca Berry','Tanga Berry','Wacan Berry','Yache Berry',
+  ];
+  pokemon.abilityState.berryWeaken = weakenBerries.includes(item.name);
+
+  // Cud Chew: if this eat is a REPLAY, don't schedule another; otherwise arm 2-turn timer
+  const m = (pokemon as any).m ?? ((pokemon as any).m = {});
+  if (!m.bmCudReplay) {
+    m.bmCud = { berry: item, dur: 2 };
+  }
+},
+
+  // --- Ripen: double heals from berries; announce like your version ---
+  onTryHeal(damage, target, _source, effect) {
+    if (!effect) return;
+    if (effect.name === 'Berry Juice' || effect.name === 'Leftovers') {
+      this.add('-activate', target, 'ability: Ripen');
+    }
+    if ((effect as Item).isBerry) return this.chainModify(2);
+  },
+
+  // --- Ripen: double stat boosts from berries ---
+  onChangeBoost(boost, _target, _source, effect) {
+    if (effect && (effect as Item).isBerry) {
+      let b: BoostID;
+      for (b in boost) boost[b]! *= 2;
+    }
+  },
+
+  // --- Ripen: if a resist berry weakened this hit, halve again (→ 1/4 total) ---
+  onSourceModifyDamagePriority: -1,
+  onSourceModifyDamage(damage, source, target, move) {
+    if (target.abilityState.berryWeaken) {
+      target.abilityState.berryWeaken = false;
+      return this.chainModify(0.5);
+    }
+  },
+
+  // --- Ripen's announce when a berry is about to be eaten (kept from your code) ---
+  onTryEatItemPriority: -1,
+  onTryEatItem(item, pokemon) {
+    this.add('-activate', pokemon, 'ability: Ripen');
+  },
+
+  // --- Cud Chew: re-eat the same berry when the 2-turn volatile ends ---
+  // (implemented with simple per-mon state to avoid separate Condition object)
+  onResidualOrder: 28,
+onResidualSubOrder: 2,
+onResidual(pokemon) {
+  const m = (pokemon as any).m;
+  const state = m?.bmCud;
+  if (!state) return;
+
+  state.dur--;
+  if (state.dur > 0) return;
+
+  // consume the pending replay
+  delete m.bmCud;
+  if (!pokemon.hp) return;
+
+  const item: Item | undefined = state.berry;
+  if (!item) return;
+
+  // Mark this eat as a replay so onEatItem won't re-arm another Cud Chew
+  m.bmCudReplay = true;
+
+  this.add('-activate', pokemon, 'ability: Cud Chew');
+  this.add('-enditem', pokemon, item.name, '[eat]');
+
+  if (this.singleEvent('Eat', item, null, pokemon, null, null)) {
+    this.runEvent('EatItem', pokemon, null, null, item);
+  }
+  if (item.onEat) pokemon.ateBerry = true;
+
+  // Clear the replay flag so future (new) berries can schedule again
+  delete m.bmCudReplay;
+},
+},
+
+wonderwheel: {
+  name: "Wonder Wheel",
+  shortDesc: "Each turn picks one of the user's weaknesses. If it has only one weakness, that type does 1/2 damage; otherwise, the chosen type is immune.",
+  flags: {breakable: 1},
+
+  // Roll on switch-in and announce
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+    const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+
+    const TYPES: string[] = [
+      'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground',
+      'Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
+    ];
+
+    // Pick only true weaknesses and exclude anything already immune this turn
+    const weakTo = TYPES.filter(t => {
+      // Exclude existing immunities:
+      // - Type-chart immunities (e.g., Fighting->Ghost, Normal->Ghost, etc.)
+      // - Ground when not grounded (Flying, Levitate, Magnet Rise, Air Balloon, etc.)
+      if (!this.dex.getImmunity(t as any, pokemon)) return false;      // already immune
+      if (t === 'Ground' && !pokemon.isGrounded()) return false;       // airborne/levitating
+      return this.dex.getEffectiveness(t as any, pokemon) > 0;         // keep only weaknesses
+    });
+
+    const m = ((pokemon as any).m ??= {});
+
+    if (weakTo.length) {
+      const chosen = this.sample(weakTo) as string;
+      m.wonderWheelType = chosen;
+      m.wonderWheelHalf = (weakTo.length === 1); // exactly one weakness => halve instead of immune
+
+      if (m.wonderWheelHalf) {
+        this.add('-message', `${pokemon.name} is shrouded in a wondrous veil and ${chosen}-type moves deal half damage this turn!`);
+      } else {
+        this.add('-message', `${pokemon.name} is shrouded in a wondrous veil and is immune to ${chosen}-type moves this turn!`);
+      }
+    } else {
+      m.wonderWheelType = undefined;
+      m.wonderWheelHalf = false;
+      this.add('-message', `${pokemon.name} is shrouded in a wondrous veil!`);
+    }
+  },
+
+  // Re-roll at the end of every turn
+  onResidualOrder: 27,
+  onResidual(pokemon) {
+    if (!pokemon.hp) return;
+
+    const TYPES: string[] = [
+      'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground',
+      'Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
+    ];
+
+    const weakTo = TYPES.filter(t => {
+      if (!this.dex.getImmunity(t as any, pokemon)) return false;      // already immune
+      if (t === 'Ground' && !pokemon.isGrounded()) return false;       // airborne/levitating
+      return this.dex.getEffectiveness(t as any, pokemon) > 0;         // keep only weaknesses
+    });
+
+    const m = ((pokemon as any).m ??= {});
+
+    if (!weakTo.length) {
+      m.wonderWheelType = undefined;
+      m.wonderWheelHalf = false;
+      return;
+    }
+
+    const chosen = this.sample(weakTo) as string;
+    m.wonderWheelType = chosen;
+    m.wonderWheelHalf = (weakTo.length === 1);
+
+    if (m.wonderWheelHalf) {
+      this.add('-message', `${pokemon.name}'s Wonder Wheel shifts — ${chosen}-type moves deal half damage this turn!`);
+    } else {
+      this.add('-message', `${pokemon.name}'s Wonder Wheel shifts — ${chosen}-type moves are negated this turn!`);
+    }
+  },
+
+  // Immunity when multiple weaknesses (chosen type) and not the half case
+  onTryHit(target, _source, move) {
+    if (!move || !move.type) return;
+    const m = (target as any).m || {};
+    const chosen = m.wonderWheelType as string | undefined;
+    const half = !!m.wonderWheelHalf;
+    if (!chosen || move.type !== chosen) return;
+    if (half) return; // half-damage case handled below
+    this.add('-immune', target, '[from] ability: Wonder Wheel');
+    return null;
+  },
+
+  // Half damage when there is exactly one weakness
+  onSourceModifyDamage(damage, _source, target, move) {
+    const m = (target as any).m || {};
+    const chosen = m.wonderWheelType as string | undefined;
+    if (!m.wonderWheelHalf || !chosen) return;
+    if (!move || move.category === 'Status' || move.type !== chosen) return;
+    return this.chainModify(0.5);
+  },
+},
+
+
+
+kpopsinger: {
+  name: "Kpop Singer",
+  shortDesc: "Each end of turn: user +1 to three random stats; opposing actives +1 to one random stat.",
+  rating: 5,
+
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+  },
+
+  onBasePowerPriority: 7,
+  onBasePower(basePower, attacker, defender, move) {
+    if (move.flags['sound']) {
+      this.debug('Punk Rock boost');
+      return this.chainModify([5325, 4096]);
+    }
+  },
+  onSourceModifyDamage(damage, source, target, move) {
+    if (move.flags['sound']) {
+      this.debug('Punk Rock weaken');
+      return this.chainModify(0.5);
+    }
+  },
+
+  // End-of-turn pulse
+  onResidualOrder: 27,
+  onResidual(pokemon) {
+    if (!pokemon.hp) return;
+
+    const pool: BoostID[] = ['atk','def','spa','spd','spe'];
+
+    // Iterate over all currently active Pokémon (both sides)
+    for (const side of this.sides) {
+      for (const mon of side.active) {
+        if (!mon || !mon.hp) continue;
+
+        const boosts: Partial<BoostsTable> = {};
+
+        // User's side gets 3 random +1s; everyone else gets 1 random +1
+        
+        const draws = (mon.side === pokemon.side) ? 3 : 1;
+
+        for (let i = 0; i < draws; i++) {
+          const stat = this.sample(pool);
+          boosts[stat] = (boosts[stat] || 0) + 1;
+        }
+
+        this.boost(boosts, mon, pokemon, this.effect);
+        this.add('-message', `${mon.name} was hyped up by Kpop Singer!`);
+      }
+    }
+  },
+},
+
+hazyaura: {
+  name: "Hazy Aura",
+  shortDesc: "On switch-in, clears stat boosts of adjacent foes.",
+  rating: 3,
+
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+
+    for (const foe of pokemon.adjacentFoes()) {
+      foe.clearBoosts();
+      this.add('-clearboost', foe, '[from] ability: Hazy Aura', `[of] ${pokemon}`);
+    }
+  },
+},
+
+farmer: {
+	name: "Farmer",
+	rating: 5,
+	onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+	this.field.setWeather('sunnyday');
+	},
+	onResidualOrder: 28,
+		onResidualSubOrder: 2,
+		onResidual(pokemon) {
+			if (this.field.isWeather(['sunnyday', 'desolateland']) || this.randomChance(1, 2)) {
+				if (pokemon.hp && !pokemon.item && this.dex.items.get(pokemon.lastItem).isBerry) {
+					pokemon.setItem(pokemon.lastItem);
+					pokemon.lastItem = '';
+					this.add('-item', pokemon, pokemon.getItem(), '[from] ability: Harvest');
+				}
+			}
+		},
+},
+poisonmaster: {
+	name: "Poison Master",
+	shortDesc: "Contact moves used or received have a 30% chance to poison. Always crit poisoned targets",
+	rating: 4,
+	onStart(pokemon) { 
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+		},
+	onDamagingHit(damage, target, source, move) {
+			if (this.checkMoveMakesContact(move, source, target)) {
+				if (this.randomChance(3, 10)) {
+					source.trySetStatus('psn', target);
+				}
+			}
+		},
+	onSourceDamagingHit(damage, target, source, move) {
+			// Despite not being a secondary, Shield Dust / Covert Cloak block Poison Touch's effect
+			if (target.hasAbility('shielddust') || target.hasItem('covertcloak')) return;
+			if (this.checkMoveMakesContact(move, target, source)) {
+				if (this.randomChance(3, 10)) {
+					target.trySetStatus('psn', source);
+				}
+			}
+		},
+	onModifyCritRatio(critRatio, source, target) {
+			if (target && ['psn', 'tox'].includes(target.status)) return 5;
+		},
+
+}
+
+
+
+
+
 };

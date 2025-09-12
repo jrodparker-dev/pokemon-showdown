@@ -7692,4 +7692,1319 @@ export const Items: import('../sim/dex-items').ItemDataTable = {
 		gen: 8,
 		isNonstandard: "CAP",
 	},
-};
+	cookies: {
+  name: "Cookies",
+  shortDesc:
+    "End of each turn: heal ramps (1/16→1/8→1/4→1/2), then -1 Spe. At Spe ≤ -3, becomes Truant. After 8 turns on the field total, the holder faints.",
+  fling: { basePower: 50 },
+
+  onModifyMove(move, pokemon) {
+    if (move.id !== 'fling') return;
+    move.willCrit = true; // force crit on Fling
+  },
+
+  // Initialize counters on first entry only (do not reset on switch-ins)
+  onStart(pokemon) {
+    const ist = (pokemon.itemState ??= {} as any);
+    if (ist.rampedHealStage == null) ist.rampedHealStage = 0; // 0→1→2→3
+    if (ist.activeTurns == null) ist.activeTurns = 0;         // counts end-of-turns while active
+  },
+
+  // Do NOT reset the counters on switch-in; we only ensure they exist
+  onSwitchIn(pokemon) {
+    const ist = (pokemon.itemState ??= {} as any);
+    if (ist.rampedHealStage == null) ist.rampedHealStage = 0;
+    if (ist.activeTurns == null) ist.activeTurns = 0;
+  },
+
+  onEnd(pokemon) {
+    if (pokemon.itemState) {
+      delete (pokemon.itemState as any).rampedHealStage;
+      delete (pokemon.itemState as any).activeTurns;
+    }
+  },
+
+  // same timing bucket as Leftovers
+  onResidualOrder: 5,
+  onResidual(pokemon) {
+    const ist = (pokemon.itemState ??= {} as any);
+
+    // 1) increase heal stage (cap at 3)
+    const prev = ist.rampedHealStage ?? 0;
+    const stage = Math.min(prev + 1, 3);
+    ist.rampedHealStage = stage;
+
+    // 2) heal by stage: [1/16, 1/8, 1/4, 1/2]
+    const denoms = [16, 8, 4, 2] as const;
+    const denom = denoms[stage];
+    if (denom) this.heal(pokemon.baseMaxhp / denom, pokemon, null, this.effect);
+
+    // 3) drop Speed by one stage
+    this.boost({spe: -1}, pokemon, pokemon, this.effect);
+
+    // 4) if Speed ≤ -3, set ability to Truant (once)
+    if (pokemon.boosts.spe <= -3 && pokemon.getAbility().id !== 'truant') {
+      if (pokemon.setAbility('truant', pokemon, true)) {
+        this.add('-ability', pokemon, 'Truant', '[from] item: Cookies');
+      }
+    }
+
+    // 5) track active turns on the field and faint at 8 total
+    //    (counts only when the Pokémon is actually active; persists across switches)
+    ist.activeTurns = (ist.activeTurns ?? 0) + 1;
+
+    if (ist.activeTurns >= 7 && !pokemon.fainted) {
+      // custom flavor message then faint (attribute to item)
+      this.add('-message', '${pokemon.name} fainted from diabetes');
+      pokemon.faint(undefined, this.effect);
+    }
+  },
+},
+
+
+	bulletproofvest: {
+		name: "Bulletproof Vest",
+		spritenum: 581,
+		fling: {
+			basePower: 80,
+		},
+		onModifyDefPriority: 1,
+		onModifyDef(def) {
+			return this.chainModify(1.5);
+		},
+		onDisableMove(pokemon) {
+			for (const moveSlot of pokemon.moveSlots) {
+				const move = this.dex.moves.get(moveSlot.id);
+				if (move.category === 'Status' && move.id !== 'mefirst') {
+					pokemon.disableMove(moveSlot.id);
+				}
+			}
+		},
+		num: 900,
+		gen: 6,
+	},
+	
+  typedice: {
+    name: "Type Dice",
+    shortDesc: "On use of a damaging move: holder becomes a random type. If the move matches that type, its power is doubled.",
+    fling: {
+			basePower: 60,
+		},
+
+    // We want to set the type BEFORE damage calcs, and only for the holder's own moves.
+    onBeforeMove(source, target, move) {
+      if (!move || move.category === 'Status') return;
+
+      // Build a list of eligible types (exclude weird/engine types if present).
+      const allTypes = this.dex.types.names().filter(t =>
+        t !== 'Stellar' && t !== '???'
+      );
+
+      // --- SINGLE TYPE VERSION (inactive) ---
+      // const newType = this.sample(allTypes);
+      // if (source.setType(newType)) {
+        // Visual message for the type change
+        // this.add('-start', source, 'typechange', newType, '[from] item: Type Dice');
+      // }
+
+      // Remember if the move matches the freshly-set type so we can boost power later.
+      // (Store this only for the duration of this move.)
+      // source.itemState.typeDiceMatched = (move.type === newType);
+
+      // --- DUAL TYPE VERSION (active) ---
+      
+       const t1 = this.sample(allTypes);
+       let t2Pool = allTypes.filter(t => t !== t1);
+      // // If you want to allow duplicates (e.g., both same type), remove the filter above.
+       const t2 = this.sample(t2Pool);
+       const newTypes = [t1, t2];
+       if (source.setType(newTypes)) {
+         this.add('-start', source, 'typechange', newTypes.join('/'), '[from] item: Type Dice');
+       }
+       source.itemState.typeDiceMatched = (move.type === t1 || move.type === t2);
+    },
+
+    // Apply the x2 power if we flagged a match in onBeforeMove.
+    onBasePowerPriority: 19,
+    onBasePower(basePower, user, target, move) {
+		// If the Pokémon is Terastallized, do NOT apply the Type Dice doubling.
+      if (user?.terastallized) {
+        return;
+      }
+      // Only boost for the move that triggered the change
+      if (user?.itemState?.typeDiceMatched) {
+        return this.chainModify(2);
+      }
+    },
+
+	// This is how loaded dice does it. Added typedice into the sim battle-actions where loaded dice is to hopefully emulate loaded dice exactly
+	onModifyMove(move) {
+			if (move.multiaccuracy) {
+				delete move.multiaccuracy;
+			}
+		},
+
+
+
+	// Manually set multihit moves with minimums and maximums
+	//onModifyMove(move) {
+//  if (Array.isArray(move.multihit)) {
+  //  const [min, max] = move.multihit;
+   // if (min === 2 && max === 5) move.multihit = [4, 5]
+	//if (min === 5 && max === 10) move.multihit = [7, 10]
+//	if (min === 2 && max === 10) move.multihit = [4, 10]
+ // }
+//},
+
+    // Clean up the per-move flag after the action resolves.
+    onAfterMove(source, target, move) {
+      if (!move) return;
+      if (source?.itemState?.typeDiceMatched) {
+        delete source.itemState.typeDiceMatched;
+      }
+    },
+
+    // Also clear the flag if something weird happens (like move failing/being interrupted).
+    onMoveAborted(pokemon, target, move) {
+      if (pokemon?.itemState?.typeDiceMatched) {
+        delete pokemon.itemState.typeDiceMatched;
+      }
+    },
+
+    // Standard item fields
+    gen: 9,
+    // Make sure it actually exists in battle
+    spritenum: 0, // optional; set your own if you have custom sprites
+  },
+  normalbrush: {
+    name: "Normal Brush",
+    shortDesc: "Once: First move used becomes Normal-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Normal';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Normal Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(target, source, move) {
+      if (!source?.itemState?.brushArmed) return;
+      if (source.volatiles.brushConsumedThisMove) return;
+      const held = source.getItem(); if (!held?.id) return;
+      if (source.useItem()) {
+        source.addVolatile('brushConsumedThisMove');
+        source.itemState.brushConsumed = true;
+        delete source.itemState.brushArmed;
+        this.add('-enditem', source, held.name, '[from] item: ' + held.name, '[of] ' + source);
+      }
+    },
+    onAfterMove(pokemon) {
+      if (pokemon.volatiles.brushConsumedThisMove) pokemon.removeVolatile('brushConsumedThisMove');
+      if (pokemon?.itemState?.brushArmed) delete pokemon.itemState.brushArmed;
+    },
+    onMoveAborted(pokemon) {
+      if (pokemon?.itemState?.brushArmed) delete pokemon.itemState.brushArmed;
+    },
+  },
+
+  firebrush: {
+    name: "Fire Brush",
+    shortDesc: "Once: First move used becomes Fire-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Fire';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Fire Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(target, source, move) {
+      if (!source?.itemState?.brushArmed) return;
+      if (source.volatiles.brushConsumedThisMove) return;
+      const held = source.getItem(); if (!held?.id) return;
+      if (source.useItem()) {
+        source.addVolatile('brushConsumedThisMove');
+        source.itemState.brushConsumed = true;
+        delete source.itemState.brushArmed;
+        this.add('-enditem', source, held.name, '[from] item: ' + held.name, '[of] ' + source);
+      }
+    },
+    onAfterMove(pokemon) {
+      if (pokemon.volatiles.brushConsumedThisMove) pokemon.removeVolatile('brushConsumedThisMove');
+      if (pokemon?.itemState?.brushArmed) delete pokemon.itemState.brushArmed;
+    },
+    onMoveAborted(pokemon) {
+      if (pokemon?.itemState?.brushArmed) delete pokemon.itemState.brushArmed;
+    },
+  },
+
+  waterbrush: {
+    name: "Water Brush",
+    shortDesc: "Once: First move used becomes Water-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Water';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Water Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(target, source, move) {
+      if (!source?.itemState?.brushArmed) return;
+      if (source.volatiles.brushConsumedThisMove) return;
+      const held = source.getItem(); if (!held?.id) return;
+      if (source.useItem()) {
+        source.addVolatile('brushConsumedThisMove');
+        source.itemState.brushConsumed = true;
+        delete source.itemState.brushArmed;
+        this.add('-enditem', source, held.name, '[from] item: ' + held.name, '[of] ' + source);
+      }
+    },
+    onAfterMove(pokemon) {
+      if (pokemon.volatiles.brushConsumedThisMove) pokemon.removeVolatile('brushConsumedThisMove');
+      if (pokemon?.itemState?.brushArmed) delete pokemon.itemState.brushArmed;
+    },
+    onMoveAborted(pokemon) { if (pokemon?.itemState?.brushArmed) delete pokemon.itemState.brushArmed; },
+  },
+
+  electricbrush: {
+    name: "Electric Brush",
+    shortDesc: "Once: First move used becomes Electric-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Electric';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Electric Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(target, source, move) {
+      if (!source?.itemState?.brushArmed) return;
+      if (source.volatiles.brushConsumedThisMove) return;
+      const held = source.getItem(); if (!held?.id) return;
+      if (source.useItem()) {
+        source.addVolatile('brushConsumedThisMove'); source.itemState.brushConsumed = true;
+        delete source.itemState.brushArmed;
+        this.add('-enditem', source, held.name, '[from] item: ' + held.name, '[of] ' + source);
+      }
+    },
+    onAfterMove(pokemon) {
+      if (pokemon.volatiles.brushConsumedThisMove) pokemon.removeVolatile('brushConsumedThisMove');
+      if (pokemon?.itemState?.brushArmed) delete pokemon.itemState.brushArmed;
+    },
+    onMoveAborted(p) { if (p?.itemState?.brushArmed) delete p.itemState.brushArmed; },
+  },
+
+  grassbrush: {
+    name: "Grass Brush",
+    shortDesc: "Once: First move used becomes Grass-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Grass';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Grass Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(target, source, move) {
+      if (!source?.itemState?.brushArmed) return;
+      if (source.volatiles.brushConsumedThisMove) return;
+      const held = source.getItem(); if (!held?.id) return;
+      if (source.useItem()) {
+        source.addVolatile('brushConsumedThisMove'); source.itemState.brushConsumed = true;
+        delete source.itemState.brushArmed;
+        this.add('-enditem', source, held.name, '[from] item: ' + held.name, '[of] ' + source);
+      }
+    },
+    onAfterMove(p) {
+      if (p.volatiles.brushConsumedThisMove) p.removeVolatile('brushConsumedThisMove');
+      if (p?.itemState?.brushArmed) delete p.itemState.brushArmed;
+    },
+    onMoveAborted(p) { if (p?.itemState?.brushArmed) delete p.itemState.brushArmed; },
+  },
+
+  icebrush: {
+    name: "Ice Brush",
+    shortDesc: "Once: First move used becomes Ice-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Ice';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Ice Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(t, s, m) {
+      if (!s?.itemState?.brushArmed) return;
+      if (s.volatiles.brushConsumedThisMove) return;
+      const held = s.getItem(); if (!held?.id) return;
+      if (s.useItem()) {
+        s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed = true;
+        delete s.itemState.brushArmed;
+        this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s);
+      }
+    },
+    onAfterMove(p) { if (p.volatiles.brushConsumedThisMove) p.removeVolatile('brushConsumedThisMove'); if (p?.itemState?.brushArmed) delete p.itemState.brushArmed; },
+    onMoveAborted(p) { if (p?.itemState?.brushArmed) delete p.itemState.brushArmed; },
+  },
+
+  fightingbrush: {
+    name: "Fighting Brush",
+    shortDesc: "Once: First move used becomes Fighting-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Fighting';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Fighting Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(t, s, m) {
+      if (!s?.itemState?.brushArmed) return;
+      if (s.volatiles.brushConsumedThisMove) return;
+      const held = s.getItem(); if (!held?.id) return;
+      if (s.useItem()) {
+        s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed = true;
+        delete s.itemState.brushArmed;
+        this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s);
+      }
+    },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed;},
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed;},
+  },
+
+  poisonbrush: {
+    name: "Poison Brush",
+    shortDesc: "Once: First move used becomes Poison-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Poison';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Poison Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(t,s,m){
+      if(!s?.itemState?.brushArmed) return;
+      if(s.volatiles.brushConsumedThisMove) return;
+      const held=s.getItem(); if(!held?.id) return;
+      if(s.useItem()){
+        s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true;
+        delete s.itemState.brushArmed;
+        this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s);
+      }
+    },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed;},
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed;},
+  },
+
+  groundbrush: {
+    name: "Ground Brush",
+    shortDesc: "Once: First move used becomes Ground-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Ground';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Ground Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(target, source, move) {
+      if (!source?.itemState?.brushArmed) return;
+      if (source.volatiles.brushConsumedThisMove) return;
+      const held = source.getItem(); if (!held?.id) return;
+      if (source.useItem()) {
+        source.addVolatile('brushConsumedThisMove');
+        source.itemState.brushConsumed = true;
+        delete source.itemState.brushArmed;
+        this.add('-enditem', source, held.name, '[from] item: ' + held.name, '[of] ' + source);
+      }
+    },
+    onAfterMove(pokemon) {
+      if (pokemon.volatiles.brushConsumedThisMove) pokemon.removeVolatile('brushConsumedThisMove');
+      if (pokemon?.itemState?.brushArmed) delete pokemon.itemState.brushArmed;
+    },
+    onMoveAborted(pokemon) { if (pokemon?.itemState?.brushArmed) delete pokemon.itemState.brushArmed; },
+  },
+
+  flyingbrush: {
+    name: "Flying Brush",
+    shortDesc: "Once: First move used becomes Flying-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move, pokemon) {
+      if (!move || move.id === 'struggle') return;
+      if (pokemon?.itemState?.brushConsumed) return;
+      if (pokemon?.itemState?.brushArmed) return;
+      pokemon.itemState.brushArmed = true;
+      move.type = 'Flying';
+      // @ts-expect-error
+      move.addedType = undefined;
+      this.add('-activate', pokemon, 'item: Flying Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(t,s,m){ if(!s?.itemState?.brushArmed)return;
+      if(s.volatiles.brushConsumedThisMove)return;
+      const held=s.getItem(); if(!held?.id)return;
+      if(s.useItem()){ s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true; delete s.itemState.brushArmed; this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s); } },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+  },
+
+  psychicbrush: {
+    name: "Psychic Brush",
+    shortDesc: "Once: First move used becomes Psychic-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move,pokemon){
+      if(!move||move.id==='struggle')return;
+      if(pokemon?.itemState?.brushConsumed)return;
+      if(pokemon?.itemState?.brushArmed)return;
+      pokemon.itemState.brushArmed=true; move.type='Psychic';
+      // @ts-expect-error
+      move.addedType=undefined;
+      this.add('-activate', pokemon, 'item: Psychic Brush', '[move] ' + move.name);
+    },
+    onSourceTryPrimaryHit(t,s,m){ if(!s?.itemState?.brushArmed)return;
+      if(s.volatiles.brushConsumedThisMove)return;
+      const held=s.getItem(); if(!held?.id)return;
+      if(s.useItem()){ s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true; delete s.itemState.brushArmed; this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s); } },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+  },
+
+  bugbrush: {
+    name: "Bug Brush",
+    shortDesc: "Once: First move used becomes Bug-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move,pokemon){ if(!move||move.id==='struggle')return;
+      if(pokemon?.itemState?.brushConsumed)return;
+      if(pokemon?.itemState?.brushArmed)return;
+      pokemon.itemState.brushArmed=true; move.type='Bug';
+      // @ts-expect-error
+      move.addedType=undefined; this.add('-activate', pokemon, 'item: Bug Brush', '[move] ' + move.name); },
+    onSourceTryPrimaryHit(t,s,m){ if(!s?.itemState?.brushArmed)return;
+      if(s.volatiles.brushConsumedThisMove)return;
+      const held=s.getItem(); if(!held?.id)return;
+      if(s.useItem()){ s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true; delete s.itemState.brushArmed; this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s); } },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+  },
+
+  rockbrush: {
+    name: "Rock Brush",
+    shortDesc: "Once: First move used becomes Rock-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move,pokemon){ if(!move||move.id==='struggle')return;
+      if(pokemon?.itemState?.brushConsumed)return;
+      if(pokemon?.itemState?.brushArmed)return;
+      pokemon.itemState.brushArmed=true; move.type='Rock';
+      // @ts-expect-error
+      move.addedType=undefined; this.add('-activate', pokemon, 'item: Rock Brush', '[move] ' + move.name); },
+    onSourceTryPrimaryHit(t,s,m){ if(!s?.itemState?.brushArmed)return;
+      if(s.volatiles.brushConsumedThisMove)return;
+      const held=s.getItem(); if(!held?.id)return;
+      if(s.useItem()){ s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true; delete s.itemState.brushArmed; this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s); } },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+  },
+
+  ghostbrush: {
+    name: "Ghost Brush",
+    shortDesc: "Once: First move used becomes Ghost-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move,pokemon){ if(!move||move.id==='struggle')return;
+      if(pokemon?.itemState?.brushConsumed)return;
+      if(pokemon?.itemState?.brushArmed)return;
+      pokemon.itemState.brushArmed=true; move.type='Ghost';
+      // @ts-expect-error
+      move.addedType=undefined; this.add('-activate', pokemon, 'item: Ghost Brush', '[move] ' + move.name); },
+    onSourceTryPrimaryHit(t,s,m){ if(!s?.itemState?.brushArmed)return;
+      if(s.volatiles.brushConsumedThisMove)return;
+      const held=s.getItem(); if(!held?.id)return;
+      if(s.useItem()){ s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true; delete s.itemState.brushArmed; this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s); } },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+  },
+
+  dragonbrush: {
+    name: "Dragon Brush",
+    shortDesc: "Once: First move used becomes Dragon-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move,pokemon){ if(!move||move.id==='struggle')return;
+      if(pokemon?.itemState?.brushConsumed)return;
+      if(pokemon?.itemState?.brushArmed)return;
+      pokemon.itemState.brushArmed=true; move.type='Dragon';
+      // @ts-expect-error
+      move.addedType=undefined; this.add('-activate', pokemon, 'item: Dragon Brush', '[move] ' + move.name); },
+    onSourceTryPrimaryHit(t,s,m){ if(!s?.itemState?.brushArmed)return;
+      if(s.volatiles.brushConsumedThisMove)return;
+      const held=s.getItem(); if(!held?.id)return;
+      if(s.useItem()){ s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true; delete s.itemState.brushArmed; this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s); } },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+  },
+
+  darkbrush: {
+    name: "Dark Brush",
+    shortDesc: "Once: First move used becomes Dark-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move,pokemon){ if(!move||move.id==='struggle')return;
+      if(pokemon?.itemState?.brushConsumed)return;
+      if(pokemon?.itemState?.brushArmed)return;
+      pokemon.itemState.brushArmed=true; move.type='Dark';
+      // @ts-expect-error
+      move.addedType=undefined; this.add('-activate', pokemon, 'item: Dark Brush', '[move] ' + move.name); },
+    onSourceTryPrimaryHit(t,s,m){ if(!s?.itemState?.brushArmed)return;
+      if(s.volatiles.brushConsumedThisMove)return;
+      const held=s.getItem(); if(!held?.id)return;
+      if(s.useItem()){ s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true; delete s.itemState.brushArmed; this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s); } },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+  },
+
+  steelbrush: {
+    name: "Steel Brush",
+    shortDesc: "Once: First move used becomes Steel-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move,pokemon){ if(!move||move.id==='struggle')return;
+      if(pokemon?.itemState?.brushConsumed)return;
+      if(pokemon?.itemState?.brushArmed)return;
+      pokemon.itemState.brushArmed=true; move.type='Steel';
+      // @ts-expect-error
+      move.addedType=undefined; this.add('-activate', pokemon, 'item: Steel Brush', '[move] ' + move.name); },
+    onSourceTryPrimaryHit(t,s,m){ if(!s?.itemState?.brushArmed)return;
+      if(s.volatiles.brushConsumedThisMove)return;
+      const held=s.getItem(); if(!held?.id)return;
+      if(s.useItem()){ s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true; delete s.itemState.brushArmed; this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s); } },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+  },
+
+  fairybrush: {
+    name: "Fairy Brush",
+    shortDesc: "Once: First move used becomes Fairy-type, then consumed (pre-damage).",
+    fling: { basePower: 90 }, gen: 9,
+    onModifyMove(move,pokemon){ if(!move||move.id==='struggle')return;
+      if(pokemon?.itemState?.brushConsumed)return;
+      if(pokemon?.itemState?.brushArmed)return;
+      pokemon.itemState.brushArmed=true; move.type='Fairy';
+      // @ts-expect-error
+      move.addedType=undefined; this.add('-activate', pokemon, 'item: Fairy Brush', '[move] ' + move.name); },
+    onSourceTryPrimaryHit(t,s,m){ if(!s?.itemState?.brushArmed)return;
+      if(s.volatiles.brushConsumedThisMove)return;
+      const held=s.getItem(); if(!held?.id)return;
+      if(s.useItem()){ s.addVolatile('brushConsumedThisMove'); s.itemState.brushConsumed=true; delete s.itemState.brushArmed; this.add('-enditem', s, held.name, '[from] item: ' + held.name, '[of] ' + s); } },
+    onAfterMove(p){ if(p.volatiles.brushConsumedThisMove)p.removeVolatile('brushConsumedThisMove'); if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+    onMoveAborted(p){ if(p?.itemState?.brushArmed)delete p.itemState.brushArmed; },
+  },
+fuzzymushroom: {
+	name: "Fuzzy Mushroom",
+	fling: {
+			basePower: 40,
+		},
+		onModifyMove(move, pokemon) {
+    if (move.id !== 'fling') return;
+    // Pick the status now and make it a guaranteed secondary on hit
+    const chosen = this.sample(['psn', 'par', 'slp']);
+    move.secondaries = (move.secondaries || []).filter(s => !('status' in s));
+    move.secondaries.push({chance: 100, status: chosen})},
+
+	onDamagingHit(damage, target, source, move) {
+			if (this.checkMoveMakesContact(move, source, target) && !source.status && source.runStatusImmunity('powder')) {
+				const r = this.random(100);
+				if (r < 11) {
+					source.setStatus('slp', target);
+				} else if (r < 21) {
+					source.setStatus('par', target);
+				} else if (r < 30) {
+					source.setStatus('psn', target);
+				}
+			}
+		},
+},
+elegantcloth: {
+	name: "Elegant Cloth",
+	fling: {
+			basePower: 70,
+			volatileStatus: 'flinch'
+		},
+	onModifyMovePriority: -2,
+		onModifyMove(move) {
+			if (move.secondaries) {
+				this.debug('doubling secondary chance');
+				for (const secondary of move.secondaries) {
+					if (secondary.chance) secondary.chance *= 2;
+				}
+			}
+			if (move.self?.chance) move.self.chance *= 2;
+		},
+},
+adrenalineshot: {
+  name: "Adrenaline Shot",
+  shortDesc: "At 1/4 HP or less: +6 all stats. Faints at end of the next turn.",
+  onUpdate(pokemon) {
+    if (pokemon?.itemState?.adrenalineUsed || pokemon?.itemState?.adrenalineArmed) return;
+    if (pokemon.hp > pokemon.maxhp / 4) return;
+
+    this.add('-activate', pokemon, 'item: Adrenaline Shot');
+    this.boost({atk: 6, def: 6, spa: 6, spd: 6, spe: 6}, pokemon);
+
+    pokemon.itemState.adrenalineArmed = true;
+    pokemon.itemState.adrenalineDueTurn = this.turn + 2;
+  },
+  onResidualOrder: 999,
+  onResidual(pokemon) {
+    const due = pokemon?.itemState?.adrenalineDueTurn;
+    if (!due) return;
+
+    // Faint only after one full turn has passed since activation
+    if (this.turn >= due) {
+      // Optional visible message like your example
+      this.add('-message', pokemon.name + "'s adrenaline wore off!");
+      // Consume then faint
+      pokemon.useItem();
+      if (!pokemon.fainted) pokemon.faint();
+
+      delete pokemon.itemState.adrenalineDueTurn;
+      delete pokemon.itemState.adrenalineArmed;
+      pokemon.itemState.adrenalineUsed = true;
+    }
+	
+  },
+  // Safety: if it leaves the field, keep the timer; it will resolve on a later turn when active.
+  gen: 9,
+},
+
+speedbelt: {
+  name: "Speed Belt",
+  shortDesc: "Boosts move power by 25% if the holder moves before the target.",
+  fling: {
+	basePower: 50
+  },
+  onTryMove(pokemon, target, move) {
+    if (move.id !== 'fling') return;
+    this.boost({spe: 2}, pokemon);
+    // (Happens before the item is thrown/removed, so it always triggers on attempt.)
+  },
+  onBasePower(basePower, attacker, defender, move) {
+    if (!defender.moveThisTurn) {
+      return this.chainModify([5120, 4096]); // 1.25x
+    }
+  },
+  gen: 9,
+},
+armoredshell: {
+  name: "Armored Shell",
+  shortDesc: "Holder cannot be struck by critical hits.",
+  fling: {
+	basePower: 50,
+  },
+  onTryMove(pokemon, target, move) {
+    if (move.id !== 'fling') return;
+    this.boost({def: 2}, pokemon);},
+  onCriticalHit: false,
+  gen: 9,
+},
+typedrugs: {
+  name: "Type Drugs",
+  shortDesc: "Each turn: adds another random type to the holder, stacking infinitely.",
+  fling: {
+	basePower: 50
+  },
+  onTryMove(pokemon, target, move) {
+    if (move.id !== 'fling') return;
+
+    const allTypes = this.dex.types.names().filter(t => t !== '???' && t !== 'Stellar');
+    let cur = pokemon.getTypes();
+    let candidates = allTypes.filter(t => !cur.includes(t));
+
+    // Add up to 3 random extra types
+    for (let i = 0; i < 3 && candidates.length; i++) {
+      const addType = this.sample(candidates);
+      cur = cur.concat(addType);
+      candidates = candidates.filter(t => t !== addType);
+    }
+
+    if (pokemon.setType(cur)) {
+      this.add('-start', pokemon, 'typechange', cur.join('/'), '[from] item: Type Orb');
+    }},
+  onResidual(pokemon) {
+    // Build a list of types not already present
+    const allTypes = this.dex.types.names().filter(t => t !== '???' && t !== 'Stellar');
+    const current = pokemon.getTypes();
+    const candidates = allTypes.filter(t => !current.includes(t));
+    
+    if (!candidates.length) return; // already has all types
+    
+    const addType = this.sample(candidates);
+    // `addType` gets merged into the pokemon's types list
+    const newTypes = current.concat(addType);
+    if (pokemon.setType(newTypes)) {
+      this.add('-start', pokemon, 'typechange', newTypes.join('/'), '[from] item: Type Drugs');
+    }
+  },
+  gen: 9,
+},
+typebulb: {
+  name: "Type Bulb",
+  shortDesc: "Consumed on hit; holder gains the attack's type, then a Type Bulb boost to its highest stat (1.3×, or 1.5× if Speed).",
+  fling: { basePower: 90 },
+  gen: 9,
+
+  // Fling gimmick: the target gains a random extra type it doesn't already have
+  onTryMove(pokemon, target, move) {
+    if (move.id !== 'fling') return;
+    if (!target) return;
+
+    const allTypes = this.dex.types.names().filter(t => t !== '???' && t !== 'Stellar');
+    const cur = target.getTypes();
+    const candidates = allTypes.filter(t => !cur.includes(t));
+    if (!candidates.length) return;
+
+    const addType = this.sample(candidates);
+    const newTypes = cur.concat(addType);
+    if (target.setType(newTypes)) {
+      this.add('-start', target, 'typechange', newTypes.join('/'), '[from] item: Type Bulb');
+    }
+  },
+
+  // Core effect: consume on damaging hit, add that move's type, then start the Type Bulb boost
+  onDamagingHit(_damage, target, _source, move) {
+    if (!move || move.category === 'Status') return;
+
+    // Consume once
+    if (!target.useItem()) return;
+
+    // Add the move's type as an additional type (if not already present)
+    const t = move.type;
+    if (t && t !== '???' && t !== 'Stellar') {
+      const cur = target.getTypes();
+      if (!cur.includes(t)) {
+        const newTypes = cur.concat(t as string);
+        if (target.setType(newTypes)) {
+          this.add('-start', target, 'typechange', newTypes.join('/'), '[from] item: Type Bulb');
+        }
+      } else {
+        this.add('-activate', target, 'item: Type Bulb');
+      }
+    } else {
+      this.add('-activate', target, 'item: Type Bulb');
+    }
+
+    // Apply the Type Bulb boost as a volatile that persists while the Pokémon stays in
+    if (!target.volatiles.typebulb) {
+      target.addVolatile('typebulb', target, this.effect);
+    }
+  },
+
+  // Volatile status for the post-consumption boost
+  condition: {
+    noCopy: true,
+
+    onStart(pokemon) {
+      // Announce with item terminology only
+      this.add('-activate', pokemon, 'item: Type Bulb');
+
+      // Highest non-HP stat; same tie-break behavior as PS helper
+      // (false, true) = non-HP, ties resolved in internal order
+      this.effectState.bestStat = pokemon.getBestStat(false, true);
+
+      // Start banner using Type Bulb wording
+      // You can keep this as-is or change to a custom string if you prefer
+      this.add('-start', pokemon, 'typebulb' + this.effectState.bestStat);
+    },
+
+    // Match Proto/Quark multipliers: 1.3× (as [5325,4096]) or 1.5× if Speed
+    onModifyAtkPriority: 5,
+    onModifyAtk(atk) {
+      if (this.effectState.bestStat !== 'atk') return;
+      this.debug('Type Bulb atk boost');
+      return this.chainModify([5325, 4096]);
+    },
+    onModifyDefPriority: 6,
+    onModifyDef(def) {
+      if (this.effectState.bestStat !== 'def') return;
+      this.debug('Type Bulb def boost');
+      return this.chainModify([5325, 4096]);
+    },
+    onModifySpAPriority: 5,
+    onModifySpA(spa) {
+      if (this.effectState.bestStat !== 'spa') return;
+      this.debug('Type Bulb spa boost');
+      return this.chainModify([5325, 4096]);
+    },
+    onModifySpDPriority: 6,
+    onModifySpD(spd) {
+      if (this.effectState.bestStat !== 'spd') return;
+      this.debug('Type Bulb spd boost');
+      return this.chainModify([5325, 4096]);
+    },
+    onModifySpe(spe) {
+      if (this.effectState.bestStat !== 'spe') return;
+      this.debug('Type Bulb spe boost');
+      return this.chainModify(1.5);
+    },
+
+    onEnd(pokemon) {
+      // Clear banner with item wording
+      this.add('-end', pokemon, 'Type Bulb');
+    },
+  },
+},
+
+
+
+heavyarmor: {
+  name: "Heavy Armor",
+  shortDesc: "Holder takes and deals half damage.",
+  fling: {
+	basePower: 400
+  },
+  // halve outgoing damage
+  onBasePower(basePower, attacker, defender, move) {
+    return this.chainModify(0.5);
+  },
+  // halve incoming damage
+  onSourceModifyDamage(damage, source, target, move) {
+    return this.chainModify(0.5);
+  },
+  gen: 9,
+},
+
+ultimateberry: {
+  name: "Ultimate Berry",
+  shortDesc:
+    "Eats on first of: HP ≤ 1/2; about to take SE hit; status inflicted. Heals 1/6, +1 Atk/SpA or +1 Def/SpD (rand), cures status/confusion, next move +1 prio. SE hit is 0.67×.",
+  isBerry: true,
+
+  // Centralized effects so Cud Chew re-eats follow the same rules
+  onEat(pokemon) {
+    // heal 1/6 max HP
+    this.heal(Math.floor(pokemon.baseMaxhp / 6), pokemon);
+
+    // random offense/defense suite: 50/50
+    if (this.randomChance(1, 2)) {
+      this.boost({atk: 1, spa: 1}, pokemon, pokemon, this.effect); // offense
+    } else {
+      this.boost({def: 1, spd: 1}, pokemon, pokemon, this.effect); // defense
+    }
+
+    // cure status & confusion
+    if (pokemon.status) pokemon.cureStatus();
+    if (pokemon.volatiles['confusion']) pokemon.removeVolatile('confusion');
+
+    // next move gets +1 priority (your existing volatile)
+    pokemon.addVolatile('ultimateberrypriority');
+
+    this.add('-activate', pokemon, 'item: Ultimate Berry');
+  },
+
+  // ── Trigger #1: HP threshold (Sitrus-like) ──
+  onUpdate(pokemon) {
+    if (!pokemon.hp) return;
+    if (pokemon.hp <= pokemon.maxhp / 2) {
+      pokemon.eatItem(); // onEat handles everything
+    }
+  },
+
+  // ── Trigger #2: Super-effective damaging hit (mitigate @ ~0.67×) ──
+onSourceModifyDamage(damage, source, target, move) {
+  if (!target?.hp || !move || move.category === 'Status') return;
+
+  // Prefer the resolved effectiveness for THIS hit
+  const hit = target.getMoveHitData(move as ActiveMove);
+  const typeMod =
+    (hit && typeof hit.typeMod === 'number')
+      ? hit.typeMod
+      : this.dex.getEffectiveness(move.type, target);
+
+  if (typeMod <= 0) return; // not SE
+
+  // Eat now and reduce this hit
+  if (target.eatItem()) {
+    this.add('-activate', target, 'item: Ultimate Berry', 'super-effective');
+    // ~2/3 damage (choose one style)
+    // return this.chainModify(0xAAC);              // ≈ 2732/4096 ≈ 0.667
+    return this.chainModify([2732, 4096]);          // explicit fraction
+  }
+},
+
+  // ── Trigger #3: Status is being inflicted (block & consume) ──
+  onSetStatus(_status, target) {
+    if (!target?.hp) return;
+    if (target.eatItem()) {
+      this.add('-activate', target, 'item: Ultimate Berry', 'status');
+      return false; // prevent status from landing; onEat will also cure any existing
+    }
+  },
+
+  // Also block confusion when it's being applied as a volatile
+  onTryAddVolatile(status, target) {
+    if (!target?.hp) return;
+    if (status.id === 'confusion') {
+      if (target.eatItem()) {
+        this.add('-activate', target, 'item: Ultimate Berry', 'confusion');
+        return null; // block; onEat already ran
+      }
+    }
+  },
+},
+
+
+isseisglove: {
+  name: "Issei's Glove",
+  shortDesc: "On a damaging move: 5% deals 1000 raw dmg, else 15% 3× dmg, else 30% 2× dmg. Consumed on trigger.",
+
+  // Decide the outcome once per move use, but DON'T consume yet.
+  onModifyMove(move, pokemon) {
+    if (move.category === 'Status' || move.id === 'struggle' || move.isZ || move.isMax) return;
+    const mem = (pokemon as any).m ?? ((pokemon as any).m = {});
+    if (mem.isseiOutcome) return; // already rolled for this move
+
+    const r = this.random(100);
+    if (r < 10) {
+      mem.isseiOutcome = 'raw';            // 1000 flat damage
+    } else if (r < 35) {
+      mem.isseiOutcome = 'x3';             // 3× damage
+    } else if (r < 85) {
+      mem.isseiOutcome = 'x2';             // 2× damage
+    } else {
+      mem.isseiOutcome = null;             // no effect
+    }
+  },
+
+  // Apply 2× / 3× (now we consume + announce the first time we apply)
+  onBasePower(basePower, source, target, move) {
+    const mem = (source as any).m;
+    const outcome = mem?.isseiOutcome;
+    if (outcome !== 'x2' && outcome !== 'x3') return;
+
+    // consume+announce once (covers multihit)
+    if (!mem.isseiConsumed) {
+      if (source.useItem()) {
+        if (outcome === 'x3') this.add('-message', 'BOOOOOOST!!!!');
+        else this.add('-message', 'BOOST!');
+      }
+      mem.isseiConsumed = true;
+    }
+    return this.chainModify(outcome === 'x3' ? 3 : 2);
+  },
+
+  // Apply raw 1000 damage (replaces the normal calc)
+  onModifyDamage(damage, source, target, move) {
+    const mem = (source as any).m;
+    if (mem?.isseiOutcome !== 'raw') return;
+
+    if (!mem.isseiConsumed) {
+      if (source.useItem()) {
+        this.add('-message', 'BOOST! BOOST! BOOST! BOOST! BOOST!');
+      }
+      mem.isseiConsumed = true;
+    }
+    return 1000; // flat damage, ignores typing/resists/etc.
+  },
+
+  // Cleanup after the action (hit, miss, or aborted)
+  onAfterMove(source, target, move) {
+    const mem = (source as any).m;
+    if (mem) {
+      delete mem.isseiOutcome;
+      delete mem.isseiConsumed;
+    }
+  },
+  onMoveAborted(source, move) {
+    const mem = (source as any).m;
+    if (mem) {
+      delete mem.isseiOutcome;
+      delete mem.isseiConsumed;
+    }
+  },
+},
+
+extramoody: {
+  name: "ExtraMoody",
+  shortDesc: "End of every turn: +6 to one random stat, -6 to another random stat.",
+  fling: {
+	basePower: 50
+  },
+  onAfterMove(source, target, move) {
+  // Only care about Fling from the holder of ExtraMoody
+  if (!move || move.id !== 'fling') return;
+
+  // Require that Fling actually hit/dealt damage (not missed/immune)
+  const didDamage = !!(move.totalDamage || move.hit > 0);
+  if (!didDamage) return;
+
+  // Normalize target(s)
+  const targets: Pokemon[] = Array.isArray(target)
+    ? target.filter(t => !!t && !t.fainted)
+    : (target ? [target] : []);
+  if (!targets.length) return;
+
+  // Pick a random stat and drop it by 6 on each target
+  const stats: BoostID[] = ['atk','def','spa','spd','spe','accuracy','evasion'];
+  const chosen = this.sample(stats);
+
+  for (const t of targets) {
+    this.boost({[chosen]: -6}, t, source, this.effect);
+    this.add('-message', `${t.name}'s ${chosen.toUpperCase()} fell drastically from the flung ExtraMoody!`);
+  }
+},
+
+  // Trigger once per turn (Residual phase, like Leftovers / Moody)
+  onResidualOrder: 28, // same timing block as Moody
+  onResidual(pokemon) {
+    if (!pokemon.hp) return;
+
+    // All stats we can modify
+    const stats: BoostID[] = ['atk','def','spa','spd','spe'];
+
+    // Choose random stat to raise
+    const upStat = this.sample(stats);
+
+    // Choose different stat to lower
+    let downStat: BoostID;
+    do {
+      downStat = this.sample(stats);
+    } while (downStat === upStat);
+
+    // Apply boosts
+    this.boost({[upStat]: 6}, pokemon, pokemon, null, true);
+    this.boost({[downStat]: -3}, pokemon, pokemon, null, true);
+
+    // Log what happened
+    this.add('-message', `${pokemon.name}'s ExtraMoody sharply shifted its stats! [+6 ${upStat.toUpperCase()}, -6 ${downStat.toUpperCase()}]`);
+  },
+},
+// === Item ===
+mysterybox: {
+  name: "Mystery Box",
+  shortDesc:
+    "Each turn emulates a random item (Band/Specs/Scarf, Life Orb, Leftovers, Expert Belt, Muscle Band, Wise Glasses, Rocky Helmet, Assault Vest, Sitrus, Lum, Focus Sash, Custap, Weakness Policy).",
+
+  // Pick first emulation on switch-in
+  onStart(pokemon) { mbPickNew(this, pokemon); },
+
+  // One consolidated residual hook:
+  //  - prime Custap if applicable
+  //  - apply Leftovers heal for the *current* emulation
+  //  - rotate to a new emulation for next turn
+  onResidualOrder: 28,
+  onResidualSubOrder: 1,
+  onResidual(pokemon) {
+    if (!pokemon.hp) return;
+    const slot = mbGetSlot(this, pokemon);
+    const id = slot.id;
+
+    // Custap Berry (once per battle): arm +0.1 for next action at ≤ 1/4 HP
+    if (id === 'custapberry' && !slot.battleUsed['custapberry']) {
+      if (pokemon.hp <= Math.floor(pokemon.maxhp / 4) && mbTryEatBerry(this, pokemon)) {
+        slot.state.custapPrimed = true;
+        this.add('-activate', pokemon, 'item: Mystery Box', '[emulating] Custap Berry');
+        slot.battleUsed['custapberry'] = true;
+      }
+    }
+
+    // Leftovers heal (current emulation) before we rotate
+    if (id === 'leftovers' && pokemon.hp < pokemon.maxhp) {
+      this.heal(this.clampIntRange(Math.floor(pokemon.baseMaxhp / 16), 1), pokemon, pokemon, this.dex.items.get('leftovers'));
+    }
+
+    // Rotate emulation for next turn
+    mbPickNew(this, pokemon);
+  },
+
+  // Choice multipliers (no lock)
+  onModifyAtk(atk, source) {
+    const id = mbGetSlot(this, source).id;
+    if (id === 'choiceband') return this.chainModify(1.5);
+  },
+  onModifySpA(spa, source) {
+    const id = mbGetSlot(this, source).id;
+    if (id === 'choicespecs') return this.chainModify(1.5);
+  },
+  onModifySpe(spe, source) {
+    const id = mbGetSlot(this, source).id;
+    if (id === 'choicescarf') return this.chainModify(1.5);
+  },
+  // Prevent choosing Status moves when emulating Assault Vest (UI + server)
+onDisableMove(pokemon) {
+  const id = mbGetSlot(this, pokemon).id;
+  if (id !== 'assaultvest') return;
+  for (const slot of pokemon.moveSlots) {
+    const mv = this.dex.moves.get(slot.id);
+    if (mv.category === 'Status') {
+      // disable this move for this turn; tag with the item effect
+      pokemon.disableMove(mv.id as ID, true, this.effect);
+    }
+  }
+},
+
+
+
+  // Assault Vest: block Status moves
+  onTryMove(source, _target, move) {
+    const id = mbGetSlot(this, source).id;
+    if (id === 'assaultvest' && move?.category === 'Status') {
+      this.add('-fail', source, 'item: Mystery Box', '[emulating] Assault Vest');
+    return false;
+    }
+  },
+
+  // Life Orb / Expert Belt / Bands / Glasses
+  onBasePower(basePower, source, target, move) {
+    const id = mbGetSlot(this, source).id;
+    if (!id || move?.category === 'Status') return;
+
+    if (id === 'lifeorb') return this.chainModify(1.3);
+    if (id === 'expertbelt' && this.dex.getEffectiveness(move.type, target) > 0) {
+      return this.chainModify(1.2);
+    }
+    if (id === 'muscleband' && move.category === 'Physical') return this.chainModify(1.1);
+    if (id === 'wiseglasses' && move.category === 'Special') return this.chainModify(1.1);
+  },
+
+  // Life Orb recoil + clear Custap one-shot flag after acting
+  onAfterMove(source, _target, move) {
+    if (!move || move.category === 'Status') return;
+    const id = mbGetSlot(this, source).id;
+    if (id === 'lifeorb' && (move.totalDamage || move.hit > 0)) {
+      this.damage(this.clampIntRange(Math.floor(source.baseMaxhp / 10), 1), source, source, this.dex.items.get('lifeorb'));
+    }
+    const slot = mbGetSlot(this, source);
+    if (slot.state?.custapPrimed) slot.state.custapPrimed = false;
+  },
+  onMoveAborted(source) {
+    const slot = mbGetSlot(this, source);
+    if (slot.state?.custapPrimed) slot.state.custapPrimed = false;
+  },
+
+  // Single combined onDamagingHit:
+  //  - Weakness Policy (+2 Atk/SpA once on SE hit)
+  //  - Rocky Helmet (1/6 on contact)
+  onDamagingHit(_damage, target, source, move) {
+    const slot = mbGetSlot(this, target);
+    const id = slot.id;
+    if (!move) return;
+
+    // Weakness Policy
+    if (id === 'weaknesspolicy' && !slot.battleUsed['weaknesspolicy']) {
+      if (move.category !== 'Status' && this.dex.getEffectiveness(move.type, target) > 0) {
+        this.add('-activate', target, 'item: Mystery Box', '[emulating] Weakness Policy');
+        this.boost({atk: 2, spa: 2}, target, target, this.dex.items.get('weaknesspolicy'));
+        slot.battleUsed['weaknesspolicy'] = true;
+      }
+    }
+
+    // Rocky Helmet
+    if (id === 'rockyhelmet' && move.flags?.contact && source && !source.fainted) {
+      this.damage(this.clampIntRange(Math.floor(source.baseMaxhp / 6), 1), source, target, this.dex.items.get('rockyhelmet'));
+    }
+  },
+
+  // Focus Sash (once per battle)
+  onDamage(damage, target, _source, effect) {
+    const slot = mbGetSlot(this, target);
+    if (slot.id !== 'focussash') return;
+    if (slot.battleUsed['focussash']) return;
+    if (!effect || effect.effectType !== 'Move') return;
+    if (target.hp < target.maxhp) return;
+    if (damage < target.hp) return;
+    this.add('-activate', target, 'item: Mystery Box', '[emulating] Focus Sash');
+    slot.battleUsed['focussash'] = true;
+    return target.hp - 1;
+  },
+
+  // Sitrus Berry (≤ 1/2 HP, once per battle)
+  onUpdate(pokemon) {
+    const slot = mbGetSlot(this, pokemon);
+    if (slot.id !== 'sitrusberry') return;
+    if (slot.battleUsed['sitrusberry']) return;
+    if (!pokemon.hp || pokemon.hp > Math.floor(pokemon.maxhp / 2)) return;
+    if (!mbTryEatBerry(this, pokemon)) return;
+    this.heal(this.clampIntRange(Math.floor(pokemon.baseMaxhp / 4), 1), pokemon, pokemon, this.dex.items.get('sitrusberry'));
+    this.add('-activate', pokemon, 'item: Mystery Box', '[emulating] Sitrus Berry');
+    slot.battleUsed['sitrusberry'] = true;
+  },
+
+  // Lum Berry (on status infliction once) + confusion
+  onSetStatus(_status, target) {
+    const slot = mbGetSlot(this, target);
+    if (slot.id !== 'lumberry') return;
+    if (slot.battleUsed['lumberry']) return;
+    if (!mbTryEatBerry(this, target)) return;
+    this.add('-activate', target, 'item: Mystery Box', '[emulating] Lum Berry');
+    target.cureStatus();
+    slot.battleUsed['lumberry'] = true;
+    return false;
+  },
+  onTryAddVolatile(sta, target) {
+    if (sta.id !== 'confusion') return;
+    const slot = mbGetSlot(this, target);
+    if (slot.id !== 'lumberry') return;
+    if (slot.battleUsed['lumberry']) return;
+    if (!mbTryEatBerry(this, target)) return;
+    this.add('-activate', target, 'item: Mystery Box', '[emulating] Lum Berry');
+    slot.battleUsed['lumberry'] = true;
+    return null; // block confusion
+  },
+
+  // Custap: apply the +0.1 only if primed
+  onFractionalPriority(_priority, pokemon, _target, move) {
+    if (!move) return;
+    if (mbGetSlot(this, pokemon).state?.custapPrimed) return 0.1;
+  },
+},
+
+
+}
+const MYSTERY_BOX_POOL: string[] = [
+  'choiceband', 'choicespecs', 'choicescarf',
+  'lifeorb', 'leftovers', 'expertbelt', 'muscleband', 'wiseglasses',
+  'rockyhelmet', 'assaultvest',
+  'sitrusberry', 'lumberry', 'focussash', 'custapberry', 'weaknesspolicy',
+];
+
+function mbGetSlot(battle: Battle, pokemon: Pokemon) {
+  (pokemon as any).m ??= {};
+  (pokemon as any).m.mysterybox ??= { id: '', state: {}, battleUsed: {} as Record<string, boolean> };
+  return (pokemon as any).m.mysterybox as { id: string; state: any; battleUsed: Record<string, boolean> };
+}
+
+function mbPickNew(battle: Battle, pokemon: Pokemon) {
+  const slot = mbGetSlot(battle, pokemon);
+  slot.id = battle.sample(MYSTERY_BOX_POOL);
+  slot.state = {}; // reset per-turn state
+  const nice = battle.dex.items.get(slot.id).name || slot.id;
+  battle.add('-message', `${pokemon.name}'s Mystery Box emulates ${nice}!`);
+}
+
+function mbTryEatBerry(battle: Battle, pokemon: Pokemon) {
+  // Respect Unnerve etc., same gate vanilla berries use
+  return battle.runEvent('TryEatItem', pokemon) !== false;
+}

@@ -1453,12 +1453,6 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 			}
 		},
 	},
-	enforcesameteratype: {
-		effectType: 'ValidatorRule',
-		name: 'Enforce Same Tera Type',
-		desc: "Forces Pok&eacute;mon to have a Tera Type matching one of their original types.",
-		// implemented in sametypeclause
-	},
 	megarayquazaclause: {
 		effectType: 'Rule',
 		name: 'Mega Rayquaza Clause',
