@@ -23049,50 +23049,42 @@ starfall: {
 
 },
 backstab: {
-  accuracy: 100,
-  basePower: 115,
-  category: "Physical",
-  name: "Backstab",
-  pp: 8,
-  priority: 0,
-  flags: {contact: 1, charge: 1, mirror: 1, nosleeptalk: 1, noassist: 1, failinstruct: 1, slicing: 1},
-  breaksProtect: true,
-
-  onTryMove(attacker, defender, move) {
-    // If we're on the second turn, just execute the move.
-    if (attacker.removeVolatile(move.id)) return;
-
-    // Turn 1: trigger a known two-turn prepare animation
-    // Use a canonical move name that the client knows (`prepareAnim` exists).
-    this.add('-prepare', attacker, 'Phantom Force', defender);
-
-    // Standard charge-move gate (same as other two-turn moves)
-    if (!this.runEvent('ChargeMove', attacker, defender, move)) return;
-
-    // Keep the 2-turn state. We use the move's id as a volatile so
-    // removeVolatile(move.id) above detects turn 2.
-    attacker.addVolatile(move.id);
-    attacker.addVolatile('twoturnmove', defender);
-
-    // Spend the turn charging.
-    return null;
-  },
-
-  // You don't need special invulnerability handling just to run the animation.
-  // If you want PF-style semi-invuln logic, you could add it here. For now keep it simple.
-  condition: { duration: 2 },
-
-  onEffectiveness(typeMod, target, type) {
-    // Your original extra Ghost effectiveness
-    return typeMod + this.dex.getEffectiveness('Ghost', type);
-  },
-
-  secondary: null,
-  drain: [1, 2],
-  target: "normal",
-  type: "Dark",
-  contestType: "Cool",
+	accuracy: 100,
+	basePower: 115,
+	category: "Physical",
+	name: "Backstab",
+	pp: 8,
+	priority: 0,
+	flags: { contact: 1, charge: 1, mirror: 1, metronome: 1, nosleeptalk: 1, noassist: 1, failinstruct: 1 },
+	breaksProtect: true,
+	onTryMove(attacker, defender, move) {
+		if (attacker.removeVolatile(move.id)) {
+			// Strike turn: show Phantom Force hit animation
+			this.add('-anim', attacker, 'Phantom Force', defender);
+			return;
+		}
+		// Charge turn: show Phantom Force vanish/prepare animation
+		this.add('-prepare', attacker, 'Phantom Force', defender);
+		if (!this.runEvent('ChargeMove', attacker, defender, move)) {
+			return;
+		}
+		attacker.addVolatile('twoturnmove', defender);
+		return null;
+	},
+	condition: {
+		duration: 2,
+		onInvulnerability: false,
+	},
+	onEffectiveness(typeMod, target, type, move) {
+		return typeMod + this.dex.getEffectiveness('Ghost', type);
+	},
+	secondary: null,
+	drain: [1, 2],
+	target: "normal",
+	type: "Dark",
+	contestType: "Cool",
 },
+
 
 
 darkmoon: {
@@ -24360,6 +24352,98 @@ plagueswarm: {
 		type: "Bug",
 		contestType: "Beautiful",
 	},
+insectsting: {
+  name: "Insect Sting",
+  shortDesc: "50 BP, Bug, Physical. On hit: target is stung; each time it uses a move, it loses 1/8 max HP (permanent).",
+  type: "Bug",
+  category: "Physical",
+  basePower: 50,
+  accuracy: 85,
+  target: 'normal',
+  pp: 5,
+  priority: 0,
+  flags: {contact: 1, protect: 1, mirror: 1},
+  secondary: null,
+
+  onHit(target, source) {
+    // permanent mark (persists across switches/faint+revive)
+    (target as any).m ??= {};
+    (target as any).m.permaStung = true;
+    (target as any).m.permaStungSource = source || null;
+
+    // add/refresh the active volatile now
+    target.addVolatile('insectsting', source);
+    this.add('-message', `${target.name} was stung!`);
+
+    // ensure the side watcher is installed for the target's side
+    const id = 'insectstingwatcher' as ID;
+    if (!target.side.sideConditions[id]) {
+      target.side.addSideCondition(id, source);
+    }
+  },
+
+
+
+  // Volatile handles reapplication bookkeeping and messaging only
+  volatileStatus: 'insectsting',
+  condition: {
+    onStart(pokemon, source) {
+      // remember who applied it for KO credit
+      this.effectState.source = source || (pokemon as any).m?.permaStungSource || null;
+    },
+    onEnd(pokemon) {
+      // cosmetic; the watcher will re-apply on switch-in
+      this.add('-message', `${pokemon.name} is no longer actively stung...`);
+    },
+  },
+},
+graspinghands: {
+  name: "Grasping Hands",
+  shortDesc: "Marks the target; when it switches out it loses 1/3 max HP. Catches a switch like Pursuit. Ghosts are immune.",
+  type: "Fighting",
+  category: "Status",
+  accuracy: 100,
+  pp: 3,
+  noPPBoosts: true,
+  priority: 1,
+  basePower: 0,
+  target: "normal",
+  flags: {protect: 1, mirror: 1},
+
+  beforeTurnCallback(pokemon) {
+    pokemon.addVolatile('graspinghandsready');
+  },
+
+  // If the pre-switch catch already fired this turn, abort the normal resolution
+  onTry(source, target, move) {
+    const ready = source.volatiles['graspinghandsready'];
+    if (ready && (ready as any).consumed) {
+      // Optional cosmetic: keep animation from replaying
+      this.attrLastMove('[still]');
+      this.add('-message', `${source.name}'s Grasping Hands already ensnared its target!`);
+      return null;
+    }
+  },
+
+  onTryHit(target, source, move) {
+    // Respect Fighting immunities (e.g., Ghost)
+    if (!this.dex.getImmunity('Fighting', target)) {
+      this.add('-immune', target, '[from] type');
+      return null;
+    }
+  },
+
+  onHit(target, source) {
+    if (!target.addVolatile('graspinghandsmark', source)) return;
+    this.add('-message', `${target.name} is ensnared by Grasping Hands!`);
+  },
+
+  onAfterMove(source) {
+    if (source.volatiles['graspinghandsready']) source.removeVolatile('graspinghandsready');
+  },
+},
+
+
 
 
 };

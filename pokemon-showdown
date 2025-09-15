@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+
 // no-var is disabled since this is supposed to support old versions of node
 // block scoped var is just because idk what the fuck is going on there since it wasn't
 // failing before

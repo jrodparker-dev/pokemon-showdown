@@ -1188,6 +1188,163 @@ pokemon.moveSlots.splice(0, pokemon.moveSlots.length);
       // nothing special
     },
   },
+// Applied to the USER when Grasping Hands is selected.
+graspinghandsready: {
+  duration: 1,
+  onStart(source) { this.effectState.source = source; },
+
+  // Catch foes that try to switch out this turn (Pursuit timing)
+  onFoeBeforeSwitchOut(pokemon) {
+    const source = this.effectState.source;
+    if (!source || source.fainted || !source.isActive) return;
+
+    // Respect Fighting immunities (e.g., Ghost)
+    if (!this.dex.getImmunity('Fighting', pokemon)) return;
+
+    if (!pokemon.volatiles['graspinghandsmark']) {
+      pokemon.addVolatile('graspinghandsmark', source);
+      this.add('-activate', source, 'move: Grasping Hands');
+      this.add('-message', `${pokemon.name} is ensnared by Grasping Hands!`);
+    }
+
+    // Mark that the move has already done its pre-switch job; abort later normal use
+    if (source.volatiles['graspinghandsready']) {
+      (source.volatiles['graspinghandsready'] as any).consumed = true;
+    }
+  },
+},
+
+// The mark that punishes switching (damage is dealt when they leave)
+graspinghandsmark: {
+  onStart(target, source) { this.effectState.source = source || null; },
+  onSwitchOut(pokemon) {
+    const src = this.effectState.source || pokemon;
+    const dmg = Math.max(1, Math.floor(pokemon.baseMaxhp / 3));
+    this.damage(dmg, pokemon, src, {id: 'graspinghands'} as any);
+    this.add('-message', `${pokemon.name} took damage from ${src.name}'s Grasping Hands!`);
+    pokemon.removeVolatile('graspinghandsmark');
+  },
+},
+insectstingwatcher: {
+  // Re-apply the volatile whenever a marked Pokémon returns
+  onSwitchIn(pokemon) {
+    const mark = (pokemon as any).m?.permaStung;
+    if (mark && !pokemon.volatiles['insectsting']) {
+      const src = (pokemon as any).m?.permaStungSource || null;
+      pokemon.addVolatile('insectsting', src);
+      this.add('-message', `${pokemon.name}'s sting persists!`);
+    }
+  },
+
+  // After a Pokémon on this side successfully uses a move, chip it if stung
+  onAfterMove(pokemon, target, move) {
+    if (!move) return;
+    if (!pokemon?.volatiles?.['insectsting']) return;      // must be actively stung
+    if (pokemon.hp <= 0) return;
+
+    // credit damage to original stinger if known
+    const src =
+      (pokemon as any).m?.permaStungSource ||
+      pokemon.volatiles['insectsting']?.source ||
+      pokemon;
+
+    const dmg = Math.max(1, Math.floor(pokemon.baseMaxhp / 8));
+    this.damage(dmg, pokemon, src, {id: 'insectsting'} as any);
+    this.add('-message', `${pokemon.name} was hurt by Insect Sting!`);
+  },
+},
+antiswitchertrap: {
+  // punishes opposing switches
+  onSwitchOut(pokemon) {
+    if (pokemon.hp > 0) {
+      const dmg = Math.max(1, Math.floor(pokemon.baseMaxhp / 3));
+      const source = this.effectState.source; // the mon that set the side condition
+      this.damage(dmg, pokemon, source, {id: 'antiswitcher'} as any);
+
+      // custom message
+      if (source) {
+        this.add(
+          '-message',
+          `${pokemon.name} took damage from ${source.name}'s Anti-switcher ability!`
+        );
+      } else {
+        this.add('-message', `${pokemon.name} took damage from Anti-switcher!`);
+      }
+    }
+  },
+},
+bfp: {
+  name: "Berry Forager (Priority)",
+  // Applied at end of turn; it's already "armed" for the next action
+  onStart(pokemon) {
+    (this.effectState as any).ready = true;
+  },
+
+  // Give +1 priority on the next *move* this Pokémon attempts
+  onModifyPriority(priority, pokemon, _target, move) {
+    if (!move) return;                 // don't affect switches, etc.
+    const st = this.effectState as any;
+    if (!st.ready) return;
+    return priority + 1;
+  },
+
+  // Consume after they actually try to act (hit or miss)
+  onAfterMove(pokemon) {
+    const st = this.effectState as any;
+    if (st?.ready) pokemon.removeVolatile('bfp');
+  },
+
+  // If their action gets aborted (flinch, full-para, etc.), still consume
+  onMoveAborted(pokemon) {
+    const st = this.effectState as any;
+    if (st?.ready) pokemon.removeVolatile('bfp');
+  },
+
+  // Clean up on switch
+  onSwitchOut(pokemon) {
+    if (pokemon.volatiles['bfp']) pokemon.removeVolatile('bfp');
+  },
+},
+torrentialblizzardfield: {
+  name: "Torrential Blizzard (Field)",
+
+  
+
+  onBasePower(basePower, user, target, move) {
+    if (!this.field.isWeather('snowscape')) return;
+    if (['Fire','Fighting','Rock','Steel'].includes(move.type)) {
+      return this.chainModify(0.5);
+    }
+  },
+
+  onResidualOrder: 1,
+  onResidualSubOrder: 1,
+  onResidual() {
+    // End itself if Snowscape ended
+    if (!this.field.isWeather('snowscape')) {
+      this.field.removePseudoWeather('torrentialblizzardfield');
+      return;
+    }
+
+    // Hail-style chip damage
+    for (const side of this.sides) {
+      for (const mon of side.active) {
+        if (!mon || mon.fainted) continue;
+        if (mon.hasType('Ice')) continue;
+        if (mon.hasAbility(['magicguard','overcoat'])) continue;
+        if (mon.hasItem('safetygoggles')) continue;
+        this.damage(mon.baseMaxhp / 16, mon, null, this.effect);
+      }
+    }
+  },
+
+  onAnySetWeather(_target, _source, weather) {
+    if (weather.id !== 'snowscape' &&
+        this.field.pseudoWeather['torrentialblizzardfield']) {
+      this.field.removePseudoWeather('torrentialblizzardfield');
+    }
+  },
+},
 
 
 

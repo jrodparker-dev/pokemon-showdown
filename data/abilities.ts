@@ -8384,7 +8384,296 @@ poisonmaster: {
 			if (target && ['psn', 'tox'].includes(target.status)) return 5;
 		},
 
-}
+},
+hypnoticeyes: {
+  name: "Hypnotic Eyes",
+  shortDesc: "End of each turn: 5→10→20→40→80→100% to sleep the opposing active. Resets on success.",
+  onStart(pokemon) {
+    // ── your snippet ──
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types (kept for future use)
+    this.add('-start', pokemon, 'typechange', cur);
+    // ── ability init ──
+    this.effectState.steps = 0;
+  },
+  
+  onResidual(pokemon) {
+    const foe = pokemon.side.foe.active[0];
+    if (!foe || foe.fainted) { this.effectState.steps = 0; return; }
+    if (foe.status === 'slp') { this.effectState.steps = 0; return; }
+
+    const ladder = [5, 10, 20, 40, 80, 100];
+    const idx = Math.min(this.effectState.steps ?? 0, ladder.length - 1);
+    const chance = ladder[idx];
+
+    if (this.randomChance(chance, 100)) {
+      if (foe.trySetStatus('slp', pokemon)) this.effectState.steps = 0;
+    } else {
+      this.effectState.steps = idx + 1;
+    }
+  },
+},
+
+// 2) Rainbow — all 18 types at once
+rainbow: {
+  name: "Rainbow",
+  shortDesc: "This Pokémon is all 18 types at once.",
+  onStart(pokemon) {
+    const allTypes = [
+      'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
+      'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
+    ];
+    pokemon.setType(allTypes);
+    this.add('-start', pokemon, 'typechange', allTypes.join('/'), '[from] ability: Rainbow');
+  },
+},
+
+
+// 4) Normalize (random type each time it attacks)
+normalizeplus: {
+  name: "Normalize Plus",
+  shortDesc: "Damaging moves change to a random type on use (announced).",
+  onStart(pokemon) { 
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+		},
+  onModifyType(move, pokemon) {
+    if (move.category === 'Status' || !move.type) return;
+
+    const pool = [
+      'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
+      'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
+    ];
+    const newType = this.sample(pool);
+
+    move.type = newType;
+    this.add('-message', `${pokemon.name}'s Normalize+ changed ${move.name} to ${newType}-type!`);
+  },
+},
+
+
+// 5) Guard Stance — each turn, become weak to up to 4 random types (announced)
+guardstance: {
+  name: "Guard Stance",
+  shortDesc:
+    "End of each turn: roll 1–4 weaknesses and 4–8 resists; others neutral next turn. Ignores innate immunities.",
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+    this.effectState.ready = false;
+  },
+
+  onResidualOrder: 28,
+  onResidualSubOrder: 2,
+  onResidual(pokemon) {
+    if (pokemon.fainted) return;
+
+    // local unique sampler (no helpers)
+    const drawMany = (choices: string[], count: number): string[] => {
+      const bag = choices.slice();
+      const take = Math.min(count, bag.length);
+      const out: string[] = [];
+      for (let i = 0; i < take; i++) {
+        const idx = (this as any).random(bag.length);
+        out.push(bag.splice(idx, 1)[0]);
+      }
+      return out;
+    };
+
+    const pool = this.dex.types.names().filter(t => t !== 'Stellar' && t !== '???');
+
+    const weakCount = (this as any).random(2, 5);
+    const weakList = drawMany(pool, weakCount);
+
+    const remaining = pool.filter(t => !weakList.includes(t));
+    const resistCount = (this as any).random(3, 7);
+    const resistList = drawMany(remaining, resistCount);
+
+    this.effectState.weak = new Set(weakList);
+    this.effectState.resist = new Set(resistList);
+    this.effectState.ready = true;
+
+    this.add('-message',
+      `${pokemon.name} shifts its guard! Weak to: ${weakList.join(', ') || '—'}. ` +
+      `Resists: ${resistList.join(', ') || '—'}. Others are neutral.`);
+  },
+
+  // Make everything neutral after the first roll; apply our sets
+  onEffectiveness(typeMod, target, type, move) {
+  if (!this.effectState.ready || !move || move.effectType !== 'Move') return;
+  // Tell the engine what the matchup *is* this turn so the UI shows messages.
+  if (this.effectState.weak?.has(move.type))  return  1;  // super effective (×2)
+  if (this.effectState.resist?.has(move.type)) return -1; // resisted (×0.5)
+  return 0; // neutral
+},
+
+// Remove this entirely if you had it before:
+// onSourceModifyDamage(...) { ... }
+
+onNegateImmunity(pokemon, type) {
+  if (!this.effectState.ready) return;
+  // Ignore innate type immunities (Normal→Ghost, Ground→Flying, etc.)
+  if (type) return true;
+},
+},
+
+
+
+// 6) Berry Forager — generates and immediately eats a random Berry each turn
+berryforager: {
+  name: "Berry Forager",
+  shortDesc: "End of each turn: generates a random curated Berry and eats it immediately.",
+  onResidual(pokemon) {
+    if (pokemon.fainted) return;
+
+    // Curated list (stat boosters, custap, sitrus, lum)
+    const curated = [
+      'Liechi Berry','Ganlon Berry','Salac Berry','Petaya Berry','Apicot Berry',
+      'Lansat Berry','Starf Berry','Micle Berry','Custap Berry',
+      'Sitrus Berry','Lum Berry',
+    ];
+
+    // If the holder has a major status, force Lum Berry
+    const forcedLum = !!pokemon.status;
+    const pickName = forcedLum ? 'Lum Berry' : (this as any).sample(curated);
+    const item = this.dex.items.get(pickName);
+    if (!item?.isBerry) return;
+
+    // Temporarily replace held item
+    const original = pokemon.getItem();
+    if (original?.id) pokemon.takeItem();
+    pokemon.setItem(item);
+
+    const consumed = pokemon.eatItem(true);
+    if (consumed) {
+      this.add('-message', `${pokemon.name} foraged and ate a ${item.name}!`);
+
+      // If Custap was eaten, prime next action priority
+      if (item.id === 'custapberry') {
+  			pokemon.addVolatile('bfp' as ID);
+  			this.add('-message', `${pokemon.name}'s Custap primed its next action!`);
+		}
+    } else {
+      // If the berry couldn't be used now, discard it to avoid overriding held item
+      if (pokemon.item) pokemon.takeItem();
+    }
+
+    // Restore original item (if any)
+    if (original?.id) pokemon.setItem(original);
+  },
+
+  // Fallback not needed since you said ultimateberrypriority exists, but harmless if left:
+  onModifyPriority(priority, source, target, move) {
+    if (this.effectState?.custapPrimed && move) {
+      this.effectState.custapPrimed = false;
+      return priority + 1;
+    }
+  },
+  onSwitchOut(pokemon) {
+    if (this.effectState) this.effectState.custapPrimed = false;
+  },
+},
+
+
+// 7) Slapback — first time it is damaged, reflect half that damage back (even if KO’d)
+slapback: {
+  name: "Slapback",
+  shortDesc: "The first time it takes damage, deals 1/2 of that damage back to the attacker.",
+  onStart(pokemon) { 
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+		},
+  onDamagingHit(damage, target, source, move) {
+    if (this.effectState.used || !source || !damage) return;
+    this.effectState.used = true;
+    const ret = Math.max(1, Math.floor(damage / 2));
+    this.damage(ret, source, target, this.dex.abilities.get('Slapback'));
+  },
+},
+
+// 8) Weatherman — summons a random weather on switch-in
+weatherman: {
+  name: "Weatherman",
+  shortDesc: "On switch-in, sets a random weather: Sun, Rain, Sandstorm, or Snow.",
+  onStart(pokemon) {
+    const choice = this.sample(['sunnyday','raindance','sandstorm','snow']);
+    this.field.setWeather(choice);
+    this.add('-ability', pokemon, 'Weatherman', '[weather] ' + this.field.weather);
+	const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+  },
+},
+
+// 9) Torrential Blizzard — Snow on entry; takes half damage from Ice’s weakness types
+torrentialblizzard: {
+  name: "Torrential Blizzard",
+  shortDesc: "On switch-in: Snowscape. While Snowscape is active: chip damage to non-Ice; Fire/Fighting/Rock/Steel moves deal 0.5×.",
+  onStart(pokemon) {
+    // Set Snowscape (Gen 9 "snow")
+    if (!this.field.isWeather('snowscape')) {
+      this.field.setWeather('snowscape', pokemon, this.effect);
+    }
+    // Add our custom overlay condition
+    if (!this.field.pseudoWeather['torrentialblizzardfield']) {
+      this.field.addPseudoWeather('torrentialblizzardfield', pokemon, this.effect);
+    }
+	this.add('-message', `The Blizzard is extremely strong!`);
+
+    // Optional type-change debug you had before
+    const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+  },
+},
+
+
+
+// 10) Sandy Hurricane — sets Sandstorm on entry (heavy sand flavor)
+sandyhurricane: {
+  name: "Sandy Hurricane",
+  shortDesc: "On switch-in: Sandstorm.",
+  onStart(pokemon) { if (!this.field.isWeather('sandstorm')) this.field.setWeather('sandstorm');
+	const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+   },
+},
+
+// 11) Momentum Burst — +1 random stat every time it enters the field
+momentumburst: {
+  name: "Momentum Burst",
+  shortDesc: "On switch-in: +1 to a random stat.",
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+    const stat = this.sample(['atk','def','spa','spd','spe']);
+    const boost: Partial<StatsTable> = {}; (boost as any)[stat] = 1;
+    this.boost(boost, pokemon);
+  },
+},
+
+// 12) Anti-switcher — while holder is active, foes take 1/3 max HP when they switch out
+antiswitcher: {
+  name: "Anti-switcher",
+  shortDesc: "Opposing Pokémon take 1/3 max HP when they switch out while this is active.",
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+	this.add('-ability', pokemon, 'Anti-switcher');
+    this.add('-message', `${pokemon.name}'s Anti-switcher will punish swaps!`);
+    pokemon.side.foe.addSideCondition('antiswitchertrap', pokemon);
+  },
+  onEnd(pokemon) {
+    pokemon.side.foe.removeSideCondition('antiswitchertrap');
+  },
+},
+
 
 
 
