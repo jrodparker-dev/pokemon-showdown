@@ -22256,7 +22256,7 @@ vampiricbite: {
 },
 wingsofthefae: {
 	accuracy: 100,
-	basePower: 50,
+	basePower: 40,
 	pp: 10,
 	name: "Wings of the Fae",
 	priority: 0,
@@ -22264,7 +22264,7 @@ wingsofthefae: {
 	category: "Special",
 	flags: {protect: 1, metronome: 1},
 	secondary: {
-		chance: 50,
+		chance: 30,
 		volatileStatus: 'confusion'
 	},
 	target: "normal",
@@ -23612,7 +23612,7 @@ poop: {
   sideCondition: 'poop',
 
   condition: {
-    // no duration => persists until removed
+    duration: 8,
     name: 'Poop',
 
     onSideStart(side, source) {
@@ -23634,7 +23634,8 @@ poop: {
     return; // let the Water move continue as normal
   }
 
-      this.add('-activate', target, 'move: Poop', '[block]');     // show activation
+      this.add('-activate', target, 'move: Poop', '[block]');
+	  this.add('-message', `${source.name}'s ${move.name} was blocked by the Poop!`);     // show activation
       return null;                                                // cancel the hit
     },
 

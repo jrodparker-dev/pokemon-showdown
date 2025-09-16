@@ -17494,6 +17494,9 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 		weightkg: 310,
 		color: "Pink",
 		eggGroups: ["Field"],
+  		otherFormes: ['Orthworm-Mega'],
+  		formeOrder: ['Orthworm', 'Orthworm-Mega'],
+
 	},
 	glimmet: {
 		num: 969,
@@ -19844,4 +19847,21 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 		eggGroups: ["Undiscovered"],
 		gen: 5,
 	},
+	orthwormmega: {
+	  name: "Orthworm-Mega",
+	  num: 968,
+	  baseSpecies: "Orthworm",
+	  forme: "Mega",
+	  types: ["Steel"],                    // change if you want
+	  baseStats: {hp:70, atk:95, def:160, spa:55, spd:100, spe:75}, // example buffs
+	  abilities: {0: "Earth Eater"},       // or a new ability
+	  weightkg: 410,
+	  requiredItem: "Orthwormite",         // ties to your stone
+	  isMega: true,
+	  eggGroups: ["Field"],
+	  //battleOnly: "Orthworm",              // tells client to use base sprite
+	  //changesFrom: "Orthworm",
+	  spriteid: "orthworm",
+	},
+
 };

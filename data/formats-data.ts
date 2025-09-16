@@ -6048,4 +6048,8 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 		isNonstandard: "Custom",
 		tier: "Illegal",
 	},
+	orthwormmega: {
+		tier: "OU",
+		isNonstandard: null,
+	}
 };

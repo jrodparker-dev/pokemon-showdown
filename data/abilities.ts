@@ -8264,7 +8264,7 @@ wonderwheel: {
 
 kpopsinger: {
   name: "Kpop Singer",
-  shortDesc: "Each end of turn: user +1 to three random stats; opposing actives +1 to one random stat.",
+  shortDesc: "Each end of turn: user +1 to one random stat; opposing actives -1 to one random stat.",
   rating: 5,
 
   onStart(pokemon) {
@@ -8289,32 +8289,29 @@ kpopsinger: {
 
   // End-of-turn pulse
   onResidualOrder: 27,
-  onResidual(pokemon) {
-    if (!pokemon.hp) return;
+onResidual(pokemon) {
+  if (!pokemon.hp) return;
 
-    const pool: BoostID[] = ['atk','def','spa','spd','spe'];
+  // Exclude accuracy/evasion
+  const pool: BoostID[] = ['atk', 'def', 'spa', 'spd', 'spe'];
 
-    // Iterate over all currently active Pokémon (both sides)
-    for (const side of this.sides) {
-      for (const mon of side.active) {
-        if (!mon || !mon.hp) continue;
+  // Affect every currently active Pokémon on the field
+  for (const side of this.sides) {
+    for (const mon of side.active) {
+      if (!mon || !mon.hp) continue;
 
-        const boosts: Partial<BoostsTable> = {};
+      const stat = this.sample(pool);
+      const delta = (mon.side === pokemon.side) ? 1 : -1; // allies +1, foes -1
 
-        // User's side gets 3 random +1s; everyone else gets 1 random +1
-        
-        const draws = (mon.side === pokemon.side) ? 3 : 1;
+      const boosts: Partial<BoostsTable> = {};
+      boosts[stat] = delta;
 
-        for (let i = 0; i < draws; i++) {
-          const stat = this.sample(pool);
-          boosts[stat] = (boosts[stat] || 0) + 1;
-        }
-
-        this.boost(boosts, mon, pokemon, this.effect);
-        this.add('-message', `${mon.name} was hyped up by Kpop Singer!`);
-      }
+      this.boost(boosts, mon, pokemon, this.effect);
+      this.add('-message',
+        `${mon.name} ${delta > 0 ? 'was hyped up' : 'was thrown off'} by Kpop Singer!`);
     }
-  },
+  }
+},
 },
 
 hazyaura: {

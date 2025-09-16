@@ -8801,6 +8801,329 @@ extramoody: {
     this.add('-message', `${pokemon.name}'s ExtraMoody sharply shifted its stats! [+6 ${upStat.toUpperCase()}, -6 ${downStat.toUpperCase()}]`);
   },
 },
+steelfangs: {
+		name: "Steel Fangs",
+		shortDesc: "Biting moves deal 1.5× damage (Strong Jaw as an item).",
+		gen: 9,
+		// Keep this list in sync with Showdown's biting flag set
+		onBasePower(basePower, user, target, move) {
+			// PS uses a 'bite' flag on biting moves
+			if (move.flags?.bite) {
+				this.debug('Steel Fangs boost');
+				return this.chainModify(1.5);
+			}
+		},
+	},
+
+	weatherbelt: {
+		name: "Weather Belt",
+		shortDesc: "Boosts Speed by 1.5× while any weather is active.",
+		gen: 9,
+		onModifySpe(spe, pokemon) {
+			// If any weather that counts as active is set, boost Speed
+			// (this.field.isWeather('anything') is true for active weather)
+			if (this.field.weather && this.field.weather !== 'none') {
+				this.debug('Weather Belt Speed boost');
+				return this.chainModify(1.5);
+			}
+		},
+	},
+
+	bloodcharm: {
+  name: "Blood Charm",
+  shortDesc: "If a foe is statused when you act, heal 1/8 max HP after using a damaging move.",
+  gen: 9,
+
+  // Pre-check: arm only if any opposing active Pokémon is already major-statused
+  onBeforeMove(user, _target, move) {
+    if (!move || move.category === 'Status') { this.effectState.bcArm = false; return; }
+    const foes = user.side.foe.active.filter(Boolean);
+    const major = new Set(['brn','par','slp','frz','psn','tox']);
+    this.effectState.bcArm = foes.some(f => f && major.has((f.status as string | undefined) ?? ''));
+  },
+
+  // Heal after the user's damaging move resolves (Shell Bell timing)
+  onAfterMoveSecondarySelfPriority: -1,
+  onAfterMoveSecondarySelf(pokemon, _target, move) {
+    if (!move || move.category === 'Status') { this.effectState.bcArm = false; return; }
+    if (this.effectState.bcArm) {
+      this.heal(pokemon.baseMaxhp / 8, pokemon);
+      this.add('-activate', pokemon, 'item: Blood Charm');
+    }
+    this.effectState.bcArm = false; // reset for next move
+  },
+},
+
+
+
+	scalefragment: {
+		name: "Scale Fragment",
+		shortDesc: "If at full HP, halved damage from attacks (Multiscale as an item).",
+		gen: 9,
+		onSourceModifyDamage(damage, source, target, move) {
+			if (target?.hp === target?.maxhp && move.category !== 'Status') {
+				this.debug('Scale Fragment weaken');
+				return this.chainModify(0.5);
+			}
+		},
+	},
+
+	windchime: {
+  name: "Wind Chime",
+  shortDesc: "Immune to sound-based moves (Soundproof as an item).",
+  gen: 9,
+
+  onTryHit(target, source, move) {
+    if (move?.flags?.sound) {
+      this.add('-immune', target, '[from] item: Wind Chime');
+      this.add('-message', `Wind Chime protects ${target.name} from sound moves!`);
+      return null;
+    }
+  },
+
+  // Also blocks Perish Song’s residual effect
+  onAnyTryHit(target, source, move) {
+    if (move?.flags?.sound && target === this.effectState.target) {
+      this.add('-immune', target, '[from] item: Wind Chime');
+      this.add('-message', `Wind Chime protects ${target.name} from sound moves!`);
+      return null;
+    }
+  },
+},
+
+
+	luckypetal: {
+		name: "Lucky Petal",
+		shortDesc: "At <50% HP, the holder’s moves always crit.",
+		gen: 9,
+		onModifyMove(move, pokemon) {
+			if (!move || move.category === 'Status') return;
+			if (pokemon.hp * 2 < pokemon.maxhp) {
+				move.willCrit = true;
+				this.add('-activate', pokemon, 'item: Lucky Petal');
+			}
+		},
+	},
+
+	stormbracer: {
+		name: "Storm Bracer",
+		shortDesc: "In rain, Electric & Flying moves deal 1.5× damage.",
+		gen: 9,
+		onBasePower(basePower, user, target, move) {
+			if (!move || move.category === 'Status') return;
+			if ((move.type === 'Electric' || move.type === 'Flying') &&
+				this.field.isWeather(['raindance', 'primordialsea'])) {
+				this.debug('Storm Bracer boost');
+				return this.chainModify(1.5);
+			}
+		},
+	},
+
+	prismpearl: {
+  name: "Prism Pearl",
+  shortDesc: "First damaging move each stay becomes 2-hit at 0.75× per hit. Resets on switch.",
+  gen: 9,
+
+  onStart(pokemon) {
+    this.effectState.armed = true;       // re-armed on entry
+    this.effectState.boosting = false;   // per-move flag
+  },
+  onAfterSwitchInSelf(pokemon) {
+    this.effectState.armed = true;       // re-arm after every switch-in
+    this.effectState.boosting = false;
+  },
+
+  onModifyMove(move, pokemon) {
+    if (!move || move.category === 'Status') return;
+    if (this.effectState.armed && !move.multihit) {
+      move.multihit = 2;
+      this.effectState.boosting = true;  // mark that THIS move should be 0.75× per hit
+      this.add('-activate', pokemon, 'item: Prism Pearl');
+    }
+  },
+
+  onBasePower(basePower, user, target, move) {
+    // While boosting flag is set, each hit is 0.75×
+    if (this.effectState.boosting) {
+      return this.chainModify(0.75);
+    }
+  },
+
+  onAfterMove(pokemon, target, move) {
+    if (!move || move.category === 'Status') return;
+    // consume after first damaging move of the stay
+    if (this.effectState.armed) this.effectState.armed = false;
+    // and stop boosting so the next turns aren’t affected
+    if (this.effectState.boosting) this.effectState.boosting = false;
+  },
+},
+
+
+	trickball: {
+  name: "Trick Ball",
+  shortDesc: "When hit by a damaging move, swap items with the attacker.",
+  gen: 9,
+
+  onDamagingHit(damage, target, source, move) {
+    if (!source || !move || move.category === 'Status') return;
+
+    const tItem = target.getItem();
+    const sItem = source.getItem();
+
+    // Nothing to swap
+    if (!tItem && !sItem) return;
+
+    // Try to remove items (will fail automatically for untakeables)
+    const tookT = tItem ? target.takeItem() : null;
+    const tookS = sItem ? source.takeItem() : null;
+
+    // If neither side could give up its item, bail
+    if (!tookT && !tookS) return;
+
+    // Attempt the actual swap; track success so we can roll back
+    let okTarget = true, okSource = true;
+    if (tookS) okTarget = target.setItem(tookS);
+    if (tookT) okSource = source.setItem(tookT);
+
+    if (okTarget || okSource) {
+      this.add('-activate', target, 'item: Trick Ball');
+      if (target.getItem()) this.add('-item', target, target.getItem(), '[from] item: Trick Ball', '[of] ' + target);
+      if (source.getItem()) this.add('-item', source, source.getItem(), '[from] item: Trick Ball', '[of] ' + target);
+    } else {
+      // Roll back on failure (e.g., illegal hold)
+      if (tookT) target.setItem(tookT);
+      if (tookS) source.setItem(tookS);
+    }
+  },
+},
+
+
+
+
+	rainbowcore: {
+		name: "Rainbow Core",
+		shortDesc: "First move of each type used by the holder gets 1.5× power.",
+		gen: 9,
+		onStart(pokemon) {
+			pokemon.itemState.typesUsed = new Set<string>();
+		},
+		onModifyMove(move, pokemon) {
+			if (!pokemon.itemState?.typesUsed) pokemon.itemState.typesUsed = new Set<string>();
+		},
+		onBasePower(basePower, user, target, move) {
+			if (!move || move.category === 'Status') return;
+			const used: Set<string> = (user.itemState.typesUsed ?? new Set());
+			if (!used.has(move.type)) {
+				(user.itemState.typesUsed as Set<string>).add(move.type);
+				this.add('-activate', user, 'item: Rainbow Core', '[moveType]', move.type);
+				return this.chainModify(1.5);
+			}
+		},
+	},
+
+	sandstone: {
+		name: "Sandstone",
+		shortDesc: "In sandstorm: heal 1/8 max HP each turn; incoming move accuracy vs holder is 0.8×.",
+		gen: 9,
+		onResidual(pokemon) {
+			if (this.field.isWeather('sandstorm')) {
+				this.heal(pokemon.baseMaxhp / 8, pokemon, pokemon);
+				this.add('-activate', pokemon, 'item: Sandstone');
+			}
+		},
+		// Sand Veil-like accuracy reduction against the holder
+		onModifyAccuracy(accuracy, target, source, move) {
+			if (!this.field.isWeather('sandstorm')) return;
+			if (typeof accuracy === 'number') {
+				this.debug('Sandstone evasion (accuracy down)');
+				return this.chainModify(0.8);
+			}
+		},
+	},
+
+	mimicwand: {
+  name: "Mimic Wand",
+  shortDesc: "When hit by a damaging move, copy it back at 50% power (each move can be copied once).",
+  gen: 9,
+
+  onStart(pokemon) {
+    // Track which move IDs we’ve already echoed this battle
+    this.effectState.copied = new Set<string>();
+  },
+
+  onDamagingHit(damage, target, source, move) {
+    if (!source || !move || move.category === 'Status') return;
+    if (move.isZ || move.isMax) return;
+
+    const seen: Set<string> = (this.effectState.copied ?? new Set<string>());
+    if (seen.has(move.id)) return; // only once per distinct move id
+    seen.add(move.id);
+    this.effectState.copied = seen;
+
+    // Build a safe copy of the move and halve its damage
+    const moveCopy = this.dex.getActiveMove(move.id);
+    (moveCopy as any).mimicWandEcho = true;
+
+    if (typeof moveCopy.basePower === 'number' && moveCopy.basePower > 0) {
+      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.5));
+    } else {
+      (moveCopy as any).mimicWandHalf = true; // let BasePower hook scale it
+    }
+
+    // Avoid recursion with other reflection mechanics
+    (moveCopy as any).noCounter = true;
+
+    this.add('-activate', target, 'item: Mimic Wand', '[of] ' + target);
+
+    // IMPORTANT: options-object signature
+    // user = target (the holder that just got hit), target option = source (the attacker)
+    this.actions.useMove(moveCopy, target, { target: source });
+  },
+
+  onBasePower(basePower, user, target, move) {
+    if ((move as any)?.mimicWandHalf) {
+      return this.chainModify(0.5);
+    }
+  },
+},
+
+
+	twilightmirror: {
+  name: "Twilight Mirror",
+  shortDesc: "When the holder is statused by a foe, the foe gets the same status.",
+  gen: 9,
+
+  onSetStatus(status, target, source, effect) {
+    // Only reflect if a foe inflicted it, and it’s a major status
+    if (!source || source === target) return;
+    if (source.side === target.side) return;
+    if (!status?.id) return;
+    if (!['brn','par','slp','frz','psn','tox'].includes(status.id)) return;
+
+    // Prevent ping-pong/recursion
+    if ((this.effectState as any).reflecting) return;
+    (this.effectState as any).reflecting = true;
+
+    this.add('-activate', target, 'item: Twilight Mirror');
+
+    // Mirror exactly (keep toxic vs regular poison)
+    const mirrored = status.id === 'tox' ? 'tox' : status.id;
+    source.trySetStatus(mirrored, target);
+
+    (this.effectState as any).reflecting = false;
+  },
+},
+orthwormite: {
+  name: "Orthwormite",
+  spritenum: 0,              // or your sprite index if you have one
+  megaStone: "Orthworm-Mega",// target form id (must match pokedex entry)
+  megaEvolves: "Orthworm",   // base species id
+  itemUser: ["Orthworm"],    // for teambuilder UI
+  onTakeItem: false,         // can’t be removed (like real mega stones)
+  gen: 9,
+},
+
+
 // === Item ===
 mysterybox: {
   name: "Mystery Box",
