@@ -1802,6 +1802,9 @@ this.add('-start', pokemon, 'typechange', cur);
 			case 'snowscape':
 				if (pokemon.species.id !== 'castformsnowy') forme = 'Castform-Snowy';
 				break;
+			case 'sandstorm':
+				if (pokemon.species.id !== 'castformrocky') forme = 'Castform-Rocky';
+				break;
 			default:
 				if (pokemon.species.id !== 'castform') forme = 'Castform';
 				break;
@@ -7550,7 +7553,7 @@ wondershield: {
 mirageview: {
   name: "Mirageview",
   shortDesc:
-    "On 1st switch-in: first damaging hit is negated and Illusion breaks. On later switch-ins: first damaging hit is 0.75× and Illusion breaks.",
+    "On 1st switch-in: first damaging hit is 0.25× and Illusion breaks. On later switch-ins: first damaging hit is 0.75× and Illusion breaks.",
   rating: 4,
 
   // Arm the correct mode each time this Pokémon enters
@@ -7563,15 +7566,15 @@ mirageview: {
     );
     pokemon.illusion = pool.length ? this.sample(pool) : null;
 
-    // Per-battle flag: have we already spent the full immunity?
+    // Per-battle flag: have we already spent the heavy reduction?
     const usedImmune = (pokemon as any)._mirageImmuneUsed === true;
 
     // Fresh volatile to track this stint on the field
     pokemon.addVolatile('mirageviewstate');
     const st = pokemon.volatiles['mirageviewstate'] as any;
     if (st) {
-      st.armed = true;                     // first damaging hit this stint
-      st.mode = usedImmune ? 'reduced' : 'immune'; // decide which benefit we get
+      st.armed = true;                           // first damaging hit this stint
+      st.mode = usedImmune ? 'reduced' : 'immune'; // 'immune' now means 0.25× (not full negate)
     }
   },
 
@@ -7582,51 +7585,45 @@ mirageview: {
     this.add('-start', pokemon, 'typechange', cur);
   },
 
-  // If mode=immune and armed: negate the very first damaging hit, break Illusion immediately
-  onTryHit(target, source, move) {
+  // Apply the correct damage scaling to the very first damaging hit this stint
+  // 'immune' mode => 0.25× (first ever stint in the battle)
+  // 'reduced' mode => 0.75× (on later stints)
+  onSourceModifyDamage(damage, source, target, move) {
     if (!move || move.category === 'Status') return;
     const st = target.volatiles['mirageviewstate'] as any;
-    if (!st || !st.armed || st.mode !== 'immune') return;
+    if (!st || !st.armed) return;
 
-    st.armed = false;                           // consume for this stint
-    (target as any)._mirageImmuneUsed = true;   // mark immunity used for the battle
-    this.add('-immune', target, '[from] ability: Mirageview');
+    if (st.mode === 'immune' && target.illusion) {
+      // 0.25× = 1024/4096
+      return this.chainModify([1024, 4096]);
+    }
+    if (st.mode === 'reduced' && target.illusion) {
+      // 0.75× = 3072/4096
+      return this.chainModify([3072, 4096]);
+    }
+  },
 
+  // When a damaging hit actually connects, consume the effect and break Illusion
+  onDamagingHit(_dmg, target, _source, move) {
+    if (!move || move.category === 'Status') return;
+    const st = target.volatiles['mirageviewstate'] as any;
+    if (!st || !st.armed) return;
+
+    // We only intend to modify the *first* connecting hit of this stint, even in multi-hit
+    st.armed = false;
+
+    // If this was the first-ever stint’s heavy reduction, mark it spent for the battle
+    if (st.mode === 'immune') {
+      (target as any)._mirageImmuneUsed = true;
+    }
+
+    // Break Illusion on the first connecting damaging hit
     if (target.illusion) {
       const realName = target.species.name;
       target.illusion = null;
       this.add('-end', target, 'Illusion');
       this.add('-formechange', target, realName, '[from] ability: Mirageview');
     }
-    return null; // negate this hit
-  },
-
-  // If mode=reduced and armed: 0.75x the first damaging hit this stint
-  onSourceModifyDamage(damage, source, target, move) {
-    if (!move || move.category === 'Status') return;
-    const st = target.volatiles['mirageviewstate'] as any;
-    if (st && st.armed && st.mode === 'reduced' && target.illusion) {
-      // Only reduce the specific “breaking” hit (illusion must still be up)
-      return this.chainModify([3072, 4096]); // 0.75x
-    }
-  },
-
-  // When a damaging hit actually connects, if we were in reduced mode and armed, break Illusion now
-  onDamagingHit(_dmg, target, _source, move) {
-    if (!move || move.category === 'Status') return;
-    const st = target.volatiles['mirageviewstate'] as any;
-    if (!target.illusion) return;
-
-    // If we were in reduced mode, this first connecting hit is the one we reduced
-    if (st && st.mode === 'reduced' && st.armed) {
-      st.armed = false; // prevent multi-hit from getting reduced again
-    }
-
-    // Break Illusion on the first connecting damaging hit (immune case already broke in onTryHit)
-    const realName = target.species.name;
-    target.illusion = null;
-    this.add('-end', target, 'Illusion');
-    this.add('-formechange', target, realName, '[from] ability: Mirageview');
   },
 
   // Volatile container defaults
@@ -7869,6 +7866,7 @@ thawbloom: {
     }
   },
 },
+
 
 mythicbalance: {
   name: "Mythic Balance",
@@ -8295,23 +8293,37 @@ onResidual(pokemon) {
   // Exclude accuracy/evasion
   const pool: BoostID[] = ['atk', 'def', 'spa', 'spd', 'spe'];
 
-  // Affect every currently active Pokémon on the field
   for (const side of this.sides) {
     for (const mon of side.active) {
       if (!mon || !mon.hp) continue;
 
-      const stat = this.sample(pool);
-      const delta = (mon.side === pokemon.side) ? 1 : -1; // allies +1, foes -1
+      if (mon.side === pokemon.side) {
+        // Allies: +1 to a random stat
+        const stat: BoostID = this.sample(pool);
+        const boosts: Partial<BoostsTable> = {};
+        boosts[stat] = 1;
+        this.boost(boosts, mon, pokemon, this.effect);
+        this.add('-message', `${mon.name} was hyped up by Kpop Singer! (+1 ${stat})`);
+      } else {
+        // Foes: +1 to one stat, -1 to a different stat
+        const up: BoostID = this.sample(pool);
+        const down: BoostID = this.sample(pool.filter(s => s !== up));
 
-      const boosts: Partial<BoostsTable> = {};
-      boosts[stat] = delta;
+        const boostsUp: Partial<BoostsTable> = {};
+        boostsUp[up] = 1;
+        this.boost(boostsUp, mon, pokemon, this.effect);
+        this.add('-message', `${mon.name} was hyped up by Kpop Singer! (+1 ${up})`);
 
-      this.boost(boosts, mon, pokemon, this.effect);
-      this.add('-message',
-        `${mon.name} ${delta > 0 ? 'was hyped up' : 'was thrown off'} by Kpop Singer!`);
+        const boostsDown: Partial<BoostsTable> = {};
+        boostsDown[down] = -1;
+        this.boost(boostsDown, mon, pokemon, this.effect);
+        this.add('-message', `${mon.name} was thrown off by Kpop Singer! (-1 ${down})`);
+      }
     }
   }
 },
+
+
 },
 
 hazyaura: {
@@ -8671,6 +8683,194 @@ antiswitcher: {
   },
 },
 
+specialist: {
+  name: "Specialist",
+  shortDesc: "This Pokémon's physical attacks are treated as special (uses SpA vs. SpD).",
+  rating: 3,
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+  },
+
+  // Convert the user's PHYSICAL damaging moves into SPECIAL before calc.
+  onModifyMove(move, attacker) {
+    // Skip status and template/true-damage moves
+    if (!move || move.category === 'Status') return;
+    if (move.damage || move.damageCallback) return;
+
+    // Only convert Physical moves
+    if (move.category !== 'Physical') return;
+
+    // Edge cases where "Physical→Special" produces nonsense – leave them alone
+    const exceptions = new Set<string>([
+      'bodypress',  // uses user's Def as attacking stat
+      'foulplay',   // uses target's Atk
+      'beatup',     // party-based snapshots
+    ]);
+    if (exceptions.has(move.id)) return;
+
+    // Flip the move to Special. This makes calc use SpA vs. SpD automatically.
+    move.category = 'Special';
+
+    // (Optional) keep contact/flags exactly as original
+    // If you want to strip contact on conversion, uncomment:
+    // if (move.flags?.contact) move.flags.contact = 0;
+
+    // (Optional) debug
+    // this.add('-message', `${attacker.name}'s Specialist made ${move.name} Special!`);
+  },
+},
+physicalist: {
+  name: "Physicalist",
+  shortDesc: "This Pokémon's special attacks are treated as physical (uses Atk vs. Def).",
+  rating: 3,
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+  },
+
+  onModifyMove(move, attacker) {
+    // Skip status and template/true-damage moves
+    if (!move || move.category === 'Status') return;
+    if (move.damage || move.damageCallback) return;
+
+    // Only convert Special moves
+    if (move.category !== 'Special') return;
+
+    // Edge cases where "Special→Physical" produces nonsense – leave them alone
+    const exceptions = new Set<string>([
+      'psyshock',   // already uses Def instead of SpD
+      'psystrike',  // same
+      'secretsword' // same
+    ]);
+    if (exceptions.has(move.id)) return;
+
+    // Flip the move to Physical. This makes calc use Atk vs. Def automatically.
+    move.category = 'Physical';
+
+    // (Optional) debug
+    // this.add('-message', `${attacker.name}'s Physicalist made ${move.name} Physical!`);
+  },
+},
+chimneysweep: {
+  name: "Chimney Sweep",
+  shortDesc: "On switch-in, removes all entry hazards (including custom ones) from both sides.",
+  rating: 3,
+
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+    const hazards: string[] = [
+      'spikes',
+      'toxicspikes',
+      'stealthrock',
+      'stickyweb',
+      'gmaxsteelsurge',
+      'poop',
+      'burningfield',
+	  'gasoline',
+    ];
+
+    for (const side of this.sides) {
+      for (const hazard of hazards) {
+        if (side.removeSideCondition(hazard)) {
+          this.add(
+            '-sideend',
+            side,
+            this.dex.conditions.get(hazard).name,
+            '[from] ability: Chimney Sweep',
+            '[of] ' + pokemon
+          );
+        }
+      }
+    }
+  },
+},
+yinyang: { 
+  name: "Yin Yang",
+  shortDesc:
+    "On switch-in, randomly picks 9 types to empower and 9 to weaken. When hit: boost types +1 all; drop types -1 all (once/turn).",
+  rating: 3,
+
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur, '[from] ability: Yin Yang');
+
+    // Roll the 9/9 partition
+    const ALL: string[] = [
+      'Normal','Fire','Water','Electric','Grass','Ice',
+      'Fighting','Poison','Ground','Flying','Psychic','Bug',
+      'Rock','Ghost','Dragon','Dark','Steel','Fairy',
+    ];
+    const pool = ALL.slice();
+    const boost: string[] = [];
+    for (let i = 0; i < 9; i++) {
+      const idx = this.random(pool.length);
+      boost.push(pool.splice(idx, 1)[0]);
+    }
+    const drop = pool; // remaining 9
+
+    this.effectState.boostSet = new Set<string>(boost);
+    this.effectState.dropSet  = new Set<string>(drop);
+    this.effectState.lastTurn = -1 as number;
+
+    this.add('-ability', pokemon, 'Yin Yang');
+    // Split into multiple lines so both parts always display
+    this.add('-message', `${pokemon.name}'s Yin Yang rearranged energies!`);
+    this.add('-message', `Boost: ${boost.join('/')}`);
+    this.add('-message', `Drop: ${drop.join('/')}`);
+  },
+
+  onSwitchIn(pokemon) {
+    // Reroll each re-entry (remove this block if you want it to persist)
+    const cur = pokemon.getTypes(true).join('/');
+    this.add('-start', pokemon, 'typechange', cur, '[from] ability: Yin Yang');
+
+    const ALL: string[] = [
+      'Normal','Fire','Water','Electric','Grass','Ice',
+      'Fighting','Poison','Ground','Flying','Psychic','Bug',
+      'Rock','Ghost','Dragon','Dark','Steel','Fairy',
+    ];
+    const pool = ALL.slice();
+    const boost: string[] = [];
+    for (let i = 0; i < 9; i++) {
+      const idx = this.random(pool.length);
+      boost.push(pool.splice(idx, 1)[0]);
+    }
+    const drop = pool;
+
+    this.effectState.boostSet = new Set<string>(boost);
+    this.effectState.dropSet  = new Set<string>(drop);
+    this.effectState.lastTurn = -1 as number;
+
+    this.add('-ability', pokemon, 'Yin Yang');
+    this.add('-message', `${pokemon.name}'s Yin Yang rearranged energies!`);
+    this.add('-message', `Boost: ${boost.join('/')}`);
+    this.add('-message', `Drop: ${drop.join('/')}`);
+  },
+
+  onDamagingHit(damage, target, _source, move) {
+    if (!damage || !move || move.category === 'Status') return;
+    if (this.effectState.lastTurn === this.turn) return;
+
+    const boostSet = this.effectState.boostSet as Set<string> | undefined;
+    const dropSet  = this.effectState.dropSet  as Set<string> | undefined;
+
+    if (boostSet?.has(move.type)) {
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, target, target, this.effect);
+      this.add('-message', `${target.name} is empowered by ${move.type}! (+1 all)`);
+      this.effectState.lastTurn = this.turn;
+    } else if (dropSet?.has(move.type)) {
+      this.boost({atk: -1, def: -1, spa: -1, spd: -1, spe: -1}, target, target, this.effect);
+      this.add('-message', `${target.name} is weakened by ${move.type}... (-1 all)`);
+      this.effectState.lastTurn = this.turn;
+    }
+  },
+},
 
 
 

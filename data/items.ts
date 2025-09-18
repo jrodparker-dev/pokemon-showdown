@@ -9122,7 +9122,15 @@ orthwormite: {
   onTakeItem: false,         // can’t be removed (like real mega stones)
   gen: 9,
 },
-
+relicanthite: {
+	name: "Relicanthite",
+	spritenum: 0,
+	megaStone: "Relicanth-Mega",
+	megaEvolves: "Relicanth",
+	itemUser: ["Relicanth"],
+	onTakeItem: false,
+	gen: 9,
+},
 
 // === Item ===
 mysterybox: {

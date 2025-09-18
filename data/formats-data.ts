@@ -2223,6 +2223,9 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 	castformsnowy: {
 		isNonstandard: "Past",
 	},
+	castformrocky: {
+		isNonstandard: "Past",
+	},
 	kecleon: {
 		isNonstandard: "Past",
 		tier: "Illegal",
@@ -6049,6 +6052,10 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 		tier: "Illegal",
 	},
 	orthwormmega: {
+		tier: "OU",
+		isNonstandard: null,
+	},
+	relicanthmega: {
 		tier: "OU",
 		isNonstandard: null,
 	}

@@ -23677,10 +23677,10 @@ shatteringscream: {
 
   // Multiple independent secondary effects (each checked separately at 20%)
   secondaries: [
-    { chance: 20, volatileStatus: 'confusion' }, // 20% confuse
-    { chance: 20, status: 'par' },               // 20% paralyze
-    { chance: 20, volatileStatus: 'flinch' },    // 20% flinch
-	{ chance: 20,
+    { chance: 10, volatileStatus: 'confusion' }, // 20% confuse
+    { chance: 10, status: 'par' },               // 20% paralyze
+    { chance: 10, volatileStatus: 'flinch' },    // 20% flinch
+	{ chance: 10,
       onHit(target, source) {
         if (target.hp && target.side !== source.side) {
           target.forceSwitchFlag = true;

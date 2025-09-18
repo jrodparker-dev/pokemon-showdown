@@ -985,6 +985,8 @@ burningfield: {
     for (const mon of side.active) {
       if (!mon || mon.fainted) continue;
 
+	  if (!mon.isGrounded()) continue;
+
       // 12.5% max HP chip
       this.damage(mon.baseMaxhp / 8, mon, null, this.dex.conditions.get('burningfield'));
 
