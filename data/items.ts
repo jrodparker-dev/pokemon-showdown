@@ -8372,7 +8372,7 @@ adrenalineshot: {
     if (pokemon.hp > pokemon.maxhp / 4) return;
 
     this.add('-activate', pokemon, 'item: Adrenaline Shot');
-    this.boost({atk: 6, def: 6, spa: 6, spd: 6, spe: 6}, pokemon);
+    this.boost({atk: 6, def: 6, spa: 6, spd: 6, spe: 6, accuracy: -1}, pokemon);
 
     pokemon.itemState.adrenalineArmed = true;
     pokemon.itemState.adrenalineDueTurn = this.turn + 2;

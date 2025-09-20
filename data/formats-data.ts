@@ -6058,5 +6058,22 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 	relicanthmega: {
 		tier: "OU",
 		isNonstandard: null,
-	}
+	},
+	castformmega: {
+		isNonstandard: "Past",
+		tier: "Illegal",
+		natDexTier: "RU",
+	},
+	castformsunnymega: {
+		isNonstandard: "Past",
+	},
+	castformrainymega: {
+		isNonstandard: "Past",
+	},
+	castformsnowymega: {
+		isNonstandard: "Past",
+	},
+	castformrockymega: {
+		isNonstandard: "Past",
+	},
 };
