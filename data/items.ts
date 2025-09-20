@@ -9131,6 +9131,15 @@ relicanthite: {
 	onTakeItem: false,
 	gen: 9,
 },
+castformite: {
+	name: "Castformite",
+	spritenum: 0,
+	megaStone: "Castform-Mega",
+	megaEvolves: "Castform",
+	itemUser: ["Castform"],
+	onTakeItem: false,
+	gen: 9,
+},
 
 // === Item ===
 mysterybox: {
