@@ -1798,37 +1798,40 @@ flags: { breakable: 1 },
     this.singleEvent('WeatherChange', this.effect, this.effectState, pokemon);
   },
   onWeatherChange(pokemon) {
-    if (pokemon.baseSpecies.baseSpecies !== 'Castform' || pokemon.transformed) return;
+  if (pokemon.baseSpecies.baseSpecies !== 'Castform' || pokemon.transformed) return;
 
-    const w = pokemon.effectiveWeather();
-    const isMega = !!pokemon.species.isMega; // are we currently a Mega forme?
+  // Remember if this Castform has mega-evolved at least once this battle.
+  (pokemon as any).m ??= {};
+  if (pokemon.species.isMega) (pokemon as any).m.megaforecast = true;
+  const useMega = !!(pokemon as any).m.megaforecast;
 
-    let targetForme: string | null = null;
-    switch (w) {
-      case 'sunnyday': case 'desolateland':
-        targetForme = isMega ? 'Castform-Sunny-Mega' : 'Castform-Sunny';
-        break;
-      case 'raindance': case 'primordialsea':
-        targetForme = isMega ? 'Castform-Rainy-Mega' : 'Castform-Rainy';
-        break;
-      case 'hail': case 'snowscape':
-        targetForme = isMega ? 'Castform-Snowy-Mega' : 'Castform-Snowy';
-        break;
-      case 'sandstorm':
-        targetForme = isMega ? 'Castform-Rocky-Mega' : 'Castform-Rocky';
-        break;
-      default:
-        targetForme = isMega ? 'Castform-Mega' : 'Castform';
-        break;
-    }
+  const w = pokemon.effectiveWeather();
+  let targetForme: string;
 
-    if (!targetForme) return;
-    if (pokemon.species.name === targetForme) return; // already in correct forme
+  switch (w) {
+    case 'sunnyday': case 'desolateland':
+      targetForme = useMega ? 'Castform-Sunny-Mega' : 'Castform-Sunny';
+      break;
+    case 'raindance': case 'primordialsea':
+      targetForme = useMega ? 'Castform-Rainy-Mega' : 'Castform-Rainy';
+      break;
+    case 'hail': case 'snowscape':
+      targetForme = useMega ? 'Castform-Snowy-Mega' : 'Castform-Snowy';
+      break;
+    case 'sandstorm':
+      targetForme = useMega ? 'Castform-Rocky-Mega' : 'Castform-Rocky';
+      break;
+    default:
+      // Weather ended → stay Mega if we've mega-evolved before
+      targetForme = useMega ? 'Castform-Mega' : 'Castform';
+      break;
+  }
 
-    if (pokemon.isActive) {
-      pokemon.formeChange(targetForme, this.effect, false, '0', '[msg]');
-    }
-  },
+  if (pokemon.species.name !== targetForme && pokemon.isActive) {
+    pokemon.formeChange(targetForme, this.effect, false, '0', '[msg]');
+  }
+},
+
   onResidualOrder: 28,
 		onResidualSubOrder: 2,
 		onResidual(pokemon) {
