@@ -6367,6 +6367,22 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
     "Castform-Rocky", "Castform-Rocky-Mega",
   ],
 },
+castformmega: {
+  num: 351,
+  name: "Castform-Mega",
+  baseSpecies: "Castform",
+  forme: "Mega",
+  types: ["Normal"],
+  baseStats: {hp: 70, atk: 40, def: 70, spa: 145, spd: 70, spe: 125},
+  abilities: {0: "Forecast"},
+  heightm: 0.3,
+  weightkg: 0.8,
+  requiredItem: "Castformite",
+  spriteid: "castform-mega",
+  isMega: true,
+  color: "Gray",
+  eggGroups: ["Fairy", "Amorphous"],
+},
 	castformsunny: {
 		num: 351,
 		name: "Castform-Sunny",
@@ -19908,22 +19924,7 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 		spriteid: "relicanth-mega",
 
 	},
-	castformmega: {
-  num: 351,
-  name: "Castform-Mega",
-  baseSpecies: "Castform",
-  forme: "Mega",
-  types: ["Normal"],
-  baseStats: {hp: 70, atk: 40, def: 70, spa: 145, spd: 70, spe: 125},
-  abilities: {0: "Forecast"},
-  heightm: 0.3,
-  weightkg: 0.8,
-  requiredItem: "Castformite",
-  spriteid: "castform-mega",
-  isMega: true,
-  color: "Gray",
-  eggGroups: ["Fairy", "Amorphous"],
-},
+	
 
 castformsunnymega: {
   num: 351,

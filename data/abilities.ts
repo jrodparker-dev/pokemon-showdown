@@ -1829,6 +1829,15 @@ flags: { breakable: 1 },
       pokemon.formeChange(targetForme, this.effect, false, '0', '[msg]');
     }
   },
+  onResidualOrder: 28,
+		onResidualSubOrder: 2,
+		onResidual(pokemon) {
+			const cur = pokemon.getTypes(true).join('/');
+	const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+			
+		},
+  
 
   flags: {failroleplay: 1, noreceiver: 1, noentrain: 1, notrace: 1},
   name: "Forecast",
