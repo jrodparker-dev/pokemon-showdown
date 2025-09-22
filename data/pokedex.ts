@@ -19941,7 +19941,7 @@ castformsunnymega: {
   requiredAbility: "Forecast",
   battleOnly: "Castform-Mega",
   isMega: true,
-  spriteid: "castform-sunny-mega",
+  spriteid: "castform-sunnymega",
 },
 
 castformrainymega: {
@@ -19959,7 +19959,7 @@ castformrainymega: {
   requiredAbility: "Forecast",
   battleOnly: "Castform-Mega",
   isMega: true,
-  spriteid: "castform-rainy-mega",
+  spriteid: "castform-rainymega",
 },
 
 castformsnowymega: {
@@ -19977,7 +19977,7 @@ castformsnowymega: {
   requiredAbility: "Forecast",
   battleOnly: "Castform-Mega",
   isMega: true,
-  spriteid: "castform-snowy-mega",
+  spriteid: "castform-snowymega",
 },
 
 castformrockymega: {
@@ -19995,7 +19995,7 @@ castformrockymega: {
   requiredAbility: "Forecast",
   battleOnly: "Castform-Mega",
   isMega: true,
-  spriteid: "castform-rocky-mega",
+  spriteid: "castform-rockymega",
 },
 
 
