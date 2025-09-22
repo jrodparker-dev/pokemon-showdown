@@ -1347,6 +1347,130 @@ torrentialblizzardfield: {
     }
   },
 },
+allterrain: {
+  name: "All Terrain",
+  effectType: 'Terrain',
+  duration: 5,
+  // ===== durationCallback =====
+durationCallback(source, effect) {
+  if (source?.hasItem('terrainextender')) return 8;
+  return 5;
+},
+
+// Sleep prevention (Electric-style) + general status/confusion prevention (Misty-style)
+onSetStatus(status, target, source, effect) {
+  // Electric Terrain: block sleep from Yawn and pure status sleep moves
+  if (status.id === 'slp' && target.isGrounded() && !target.isSemiInvulnerable()) {
+    if (effect?.id === 'yawn' || (effect?.effectType === 'Move' && !effect.secondaries)) {
+      this.add('-activate', target, 'move: All Terrain');
+    }
+    return false;
+  }
+  // Misty Terrain: block status from moves (including Yawn)
+  if (!target.isSemiInvulnerable() && target.isGrounded()) {
+    if (effect && ((effect as Move).status || effect.id === 'yawn')) {
+      this.add('-activate', target, 'move: All Terrain');
+      return false;
+    }
+  }
+},
+
+// Electric: block Yawn volatile; Misty: block Confusion volatile from pure moves
+onTryAddVolatile(status, target, source, effect) {
+  if (!target.isGrounded() || target.isSemiInvulnerable()) return;
+
+  // Electric-yawn block
+  if (status.id === 'yawn') {
+    this.add('-activate', target, 'move: All Terrain');
+    return null;
+  }
+
+  // Misty-confusion block (from pure moves without secondaries)
+  if (status.id === 'confusion') {
+    if (effect?.effectType === 'Move' && !effect.secondaries) {
+      this.add('-activate', target, 'move: All Terrain');
+      return null;
+    }
+  }
+},
+
+// Psychic: priority moves fail on grounded targets
+onTryHitPriority: 4,
+onTryHit(target, source, effect) {
+  if (effect && (effect.priority <= 0.1 || effect.target === 'self')) return;
+  if (target.isSemiInvulnerable() || target.isAlly(source)) return;
+
+  if (!target.isGrounded()) {
+    const baseMove = this.dex.moves.get(effect.id);
+    if (baseMove.priority > 0) {
+      this.hint("Psychic Terrain doesn't affect Pokémon immune to Ground.");
+    }
+    return;
+  }
+  this.add('-activate', target, 'move: All Terrain');
+  return null;
+},
+
+onBasePowerPriority: 6,
+onBasePower(basePower, attacker, defender, move) {
+  // Electric boost
+  if (move.type === 'Electric' && attacker.isGrounded() && !attacker.isSemiInvulnerable()) {
+    this.debug('electric terrain boost');
+    this.chainModify([5325, 4096]);
+  }
+  // Psychic boost
+  if (move.type === 'Psychic' && attacker.isGrounded() && !attacker.isSemiInvulnerable()) {
+    this.debug('psychic terrain boost');
+    this.chainModify([5325, 4096]);
+  }
+  // Grassy weaken EQ/Bulldoze/Magnitude vs grounded target
+  const weakenedMoves = ['earthquake', 'bulldoze', 'magnitude'];
+  if (weakenedMoves.includes(move.id) && defender.isGrounded() && !defender.isSemiInvulnerable()) {
+    this.debug('move weakened by grassy terrain');
+    this.chainModify(0.5);
+  }
+  // Grassy boost Grass-type for grounded attacker
+  if (move.type === 'Grass' && attacker.isGrounded() && !attacker.isSemiInvulnerable()) {
+    this.debug('grassy terrain boost');
+    this.chainModify([5325, 4096]);
+  }
+  // Misty weaken Dragon-type vs grounded defender
+  if (move.type === 'Dragon' && defender.isGrounded() && !defender.isSemiInvulnerable()) {
+    this.debug('misty terrain weaken');
+    this.chainModify(0.5);
+  }
+},
+
+onFieldStart(field, source, effect) {
+  if (effect?.effectType === 'Ability') {
+    this.add('-fieldstart', 'move: All Terrain', '[from] ability: ' + effect.name, `[of] ${source}`);
+  } else {
+    this.add('-fieldstart', 'move: All Terrain');
+  }
+},
+
+// Grassy passive heal
+onResidualOrder: 5,
+onResidualSubOrder: 2,
+onResidual(pokemon) {
+  if (pokemon.isGrounded() && !pokemon.isSemiInvulnerable()) {
+    this.heal(pokemon.baseMaxhp / 16, pokemon, pokemon);
+  } else {
+    this.debug(`Pokemon semi-invuln or not grounded; Grassy Terrain skipped`);
+  }
+},
+
+// Shared field residual timing (keep single copy)
+onFieldResidualOrder: 27,
+onFieldResidualSubOrder: 7,
+
+onFieldEnd() {
+  this.add('-fieldend', 'move: All Terrain');
+},
+},
+
+
+
 
 
 

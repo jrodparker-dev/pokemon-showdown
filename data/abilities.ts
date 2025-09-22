@@ -8903,6 +8903,11 @@ yinyang: {
 bottomfeeder: {
     name: "Bottom Feeder",
     shortDesc: "When hit by a move, heals 5–50% of damage taken (skewed low).",
+	onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+			const base = pokemon.species.types.join('/'); // species types 
+			this.add('-start', pokemon, 'typechange', cur);},
     // Rough average ≈ 20% (since E[r^2] = 1/3, so 0.05 + 0.45*(1/3) ≈ 0.20)
     onDamagingHit(damage, target, source, move) {
       // Only trigger for real damage from a move and if the target is still alive
@@ -8927,6 +8932,20 @@ bottomfeeder: {
     rating: 3.5,
     num: -1001, // custom id
   },
+  fordf150: {
+		onStart(source) {
+			const pokemon = source;
+			const cur = pokemon.getTypes(true).join('/'); // runtime types 
+			const base = pokemon.species.types.join('/'); // species types 
+			this.add('-start', pokemon, 'typechange', cur);
+			this.field.setTerrain('allterrain');
+		},
+		
+flags: {},
+		name: "Ford F150",
+		rating: 3.5,
+		num: 999,
+	},
 
 
 
