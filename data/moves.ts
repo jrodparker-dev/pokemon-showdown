@@ -22746,74 +22746,79 @@ callforaid: {
     );
     const species = this.sample(pool);
 
-    // ---------- 2) Build 3 moves from LEARNSET with guaranteed STAB(s) ----------
-    let moveIds: string[] = [];
+    // ---------- 2) Build moves: 2 STABs, then 'adaptiveforce', then 'callforaid' ----------
+let moveIds: string[] = [];
 
-    const learnsets = (this.dex.data as any).Learnsets as
-      Record<string, {learnset?: Record<string, any>}>;
-    const ls = learnsets?.[species.id];
+// small helper to add without duplicating
+const addUnique = (arr: string[], id: string) => { if (!arr.includes(id)) arr.push(id); };
 
-    if (ls?.learnset) {
-      // all legal move ids in learnset
-      const all: string[] = Object.keys(ls.learnset).filter(id => this.dex.moves.get(id).exists);
+const learnsets = (this.dex.data as any).Learnsets as
+  Record<string, {learnset?: Record<string, any>}>;
+const ls = learnsets?.[species.id];
 
-      // helper: is the move damaging?
-      const isDamaging = (mv: any) =>
-        mv.category !== 'Status' && (mv.basePower > 0 || (mv as any).damage || (mv as any).ohko);
+if (ls?.learnset) {
+  // all legal move ids in learnset
+  const all: string[] = Object.keys(ls.learnset).filter(id => this.dex.moves.get(id).exists);
 
-      // materialize once to avoid repeated lookups
-      const mvObjs = all.map(id => this.dex.moves.get(id));
+  // helper: is the move damaging?
+  const isDamaging = (mv: any) =>
+    mv.category !== 'Status' && (mv.basePower > 0 || (mv as any).damage || (mv as any).ohko);
 
-      const t1 = species.types[0];
-      const t2 = species.types[1];
+  // materialize once to avoid repeated lookups
+  const mvObjs = all.map(id => this.dex.moves.get(id));
 
-      // STAB pools (damaging only)
-      let stab1Pool = mvObjs.filter(m => m.type === t1 && isDamaging(m)).map(m => m.id);
-      let stab2Pool = t2 ? mvObjs.filter(m => m.type === t2 && isDamaging(m)).map(m => m.id) : [];
+  const [t1, t2] = species.types as [string, string?];
 
-      // remove-from-array helper
-      const removeFrom = (arr: string[], id: string) => {
-        const i = arr.indexOf(id);
-        if (i >= 0) arr.splice(i, 1);
-      };
+  // STAB pools (damaging only)
+  let stab1Pool = mvObjs.filter(m => m.type === t1 && isDamaging(m)).map(m => m.id);
+  let stab2Pool = t2 ? mvObjs.filter(m => m.type === t2 && isDamaging(m)).map(m => m.id) : [];
 
-      // pick guaranteed STAB(s) first
-      const takeOne = (poolIds: string[]) => {
-        if (!poolIds.length) return;
-        const pick = this.sample(poolIds);
-        moveIds.push(pick);
-        removeFrom(poolIds, pick);
+  // combined STAB pool (unique)
+  let stabPool = Array.from(new Set([...stab1Pool, ...stab2Pool]));
+
+  // remove-from-array helper
+  const removeFrom = (arr: string[], id: string) => {
+    const i = arr.indexOf(id);
+    if (i >= 0) arr.splice(i, 1);
+  };
+
+  // take up to 2 STAB damaging moves
+  while (moveIds.length < 2 && stabPool.length) {
+    const idx = this.random(stabPool.length);
+    const pick = stabPool.splice(idx, 1)[0];
+    addUnique(moveIds, pick);
+    removeFrom(all, pick);
+  }
+
+  // if we couldn't find 2 STABs, backfill from other damaging moves
+  if (moveIds.length < 2) {
+    let damagingPool = all.filter(id => isDamaging(this.dex.moves.get(id)));
+    while (moveIds.length < 2 && damagingPool.length) {
+      const idx = this.random(damagingPool.length);
+      const pick = damagingPool.splice(idx, 1)[0];
+      if (!moveIds.includes(pick)) {
+        addUnique(moveIds, pick);
         removeFrom(all, pick);
-      };
-
-      takeOne(stab1Pool);
-      if (t2) takeOne(stab2Pool);
-
-      // remaining damaging pool
-      let damagingPool = all.filter(id => isDamaging(this.dex.moves.get(id)));
-
-      // fill to 3 with damaging moves first
-      while (moveIds.length < 3 && damagingPool.length) {
-        const idx = this.random(damagingPool.length);
-        const pick = damagingPool.splice(idx, 1)[0];
-        if (!moveIds.includes(pick)) {
-          moveIds.push(pick);
-          removeFrom(all, pick);
-        }
-      }
-      // if still short, allow anything from learnset
-      while (moveIds.length < 3 && all.length) {
-        const idx = this.random(all.length);
-        const pick = all.splice(idx, 1)[0];
-        if (!moveIds.includes(pick)) moveIds.push(pick);
       }
     }
+  }
+}
 
-    // final safety fallback (just in case of weird/missing learnsets)
-    if (moveIds.length < 3) moveIds = ['tackle', 'protect', 'substitute'];
+// final safety fallback if learnset was missing/empty
+if (moveIds.length < 2) {
+  moveIds = ['tackle', 'quickattack']; // any two basic damaging moves
+}
 
-    // keep Call for Aid as the 4th move
-    moveIds.push('callforaid');
+// slot 3: always Adaptive Force (your custom move)
+addUnique(moveIds, 'adaptiveforce');
+
+// slot 4: always Call for Aid
+addUnique(moveIds, 'callforaid');
+
+// ensure exactly 4 moves, with the order: [2 STABs] -> adaptiveforce -> callforaid
+// (if somehow more, trim before the last two inserts above; otherwise this keeps 4)
+if (moveIds.length > 4) moveIds = [moveIds[0], moveIds[1], 'adaptiveforce', 'callforaid'];
+
 
     // ---------- 3) Transform the user into the helper species ----------
     pokemon.formeChange(species, this.effect, true);
@@ -24424,6 +24429,50 @@ graspinghands: {
     if (source.volatiles['graspinghandsready']) source.removeVolatile('graspinghandsready');
   },
 },
+adaptiveforce: {
+  name: "Adaptive Force",
+  shortDesc: "STAB move. Chooses user's type that hits target harder. Uses higher offensive stat.",
+  desc: "On use, this move changes its type to whichever of the user's types is most effective against the target. If both are equal, the first type is chosen. Damage uses the higher of the user's Attack or Special Attack.",
+  basePower: 100,
+  accuracy: 100,
+  pp: 10,
+  priority: 0,
+  category: "Special", // overridden
+  flags: {protect: 1, mirror: 1},
+  onModifyMove(move, pokemon, target) {
+    if (!target) return; // just in case
+
+    const types = pokemon.getTypes();
+    if (!types.length) return;
+
+    // default to the first type
+    let bestType = types[0];
+    let bestMod = this.dex.getEffectiveness(types[0], target);
+
+    // check second type if present
+    if (types[1]) {
+      const mod2 = this.dex.getEffectiveness(types[1], target);
+      if (mod2 > bestMod) {
+        bestType = types[1];
+        bestMod = mod2;
+      }
+    }
+
+    move.type = bestType;
+
+    // Photon Geyser logic: whichever offensive stat is higher
+    if (pokemon.getStat('atk', false, true) > pokemon.getStat('spa', false, true)) {
+      move.category = 'Physical';
+    } else {
+      move.category = 'Special';
+    }
+  },
+  secondary: null,
+  target: "normal",
+  type: "Normal", // placeholder only
+},
+
+
 
 
 

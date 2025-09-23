@@ -9065,7 +9065,7 @@ steelfangs: {
     (moveCopy as any).mimicWandEcho = true;
 
     if (typeof moveCopy.basePower === 'number' && moveCopy.basePower > 0) {
-      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.5));
+      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.75));
     } else {
       (moveCopy as any).mimicWandHalf = true; // let BasePower hook scale it
     }

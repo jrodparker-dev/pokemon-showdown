@@ -1109,29 +1109,51 @@ aidofrevivalwatch: {
     let moveIds: ID[] = [];
 
     if (ls?.learnset) {
-      const allIds = Object.keys(ls.learnset).filter(id => this.dex.moves.get(id).exists);
-      const mObjs = allIds.map(id => this.dex.moves.get(id));
-      const isDamaging = (m: Move) =>
-        m.category !== 'Status' && (m.basePower > 0 || (m as any).damage || (m as any).ohko);
+  const allIds = Object.keys(ls.learnset).filter(id => this.dex.moves.get(id).exists);
+  const mObjs = allIds.map(id => this.dex.moves.get(id));
+  const isDamaging = (m: Move) =>
+    m.category !== 'Status' && (m.basePower > 0 || (m as any).damage || (m as any).ohko);
 
-      const [t1, t2] = species.types;
-      const stab1 = mObjs.filter(m => m.type === t1 && isDamaging(m)).map(m => m.id as ID);
-      const stab2 = t2 ? mObjs.filter(m => m.type === t2 && isDamaging(m)).map(m => m.id as ID) : [];
+  const [t1, t2] = species.types;
+  const stab1 = mObjs.filter(m => m.type === t1 && isDamaging(m)).map(m => m.id as ID);
+  const stab2 = t2 ? mObjs.filter(m => m.type === t2 && isDamaging(m)).map(m => m.id as ID) : [];
 
-      const takeOne = (arr: ID[]) => { if (arr.length) {
-        const pick = this.sample(arr); if (!moveIds.includes(pick)) moveIds.push(pick);
-      }};
-      takeOne(stab1); if (t2) takeOne(stab2);
-
-      const damagingLeft = mObjs.filter(m => isDamaging(m) && !moveIds.includes(m.id as ID)).map(m => m.id as ID);
-      while (moveIds.length < 3 && damagingLeft.length) {
-        const pick = damagingLeft.splice(this.random(damagingLeft.length), 1)[0];
-        if (!moveIds.includes(pick)) moveIds.push(pick);
-      }
-      const fillers = allIds.filter(id => !moveIds.includes(id as ID)).map(id => id as ID);
-      while (moveIds.length < 3 && fillers.length) moveIds.push(fillers.splice(this.random(fillers.length), 1)[0]);
+  const takeOne = (arr: ID[]) => {
+    if (arr.length) {
+      const pick = this.sample(arr);
+      if (!moveIds.includes(pick)) moveIds.push(pick);
     }
-    if (moveIds.length < 3) moveIds = ['tackle' as ID, 'protect' as ID, 'substitute' as ID];
+  };
+  takeOne(stab1); if (t2) takeOne(stab2);
+
+  const damagingLeft = mObjs
+    .filter(m => isDamaging(m) && !moveIds.includes(m.id as ID))
+    .map(m => m.id as ID);
+
+  while (moveIds.length < 3 && damagingLeft.length) {
+    const pick = damagingLeft.splice(this.random(damagingLeft.length), 1)[0];
+    if (!moveIds.includes(pick)) moveIds.push(pick);
+  }
+
+  const fillers = allIds.filter(id => !moveIds.includes(id as ID)).map(id => id as ID);
+  while (moveIds.length < 3 && fillers.length) {
+    moveIds.push(fillers.splice(this.random(fillers.length), 1)[0]);
+  }
+}
+
+// keep 3 moves if possible
+if (moveIds.length < 3) moveIds = ['tackle' as ID, 'protect' as ID, 'substitute' as ID];
+
+// --- Force Adaptive Force as the 4th move ---
+const AF = 'adaptiveforce' as ID;
+// remove it if it snuck into the first 3
+moveIds = moveIds.filter(id => id !== AF);
+// ensure exactly 3 in front
+if (moveIds.length > 3) moveIds = moveIds.slice(0, 3);
+while (moveIds.length < 3) moveIds.push('tackle' as ID); // safety pad if needed
+// slot 4:
+moveIds.push(AF);
+
 
     const abilVals = Object.values((species as any).abilities || {}).filter(Boolean) as string[];
     const abilityId: ID = abilVals.length ? this.toID(this.sample(abilVals)) as ID : '' as ID;
@@ -1464,7 +1486,30 @@ onFieldEnd() {
   this.add('-fieldend', 'move: All Terrain');
 },
 },
-
+twisteddimensions: {
+  // Field effect tied to the ability
+  duration: 0, // lasts until ability is gone
+  // modify type effectiveness
+  onEffectiveness(typeMod, target, type, move) {
+    // typeMod is in steps of 1:
+    // -2 = 0.25×, -1 = 0.5×, 0 = neutral, 1 = 2×, 2 = 4×
+    if (typeMod < 0) {
+      // resistance → weakness
+      return -typeMod; // flip sign
+    } else if (typeMod > 0) {
+      // weakness → resistance
+      return -typeMod; // flip sign
+    } else {
+      // neutral → neutral, but check immunities
+      if (!move || !target) return 0;
+      if (!this.dex.getImmunity(type, target)) {
+        // normally immune → make SE (1 stage = 2×)
+        return 1;
+      }
+      return 0;
+    }
+  },
+},
 
 
 

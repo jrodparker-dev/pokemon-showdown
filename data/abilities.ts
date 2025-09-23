@@ -8994,6 +8994,26 @@ flags: {},
 		rating: 3.5,
 		num: -13,
 	},
+	twisteddimensions: {
+  name: "Twisted Dimensions",
+  shortDesc: "While active, reverses type effectiveness; immunities become weaknesses.",
+  desc: "While this Pokémon is active, type effectiveness is inverted for all Pokémon. Resistances become weaknesses, weaknesses become resistances, immunities become super-effective.",
+  rating: 5,
+  onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/'); // runtime types 
+			const base = pokemon.species.types.join('/'); // species types 
+			this.add('-start', pokemon, 'typechange', cur);
+    this.add('-ability', pokemon, 'Twisted Dimensions');
+    this.add('-message', `Twisted Dimensions distorted reality! Type effectiveness is reversed!`);
+    this.field.addPseudoWeather('twisteddimensions');
+  },
+  onEnd(pokemon) {
+    if (this.field.getPseudoWeather('twisteddimensions')) {
+      this.field.removePseudoWeather('twisteddimensions');
+      this.add('-message', `The world returns to normal as Twisted Dimensions fades!`);
+    }
+  },
+},
 
 
 
