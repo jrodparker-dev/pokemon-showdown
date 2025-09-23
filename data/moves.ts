@@ -23689,56 +23689,37 @@ shatteringscream: {
   ],
 },
 aidofrevival: {
-    name: "Aid of Revival",
-    shortDesc:
-      "Marks user’s slot for Revival Blessing. You’ll be prompted to pick a fainted ally; that ally revives at 50% and, on switch-in, is randomized (species/moves/ability/item).",
-    type: "Normal",
-    category: "Status",
-    basePower: 0,
-    accuracy: true,
-    pp: 1,
-	noPPBoosts: true,
-    priority: 0,
-    target: "self",
-    flags: {snatch: 1, mirror: 1},
-	slotCondition: 'revivalblessing',
-		// No this not a real switchout move
-		// This is needed to trigger a switch protocol to choose a fainted party member
-		// Feel free to refactor
-		selfSwitch: true,
-		condition: {
-			duration: 1,
-			// reviving implemented in side.ts, kind of
-		},
-	
+  name: "Aid of Revival",
+  shortDesc:
+    "Pick a fainted ally; that ally revives and, on switch-in, is randomized (species/moves/ability/item) and fully healed.",
+  type: "Normal",
+  category: "Status",
+  basePower: 0,
+  accuracy: true,
+  pp: 1,
+  noPPBoosts: true,
+  priority: 0,
+  target: "self",
+  flags: { snatch: 1, mirror: 1 },
+  slotCondition: 'revivalblessing',
+  selfSwitch: true,
+  condition: { duration: 1 },
 
-    onTry(source) {
-      // Must have a fainted ally or move fails (matching Revival Blessing behavior)
-      if (!source.side.pokemon.some(p => p?.fainted)) {
-        this.add('-fail', source, 'move: Aid of Revival');
-        return null;
-      }
-    },
-
-    // We don’t revive here. We just place the slot condition and request a switch.
-    onHit(_side, source, move) {
-      // 1) Add the canonical slot condition the engine looks for
-      //    NOTE: (target slot, condition id, source pokemon, source effect)
-      source.side.addSlotCondition(source, 'revivalblessing', source, move);
-
-      // 2) Ensure our makeover watcher is present on the side
-      if (!source.side.getSideCondition('aidofrevivalwatch')) {
-        source.side.addSideCondition('aidofrevivalwatch', source, move);
-      }
-
-      // 3) Tell the engine we intend to switch from this slot this turn
-      source.switchFlag = true;
-
-      // No manual HP/status edits here; the `revivalblessing` action will do that.
-      return undefined;
-    },
+  onTry(source) {
+    if (!source.side.pokemon.some(p => p?.fainted)) {
+      this.add('-fail', source, 'move: Aid of Revival');
+      return null;
+    }
   },
-  
+
+  onHit(_side, source, move) {
+    source.side.addSlotCondition(source, 'revivalblessing', source, move);
+    if (!source.side.getSideCondition('aidofrevivalwatch')) {
+      source.side.addSideCondition('aidofrevivalwatch', source, move);
+    }
+    source.switchFlag = true;
+  },
+},
 
 
 

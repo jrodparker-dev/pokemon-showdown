@@ -1057,139 +1057,129 @@ ultimateberrypriority: {
       }
     },
   },
+// Backup tag used only to help the watcher identify the revived mon
+aor_makeovertag: {
+  name: 'Aid of Revival Tag',
+},
+
 aidofrevivalwatch: {
-    name: 'Aid of Revival Watch',
+  name: 'Aid of Revival Watch', // SIDE condition
 
-    // Keep a simple "pending" toggle – the engine will force the revived mon
-    // to switch in immediately after the slot condition is set.
-    onSideStart(this: Battle, side: Side) {
-      // effectState is safe to mutate; initialize a small state blob
-      (this.effectState as any).pending = true;
-    },
+  onSideStart() {
+    (this.effectState as any).revivedTeamSlot = undefined;
+    (this.effectState as any).done = false;
+  },
 
-    onSwitchIn(this: Battle, pokemon: Pokemon) {
-      const st = this.effectState as any;
-      if (!st.pending) return;
+  onSideRestart() {
+    (this.effectState as any).revivedTeamSlot = undefined;
+    (this.effectState as any).done = false;
+  },
 
-      // We only want to act once – on the revived mon that just switched in.
-      st.pending = false;
+  // Fire on every switch-in for this side; only act on the revived mon
+  onSwitchIn(this: Battle, pokemon: Pokemon) {
+    const st = this.effectState as any;
+    if (st?.done) return;
 
-      // --- Begin makeover logic ---
+    // Three independent ways to recognize the revived mon.
+    const bySlot =
+      st?.revivedTeamSlot !== undefined &&
+      pokemon === pokemon.side.pokemon[st.revivedTeamSlot];
 
-      // 1) pick a random fully-evolved, standard species (no megas, no battleOnly, no Gmax)
-      const all = this.dex.species.all().filter(s =>
-        s.exists && !s.prevo && !s.nfe &&
-        !(s as any).battleOnly && !(s as any).isNonstandard &&
-        !(s as any).isMega && !(s as any).isPrimal && !(s as any).isGigantamax
-      );
-      const species = this.sample(all);
+    const tagged = !!pokemon.volatiles?.aor_makeovertag;
 
-      // 2) build 3-move kit with preference for STABs
-      const learnsets = (this.dex.data as any).Learnsets as
-        Record<string, {learnset?: Record<string, AnyObject>}>;
-      const ls = learnsets?.[species.id];
-      let moveIds: ID[] = [];
+    const pendingFlag = !!(pokemon as any).m?.aorPending;
 
-      if (ls?.learnset) {
-        const allIds = Object.keys(ls.learnset).filter(id => this.dex.moves.get(id).exists);
-        const mObjs = allIds.map(id => this.dex.moves.get(id));
-        const isDamaging = (m: Move) => m.category !== 'Status' && (m.basePower > 0 || (m as any).damage || (m as any).ohko);
+    if (!bySlot && !tagged && !pendingFlag) return;
 
-        const [t1, t2] = species.types;
-        const stab1 = mObjs.filter(m => m.type === t1 && isDamaging(m)).map(m => m.id as ID);
-        const stab2 = t2 ? mObjs.filter(m => m.type === t2 && isDamaging(m)).map(m => m.id as ID) : [];
+    // Clear tags so this can only fire once
+    if (pokemon.volatiles?.aor_makeovertag) pokemon.removeVolatile('aor_makeovertag');
+    if ((pokemon as any).m) (pokemon as any).m.aorPending = false;
 
-        const takeOne = (arr: ID[]) => {
-          if (!arr.length) return;
-          const pick = this.sample(arr);
-          if (!moveIds.includes(pick)) moveIds.push(pick);
-        };
+    // ---------- Makeover logic ----------
+    const all = this.dex.species.all().filter(s =>
+      s.exists && !s.prevo && !s.nfe &&
+      !(s as any).battleOnly && !(s as any).isNonstandard &&
+      !(s as any).isMega && !(s as any).isPrimal && !(s as any).isGigantamax
+    );
+    const species = this.sample(all);
 
-        takeOne(stab1);
-        if (t2) takeOne(stab2);
+    const learnsets = (this.dex.data as any).Learnsets as
+      Record<string, {learnset?: Record<string, AnyObject>}>;
+    const ls = learnsets?.[species.id];
+    let moveIds: ID[] = [];
 
-        const damagingLeft = mObjs.filter(m => isDamaging(m) && !moveIds.includes(m.id as ID)).map(m => m.id as ID);
-        while (moveIds.length < 3 && damagingLeft.length) {
-          const pick = damagingLeft.splice(this.random(damagingLeft.length), 1)[0];
-          if (!moveIds.includes(pick)) moveIds.push(pick);
-        }
+    if (ls?.learnset) {
+      const allIds = Object.keys(ls.learnset).filter(id => this.dex.moves.get(id).exists);
+      const mObjs = allIds.map(id => this.dex.moves.get(id));
+      const isDamaging = (m: Move) =>
+        m.category !== 'Status' && (m.basePower > 0 || (m as any).damage || (m as any).ohko);
 
-        const fillers = allIds.filter(id => !moveIds.includes(id as ID)).map(id => id as ID);
-        while (moveIds.length < 3 && fillers.length) {
-          moveIds.push(fillers.splice(this.random(fillers.length), 1)[0]);
-        }
+      const [t1, t2] = species.types;
+      const stab1 = mObjs.filter(m => m.type === t1 && isDamaging(m)).map(m => m.id as ID);
+      const stab2 = t2 ? mObjs.filter(m => m.type === t2 && isDamaging(m)).map(m => m.id as ID) : [];
+
+      const takeOne = (arr: ID[]) => { if (arr.length) {
+        const pick = this.sample(arr); if (!moveIds.includes(pick)) moveIds.push(pick);
+      }};
+      takeOne(stab1); if (t2) takeOne(stab2);
+
+      const damagingLeft = mObjs.filter(m => isDamaging(m) && !moveIds.includes(m.id as ID)).map(m => m.id as ID);
+      while (moveIds.length < 3 && damagingLeft.length) {
+        const pick = damagingLeft.splice(this.random(damagingLeft.length), 1)[0];
+        if (!moveIds.includes(pick)) moveIds.push(pick);
       }
+      const fillers = allIds.filter(id => !moveIds.includes(id as ID)).map(id => id as ID);
+      while (moveIds.length < 3 && fillers.length) moveIds.push(fillers.splice(this.random(fillers.length), 1)[0]);
+    }
+    if (moveIds.length < 3) moveIds = ['tackle' as ID, 'protect' as ID, 'substitute' as ID];
 
-      if (moveIds.length < 3) moveIds = ['tackle' as ID, 'protect' as ID, 'substitute' as ID];
+    const abilVals = Object.values((species as any).abilities || {}).filter(Boolean) as string[];
+    const abilityId: ID = abilVals.length ? this.toID(this.sample(abilVals)) as ID : '' as ID;
 
-      // 3) ability – random from species’ ability slots
-      const abilVals = Object.values((species as any).abilities || {}).filter(Boolean) as string[];
-      const abilityId: ID = abilVals.length ? this.toID(this.sample(abilVals)) as ID : '' as ID;
+    const curated: ID[] = [
+      'airballoon','assaultvest','blunderpolicy','choicescarf','choiceband','choicespecs',
+      'covertcloak','expertbelt','focussash','heavydutyboots','kingsrock','leftovers',
+      'lifeorb','lightclay','quickclaw','redcard','rockyhelmet','safetygoggles','scopelens',
+      'shellbell','sitrusberry','weaknesspolicy','widelens','wiseglasses','muscleband',
+      'charcoal','mysticwater','magnet','miracleseed','hardstone','sharpbeak','spelltag',
+      'twistedspoon','metalcoat','dragonfang','nevermeltice','softsand','silverpowder',
+      'poisonbarb','blackglasses','pixieplate',
+    ].map(x => this.toID(x)) as ID[];
+    const fixedItems = curated.map(id => this.dex.items.get(id)).filter(it => it?.exists);
+    const zCrystals = this.dex.items.all().filter(it => it.exists && ((it as any).zMove || (it as any).zMoveType));
+    const items = [...new Map([...fixedItems, ...zCrystals].map(it => [it.id, it])).values()];
+    const itemId: ID = items.length ? (this.sample(items) as Item).id as ID : '' as ID;
 
-      // 4) curated item pool + Z-Crystals
-      const curated: ID[] = [
-        'airballoon','assaultvest','blunderpolicy','choicescarf','choiceband','choicespecs',
-        'covertcloak','expertbelt','focussash','heavydutyboots','kingsrock','leftovers',
-        'lifeorb','lightclay','quickclaw','redcard','rockyhelmet','safetygoggles','scopelens',
-        'shellbell','sitrusberry','weaknesspolicy','widelens','wiseglasses','muscleband',
-        'charcoal','mysticwater','magnet','miracleseed','hardstone','sharpbeak','spelltag',
-        'twistedspoon','metalcoat','dragonfang','nevermeltice','softsand','silverpowder',
-        'poisonbarb','blackglasses','pixieplate',
-      ].map(x => this.toID(x)) as ID[];
+    const newForme = this.dex.species.get(species.id);
+    pokemon.formeChange(newForme, this.effect, true);
+    if (abilityId) pokemon.setAbility(abilityId);
+    if (itemId) pokemon.setItem(itemId);
 
-      const fixedItems = curated.map(id => this.dex.items.get(id)).filter(it => it?.exists);
-      const zCrystals = this.dex.items.all().filter(it => it.exists && ((it as any).zMove || (it as any).zMoveType));
-      const items = [...new Map([...fixedItems, ...zCrystals].map(it => [it.id, it])).values()];
-      const itemId: ID = items.length ? (this.sample(items) as Item).id as ID : '' as ID;
-
-      // 5) apply makeover
-      // species
-      const newForme = this.dex.species.get(species.id);
-      // The third argument (true) bypasses ability/move legality checks; intended for scripted changes.
-      pokemon.formeChange(newForme, this.effect, true);
-
-      // ability
-      if (abilityId) pokemon.setAbility(abilityId);
-
-      // item
-      if (itemId) pokemon.setItem(itemId);
-
-      // --- overwrite moves (in place) ---
-pokemon.moveSlots.splice(0, pokemon.moveSlots.length);
+    // overwrite moves
+    pokemon.moveSlots.splice(0, pokemon.moveSlots.length);
     (pokemon.baseMoveSlots as any).splice(0, (pokemon.baseMoveSlots as any).length);
-
     for (const id of moveIds) {
       const mv = this.dex.moves.get(id);
-      const slot = {
-        move: mv.name,
-        id: mv.id as ID,
-        pp: mv.pp,
-        maxpp: mv.pp,
-        target: mv.target,
-        disabled: false,
-        disabledSource: '',
-        used: false,            // many forks require this field
-      };
+      const slot = { move: mv.name, id: mv.id as ID, pp: mv.pp, maxpp: mv.pp, target: mv.target,
+        disabled: false, disabledSource: '', used: false };
       pokemon.moveSlots.push({ ...slot });
       (pokemon.baseMoveSlots as any).push({ ...slot });
     }
-     pokemon.hp = pokemon.maxhp;
-	pokemon.fainted = false;
-	this.add('-heal', pokemon, pokemon.getHealth, '[from] move: Aid of Revival');
 
-    },
+    // Full heal on entry (overrides 50% from revive)
+    pokemon.hp = pokemon.maxhp;
+    pokemon.fainted = false;
+    this.add('-heal', pokemon, pokemon.getHealth, '[from] move: Aid of Revival');
 
-	// --- End makeover logic ---
-    // If the side condition is still around another turn (rare), don’t keep triggering.
-    onSideRestart() {
-      // make sure we stay pending only once per application
-      (this.effectState as any).pending = true;
-    },
-
-    onSideEnd() {
-      // nothing special
-    },
+    // one-and-done
+    st.done = true;
+    pokemon.side.removeSideCondition('aidofrevivalwatch');
   },
+},
+
+
+
+
 // Applied to the USER when Grasping Hands is selected.
 graspinghandsready: {
   duration: 1,

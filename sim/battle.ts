@@ -2784,23 +2784,47 @@ export class Battle {
 			}
 			break;
 		case 'revivalblessing':
-			action.pokemon.side.pokemonLeft++;
-			if (action.target.position < action.pokemon.side.active.length) {
-				this.queue.addChoice({
-					choice: 'instaswitch',
-					pokemon: action.target,
-					target: action.target,
-				});
-			}
-			action.target.fainted = false;
-			action.target.faintQueued = false;
-			action.target.subFainted = false;
-			action.target.status = '';
-			action.target.hp = 1; // Needed so hp functions works
-			action.target.sethp(action.target.maxhp / 2);
-			this.add('-heal', action.target, action.target.getHealth, '[from] move: Revival Blessing');
-			action.pokemon.side.removeSlotCondition(action.pokemon, 'revivalblessing');
-			break;
+  action.pokemon.side.pokemonLeft++;
+  if (action.target.position < action.pokemon.side.active.length) {
+    this.queue.addChoice({ choice: 'instaswitch', pokemon: action.target, target: action.target });
+  }
+  action.target.fainted = false;
+  action.target.faintQueued = false;
+  action.target.subFainted = false;
+  action.target.status = '';
+  action.target.hp = 1; // Needed so hp functions works
+  action.target.sethp(action.target.maxhp / 2);
+  this.add('-heal', action.target, action.target.getHealth, '[from] move: Revival Blessing');
+
+ // --- Aid of Revival hook: mark who was revived and ensure watcher is armed ---
+{
+  const side = action.pokemon.side;
+  const revived = action.target;
+
+  // Make sure the watcher exists, then reset it for this use
+  if (!side.getSideCondition('aidofrevivalwatch')) {
+    side.addSideCondition('aidofrevivalwatch', action.pokemon, this.dex.moves.get('aidofrevival') as any);
+  }
+  const watchState = side.getSideConditionData('aidofrevivalwatch') as any;
+  if (watchState) {
+    watchState.revivedTeamSlot = revived.position; // optional helper
+    watchState.done = false;                        // re-arm
+  }
+
+  // ① Tag the exact revived mon with a persistent flag (survives benching)
+  (revived as any).m ??= {};
+  (revived as any).m.aorPending = true;
+
+  // ② Also add a tiny volatile as a backup (covers rare forks)
+  revived.addVolatile('aor_makeovertag');
+}
+// --- end Aid of Revival hook ---
+
+
+
+  action.pokemon.side.removeSlotCondition(action.pokemon, 'revivalblessing');
+  break;
+
 		case 'runSwitch':
 			this.actions.runSwitch(action.pokemon);
 			break;
