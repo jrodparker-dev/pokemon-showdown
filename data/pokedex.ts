@@ -882,6 +882,19 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 		evoItem: "Ice Stone",
 		eggGroups: ["Field"],
 	},
+	sandiron: {
+		num: 1500,
+		name: "Sandslash",
+		types: ["Ground", "Steel"],
+		baseStats: { hp: 80, atk: 120, def: 110, spa: 45, spd: 80, spe: 95 },
+		abilities: { 0: "Earth Eater", H: "Sand Rush" },
+		heightm: 1,
+		weightkg: 29.5,
+		color: "Brown",
+		prevo: "Sandslash",
+		evoLevel: 42,
+		eggGroups: ["Field"],
+	},
 	nidoranf: {
 		num: 29,
 		name: "Nidoran-F",
@@ -19997,6 +20010,7 @@ castformrockymega: {
   isMega: true,
   spriteid: "castform-rockymega",
 },
+
 
 
 };

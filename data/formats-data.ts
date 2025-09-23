@@ -6076,4 +6076,8 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 	castformrockymega: {
 		isNonstandard: "Past",
 	},
+	sandiron: {
+		tier: "OU",
+		isNonstandard: null,
+	},
 };
