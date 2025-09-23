@@ -22682,8 +22682,14 @@ gasoline: {
       const layers = this.effectState.layers || 0;
       if (!layers) return;
 
-      // Remove Gasoline first to avoid recursion if the blast is Fire-type
-      target.side.removeSideCondition('gasoline');
+      // 2) DEBUG: prove we got here and what we’ll do
+  this.add('-message', `Gasoline DETONATES (${layers} layer${layers > 1 ? 's' : ''}) on ${target.side.name}!`);
+
+  // 3) Tell the client to clear the sprites, then actually remove the side condition.
+  //    (removeSideCondition will normally send -sideend, but we send it explicitly
+  //     as well to be unambiguous in logs and ordering.)
+  this.add('-sideend', target.side, 'Gasoline');          // <-- explicit client cue
+  target.side.removeSideCondition('gasoline' as ID);      // <-- removes server state
 
       const igniteBlast = this.dex.getActiveMove({
         id: 'igniteblast',
