@@ -1149,6 +1149,12 @@ aidofrevivalwatch: {
     const zCrystals = this.dex.items.all().filter(it => it.exists && ((it as any).zMove || (it as any).zMoveType));
     const items = [...new Map([...fixedItems, ...zCrystals].map(it => [it.id, it])).values()];
     const itemId: ID = items.length ? (this.sample(items) as Item).id as ID : '' as ID;
+	const maxIVs: StatsTable = {hp:31, atk:31, def:31, spa:31, spd:31, spe:31};
+	const evs: StatsTable = {hp:100, atk:100, def:100, spa:100, spd:100, spe:100}; // pick what you want
+	const nature: ID = 'Serious' as ID;
+		pokemon.set.ivs = {...maxIVs};
+		pokemon.set.evs = {...evs};
+		pokemon.set.nature = nature;
 
     const newForme = this.dex.species.get(species.id);
     pokemon.formeChange(newForme, this.effect, true);
