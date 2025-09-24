@@ -99921,4 +99921,102 @@ export const Learnsets: import('../sim/dex-species').LearnsetDataTable = {
 			{generation: 5, level: 47, moves: ["darkpulse", "flamethrower", "hyperbeam", "icebeam"]},
 		],
 	},
+	pyrelith: {
+    learnset: {
+      volcaniccrush: ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      ashenbreath:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      stonearmor:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      steamburst:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  glaciarch: {
+    learnset: {
+      auroraray:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      moonblossom:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      frozenbarrier:  ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      mysticpulse:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  terrabite: {
+    learnset: {
+      earthrend:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      drillram:       ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      spikebarrage:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      reinforce:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  zephyren: {
+    learnset: {
+      cyclonewing:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      dracovortex:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      skyreprieve:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      hurricane:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  aqualume: {
+    learnset: {
+      mindstream:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      tidalprism:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      clarityveil:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      aquabarrier:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  floracern: {
+    learnset: {
+      vinebreaker:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      lotusfist:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      sporeguard:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      naturesresolve: ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+
+  // ========= Team B =========
+  umbraquill: {
+    learnset: {
+      midnightslash:  ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      dreadgale:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      phantomdive:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      feathercloak:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  venomire: {
+    learnset: {
+      toxicmaw:       ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      dracospike:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      venomstorm:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      scaleguard:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  oblivara: {
+    learnset: {
+      hauntspire:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      creepingroot:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      phantomguard:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      lifesap:        ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  ferraclaw: {
+    learnset: {
+      ironrend:       ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      shadowrend:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      metalicroar:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      armorlock:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  embergeist: {
+    learnset: {
+      wraithflame:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      spectralblaze:  ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      soulspark:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      infernalveil:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
+  thornox: {
+    learnset: {
+      pincercrush:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      martiallunge:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      swarmguard:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      crashingpalm:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+    },
+  },
 };
