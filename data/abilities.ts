@@ -2579,17 +2579,27 @@ flags: { breakable: 1 },
 			}
 		},
 		onEnd(pokemon) {
-			if (pokemon.illusion) {
-				this.debug('illusion cleared');
-				pokemon.illusion = null;
-				const details = pokemon.getUpdatedDetails();
-				this.add('replace', pokemon, details);
-				this.add('-end', pokemon, 'Illusion');
-				if (this.ruleTable.has('illusionlevelmod')) {
-					this.hint("Illusion Level Mod is active, so this Pok\u00e9mon's true level was hidden.", true);
-				}
-			}
-		},
+  if (pokemon.illusion) {
+    this.debug('illusion cleared');
+    pokemon.illusion = null;
+
+    // Update model/name/etc. to the true species
+    const details = pokemon.getUpdatedDetails();
+    this.add('replace', pokemon, details);
+
+    // Announce Illusion ending
+    this.add('-end', pokemon, 'Illusion');
+    if (this.ruleTable.has('illusionlevelmod')) {
+      this.hint("Illusion Level Mod is active, so this Pok\u00e9mon's true level was hidden.", true);
+    }
+
+    // NEW: show the revealed Pokémon's current typing (runtime types)
+    const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+  }
+},
+
 		onFaint(pokemon) {
 			pokemon.illusion = null;
 		},
@@ -9037,7 +9047,33 @@ stampede: {
 		flags: {},
 		name: "Stampede",
 	},
+phantomcore: {
+	name: "Phantom Core",
+	onStart(pokemon) { 
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+		},
+	onSourceModifyDamage(damage, source, target, move) {
+    if (move.type === 'Fairy') {
+      this.debug('Phantom Core Fairy resist');
+      return this.chainModify(0.5);
+    }
+  },
 
+  // Heal 75% of damage dealt by Ghost-type moves
+  onDamagingHit(damage, target, source, move) {
+    // 'source' = attacker (the ability holder)
+    if (!source || !source.hp) return;
+    if (move && move.type === 'Ghost' && damage > 0) {
+      const healAmount = Math.floor(damage * 0.75);
+      if (healAmount > 0) {
+        this.heal(healAmount, source, source, move);
+        this.add('-ability', source, 'Phantom Core');
+      }
+    }
+  },
+}
 
 
 

@@ -24590,7 +24590,27 @@ adaptiveforce: {
   target: "normal",
   type: "Normal", // placeholder only
 },
-
+soulrend: {
+	name: "Soul Rend",
+	shortDesc: "Ignores abilities, double power if target is statused",
+	basePower: 110,
+	category: 'Special',
+	target: 'normal',
+	flags: {},
+	ignoreAbility: true,
+	pp: 5,
+	noPPBoosts: true,
+	accuracy: 100,
+	type: 'Ghost',
+	priority: 0,
+	basePowerCallback(pokemon, target, move) {
+			if (target.status || target.hasAbility('comatose')) {
+				this.debug('BP doubled from status condition');
+				return move.basePower * 2;
+			}
+			return move.basePower;
+		},
+},
 
 
 
