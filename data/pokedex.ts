@@ -16794,8 +16794,8 @@ castformmega: {
 		color: "Gray",
 		prevo: "Lechonk",
 		evoLevel: 18,
-		otherFormes: ["Oinkologne-F"],
-		formeOrder: ["Oinkologne", "Oinkologne-F"],
+		otherFormes: ["Oinkologne-F", "Oinkologne-Mega"],
+		formeOrder: ["Oinkologne", "Oinkologne-F", "Oinkologne-Mega"],
 		eggGroups: ["Field"],
 	},
 	oinkolognef: {
@@ -20009,6 +20009,23 @@ castformrockymega: {
   battleOnly: "Castform-Mega",
   isMega: true,
   spriteid: "castform-rockymega",
+},
+
+oinkolognemega: {
+		num: 916,
+		name: "Oinkologne-Mega",
+		baseSpecies: "Oinkologne",
+		types: ["Normal", "Ground"],
+		gender: "M",
+		forme: "Mega",
+		baseStats: { hp: 110, atk: 100, def: 75, spa: 59, spd: 80, spe: 65 },
+		abilities: { 0: "Stampede" },
+		heightm: 1,
+		weightkg: 140,
+		color: "Gray",
+		requiredItem: "Oinkite",
+		eggGroups: ["Field"],
+		isMega: true,
 },
 
 

@@ -6080,4 +6080,8 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 		tier: "OU",
 		isNonstandard: null,
 	},
+	oinkolognemega: {
+		tier: "OU",
+		isNonstandard: null,
+	},
 };

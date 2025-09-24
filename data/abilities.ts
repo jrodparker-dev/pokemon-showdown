@@ -9025,6 +9025,18 @@ flags: {},
     }
   },
 },
+stampede: {
+		onModifyPriority(priority, pokemon, target, move) {
+			if ((move?.type === 'Ground' || move?.type === 'Normal') && pokemon.hp === pokemon.maxhp) return priority + 1;
+		},
+		onStart(pokemon) { 
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+		},
+		flags: {},
+		name: "Stampede",
+	},
 
 
 

@@ -9069,7 +9069,7 @@ steelfangs: {
 
 	mimicwand: {
   name: "Mimic Wand",
-  shortDesc: "When hit by a damaging move, immediately use it back at 75% power.",
+  shortDesc: "When hit by a damaging move, immediately use it back at 60% power.",
   gen: 9,
 
   onStart(pokemon) {
@@ -9089,7 +9089,7 @@ steelfangs: {
 
     // Scale numeric base power directly; otherwise flag to scale in BasePower hook
     if (typeof moveCopy.basePower === 'number' && moveCopy.basePower > 0) {
-      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.75));
+      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.60));
     } else {
       // Covers variable-BP / fixed-damage / OHKO style moves where BP isn't a number
       (moveCopy as any).mimicWandScale75 = true;
@@ -9107,7 +9107,7 @@ steelfangs: {
   onBasePower(basePower, user, target, move) {
     // Apply 0.75 scaling for echoed moves that couldn't be pre-scaled numerically
     if ((move as any)?.mimicWandScale75) {
-      return this.chainModify(0.75);
+      return this.chainModify(0.60);
     }
   },
 },
@@ -9165,6 +9165,15 @@ castformite: {
 	itemUser: ["Castform"],
 	onTakeItem: false,
 	gen: 9,
+},
+oinkite: {
+	name: "Oinkite",
+	spritenum: 0,
+	megaStone: "Oinkologne-Mega",
+	megaEvolves: "Oinkologne",
+	itemUser: ["Oinkologne"],
+	onTakeItem: false,
+	gen: 9
 },
 
 // === Item ===
