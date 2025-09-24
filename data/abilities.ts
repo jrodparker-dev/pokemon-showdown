@@ -8615,22 +8615,33 @@ berryforager: {
 },
 
 
-// 7) Slapback — first time it is damaged, reflect half that damage back (even if KO’d)
 slapback: {
   name: "Slapback",
-  shortDesc: "The first time it takes damage, deals 1/2 of that damage back to the attacker.",
+  shortDesc: "Reflects damage back: 75%/50%/25%/100% in a repeating cycle.",
   onStart(pokemon) { 
-		const cur = pokemon.getTypes(true).join('/'); // runtime types 
-		const base = pokemon.species.types.join('/'); // species types 
-		this.add('-start', pokemon, 'typechange', cur);
-		},
+    const cur = pokemon.getTypes(true).join('/'); // runtime types 
+    const base = pokemon.species.types.join('/'); // species types 
+    this.add('-start', pokemon, 'typechange', cur);
+    this.effectState.hitCount = 0; // track how many times it's been hit
+  },
   onDamagingHit(damage, target, source, move) {
-    if (this.effectState.used || !source || !damage) return;
-    this.effectState.used = true;
-    const ret = Math.max(1, Math.floor(damage / 2));
+    if (!source || !damage) return;
+
+    // Increment hit counter
+    this.effectState.hitCount = (this.effectState.hitCount || 0) + 1;
+
+    // Determine multiplier based on hit number (cycles every 4 hits)
+    const cycle = this.effectState.hitCount % 4;
+    let mult = 0.75; // default to first case
+    if (cycle === 2) mult = 0.50;
+    else if (cycle === 3) mult = 0.25;
+    else if (cycle === 0) mult = 1.0;
+
+    const ret = Math.max(1, Math.floor(damage * mult));
     this.damage(ret, source, target, this.dex.abilities.get('Slapback'));
   },
 },
+
 
 // 8) Weatherman — summons a random weather on switch-in
 weatherman: {

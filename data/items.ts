@@ -8348,22 +8348,48 @@ fuzzymushroom: {
 		},
 },
 elegantcloth: {
-	name: "Elegant Cloth",
-	fling: {
-			basePower: 70,
-			volatileStatus: 'flinch'
-		},
-	onModifyMovePriority: -2,
-		onModifyMove(move) {
-			if (move.secondaries) {
-				this.debug('doubling secondary chance');
-				for (const secondary of move.secondaries) {
-					if (secondary.chance) secondary.chance *= 2;
-				}
-			}
-			if (move.self?.chance) move.self.chance *= 2;
-		},
+  name: "Elegant Cloth",
+  fling: {
+    basePower: 70,
+    volatileStatus: 'flinch',
+  },
+  onModifyMovePriority: -2,
+  onModifyMove(move) {
+    if (move.secondaries) {
+      this.debug('scaling secondary chance by 2');
+      for (const secondary of move.secondaries) {
+        if (secondary.chance) {
+          secondary.chance = Math.min(80, Math.floor(secondary.chance * 2));
+        }
+      }
+    }
+    if (move.self?.chance) {
+      move.self.chance = Math.min(80, Math.floor(move.self.chance * 2));
+    }
+  },
 },
+elegantband: {
+  name: "Elegant Band",
+  fling: {
+    basePower: 70,
+    volatileStatus: 'flinch',
+  },
+  // Run after Serene Grace so it overwrites its effect
+  onModifyMovePriority: -1,
+  onModifyMove(move) {
+    if (move.secondaries) {
+      this.debug('setting secondary chance to 30%');
+      for (const secondary of move.secondaries) {
+        secondary.chance = 30;
+      }
+    }
+    if (move.self) {
+      move.self.chance = 30;
+    }
+  },
+},
+
+
 adrenalineshot: {
   name: "Adrenaline Shot",
   shortDesc: "At 1/4 HP or less: +6 all stats. Faints at end of the next turn.",
@@ -9016,7 +9042,7 @@ steelfangs: {
 			if (!used.has(move.type)) {
 				(user.itemState.typesUsed as Set<string>).add(move.type);
 				this.add('-activate', user, 'item: Rainbow Core', '[moveType]', move.type);
-				return this.chainModify(1.5);
+				return this.chainModify(1.4);
 			}
 		},
 	},
@@ -9043,49 +9069,49 @@ steelfangs: {
 
 	mimicwand: {
   name: "Mimic Wand",
-  shortDesc: "When hit by a damaging move, copy it back at 50% power (each move can be copied once).",
+  shortDesc: "When hit by a damaging move, immediately use it back at 75% power.",
   gen: 9,
 
   onStart(pokemon) {
-    // Track which move IDs we’ve already echoed this battle
-    this.effectState.copied = new Set<string>();
+    // no per-move tracking anymore; always echoes
   },
 
   onDamagingHit(damage, target, source, move) {
     if (!source || !move || move.category === 'Status') return;
     if (move.isZ || move.isMax) return;
 
-    const seen: Set<string> = (this.effectState.copied ?? new Set<string>());
-    if (seen.has(move.id)) return; // only once per distinct move id
-    seen.add(move.id);
-    this.effectState.copied = seen;
+    // Prevent recursion if this is already a Mimic Wand echo
+    if ((move as any).mimicWandEcho) return;
 
-    // Build a safe copy of the move and halve its damage
+    // Build a safe copy of the move and mark it as a Mimic Wand echo
     const moveCopy = this.dex.getActiveMove(move.id);
     (moveCopy as any).mimicWandEcho = true;
 
+    // Scale numeric base power directly; otherwise flag to scale in BasePower hook
     if (typeof moveCopy.basePower === 'number' && moveCopy.basePower > 0) {
       moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.75));
     } else {
-      (moveCopy as any).mimicWandHalf = true; // let BasePower hook scale it
+      // Covers variable-BP / fixed-damage / OHKO style moves where BP isn't a number
+      (moveCopy as any).mimicWandScale75 = true;
     }
 
-    // Avoid recursion with other reflection mechanics
+    // Avoid interacting with other reflectors/counters
     (moveCopy as any).noCounter = true;
 
     this.add('-activate', target, 'item: Mimic Wand', '[of] ' + target);
 
-    // IMPORTANT: options-object signature
-    // user = target (the holder that just got hit), target option = source (the attacker)
-    this.actions.useMove(moveCopy, target, { target: source });
+    // Use the copied move: user = the holder (target), target option = original attacker (source)
+    this.actions.useMove(moveCopy, target, {target: source});
   },
 
   onBasePower(basePower, user, target, move) {
-    if ((move as any)?.mimicWandHalf) {
-      return this.chainModify(0.5);
+    // Apply 0.75 scaling for echoed moves that couldn't be pre-scaled numerically
+    if ((move as any)?.mimicWandScale75) {
+      return this.chainModify(0.75);
     }
   },
 },
+
 
 
 	twilightmirror: {

@@ -23024,7 +23024,7 @@ callofthewilds: {
   shortDesc:
     "Grass-type attack. Uses only the super-effective matchups of Grass, Ground, Bug, and Rock (resists/immu. ignored). Hits all adjacent foes.",
   type: "Grass",
-  basePower: 70,
+  basePower: 60,
   accuracy: 100,
   category: "Physical",
   pp: 15,
@@ -23178,7 +23178,7 @@ shortcircuit: {
   accuracy: 100,
   basePower: 0,
   pp: 15,
-  priority: 0,
+  priority: 1,
   target: "normal",
   shortDesc: "Inflicts a volatile: target’s chosen move is replaced by a random usable one until it switches out.",
   flags: {protect: 1, reflectable: 1, mirror: 1},
@@ -23237,7 +23237,7 @@ shortcircuit: {
 
 mindshards: {
   name: "Mind Shards",
-  shortDesc: "Hits 2-5 times. Each hit has a 10% chance to -1 Sp. Def.",
+  shortDesc: "Hits 2-5 times. Lowers target's Spdef",
   type: "Psychic",
   category: "Special",
   basePower: 25,
@@ -23247,15 +23247,24 @@ mindshards: {
   target: "normal",
   multihit: [2, 5],
   flags: {protect: 1, mirror: 1, metronome: 1},
-  secondary: {
-    chance: 10,
-    boosts: {spd: -1},
+  onAfterMoveSecondary(target, source, move) {
+    if (!target || target.fainted) return;
+    const hits = move.hit || 0;
+
+    if (hits === 2) {
+      // 2 hits → drop Spdef by 2
+      this.boost({spd: -2}, target, source, move);
+    } else if (hits >= 3) {
+      // 3–5 hits → drop Spdef by 1
+      this.boost({spd: -1}, target, source, move);
+    }
+    // If for some reason hits === 0 (miss/immune), do nothing
   },
 },
 
 staticjolt: {
   name: "Static Jolt",
-  shortDesc: "Hits 2-5 times. Each hit has a 10% chance to paralyze.",
+  shortDesc: "Hits 2–5 times. If it hits 2 times: guaranteed paralyze; if 3–4 times: 30% chance to paralyze.",
   type: "Electric",
   category: "Special",
   basePower: 25,
@@ -23265,11 +23274,25 @@ staticjolt: {
   target: "normal",
   multihit: [2, 5],
   flags: {protect: 1, mirror: 1, metronome: 1},
-  secondary: {
-    chance: 10,
-    status: 'par',
+
+  // Resolve status only after all hits are finished
+  onAfterMoveSecondarySelf(source, target, move) {
+    if (!target?.hp) return;
+    const hits = move.hit || 0;
+
+    if (hits === 2) {
+      // Guaranteed para on exactly 2 hits
+      target.trySetStatus('par', source, move);
+    } else if (hits === 3 || hits === 4) {
+      // 30% chance on 3-4 hits
+      if (this.randomChance(3, 10)) {
+        target.trySetStatus('par', source, move);
+      }
+    }
   },
 },
+
+
 
 dragonsfury: {
   name: "Dragon's Fury",
@@ -23306,7 +23329,7 @@ pixieflurry: {
 
 shadowbarrage: {
   name: "Shadow Barrage",
-  shortDesc: "Hits 2-5 times. Each hit has a 10% chance to -1 accuracy.",
+  shortDesc: "Hits 2–5 times. Lowers accuracy by 1 (or 2 if it only hits twice).",
   type: "Dark",
   category: "Physical",
   basePower: 25,
@@ -23316,11 +23339,22 @@ shadowbarrage: {
   target: "normal",
   multihit: [2, 5],
   flags: {protect: 1, mirror: 1, contact: 1, metronome: 1},
-  secondary: {
-    chance: 10,
-    boosts: {accuracy: -1},
+
+  onAfterMoveSecondary(target, source, move) {
+    if (!target || target.fainted) return;
+    const hits = move.hit || 0;
+
+    if (hits === 2) {
+      // 2 hits → drop accuracy by 2
+      this.boost({accuracy: -2}, target, source, move);
+    } else if (hits >= 3) {
+      // 3–5 hits → drop accuracy by 1
+      this.boost({accuracy: -1}, target, source, move);
+    }
+    // If for some reason hits === 0 (miss/immune), do nothing
   },
 },
+
 
 phantomrattle: {
   name: "Phantom Rattle",
@@ -23342,7 +23376,7 @@ phantomrattle: {
 
 feathervolley: {
   name: "Feather Volley",
-  shortDesc: "Hits 2-5 times. Lowers the target's Speed by 1 after all hits.",
+  shortDesc: "Hits 2-5 times. Lowers the target's Speed by 1. 2 if only hit twice",
   type: "Flying",
   category: "Physical",
   basePower: 25,
@@ -23355,7 +23389,16 @@ feathervolley: {
   // Apply the Speed drop once after the multi-hit resolves
   onAfterMoveSecondary(target, source, move) {
     if (!target || target.fainted) return;
-    if (move.hit > 0) this.boost({spe: -1}, target, source, move);
+    const hits = move.hit || 0;
+
+    if (hits === 2) {
+      // 2 hits → drop speed by 2
+      this.boost({spe: -2}, target, source, move);
+    } else if (hits >= 3) {
+      // 3–5 hits → drop speed by 1
+      this.boost({spe: -1}, target, source, move);
+    }
+    // If for some reason hits === 0 (miss/immune), do nothing
   },
 },
 
@@ -23379,7 +23422,7 @@ toxicneedles: {
 
 emberbarrage: {
   name: "Ember Barrage",
-  shortDesc: "Hits 2-5 times. Each hit has a 10% chance to burn.",
+  shortDesc: "Hits 2–5 times. If it hits 2 times: guaranteed burn; if 3–4 times: 30% burn chance.",
   type: "Fire",
   category: "Special",
   basePower: 25,
@@ -23389,15 +23432,28 @@ emberbarrage: {
   target: "normal",
   multihit: [2, 5],
   flags: {protect: 1, mirror: 1, metronome: 1},
-  secondary: {
-    chance: 10,
-    status: 'brn',
+
+  // Post-resolution logic (no secondaries, so unaffected by Serene Grace, etc.)
+  onAfterMoveSecondarySelf(source, target, move) {
+    if (!target?.hp) return;
+    const hits = move.hit || 0;
+
+    if (hits === 2) {
+      // Guaranteed burn
+      target.trySetStatus('brn', source, move);
+    } else if (hits === 3 || hits === 4) {
+      // 30% chance to burn
+      if (this.randomChance(3, 10)) {
+        target.trySetStatus('brn', source, move);
+      }
+    }
   },
 },
 
+
 tidalslap: {
   name: "Tidal Slap",
-  shortDesc: "Hits 2-5 times. Each hit has a 10% chance to -1 Attack.",
+  shortDesc: "Hits 2-5 times. Lowers attack once after all hits. -2 if it hit only hit twice",
   type: "Water",
   category: "Special",
   basePower: 25,
@@ -23407,15 +23463,24 @@ tidalslap: {
   target: "normal",
   multihit: [2, 5],
   flags: {protect: 1, mirror: 1, contact: 1, metronome: 1},
-  secondary: {
-    chance: 10,
-    boosts: {atk: -1},
+  onAfterMoveSecondary(target, source, move) {
+    if (!target || target.fainted) return;
+    const hits = move.hit || 0;
+
+    if (hits === 2) {
+      // 2 hits → drop attack by 2
+      this.boost({atk: -2}, target, source, move);
+    } else if (hits >= 3) {
+      // 3–5 hits → drop Attack by 1
+      this.boost({atk: -1}, target, source, move);
+    }
+    // If for some reason hits === 0 (miss/immune), do nothing
   },
 },
 
 shrapnelstorm: {
   name: "Shrapnel Storm",
-  shortDesc: "Hits 2-5 times. Each hit has a 10% chance to -1 Defense.",
+  shortDesc: "Hits 2-5 times. Lowers Defense once after all hits. -2 if it hit only hit twice",
   type: "Steel",
   category: "Physical",
   basePower: 25,
@@ -23425,9 +23490,18 @@ shrapnelstorm: {
   target: "normal",
   multihit: [2, 5],
   flags: {protect: 1, mirror: 1, metronome: 1},
-  secondary: {
-    chance: 10,
-    boosts: {def: -1},
+  onAfterMoveSecondary(target, source, move) {
+    if (!target || target.fainted) return;
+    const hits = move.hit || 0;
+
+    if (hits === 2) {
+      // 2 hits → drop defense by 2
+      this.boost({def: -2}, target, source, move);
+    } else if (hits >= 3) {
+      // 3–5 hits → drop defense by 1
+      this.boost({def: -1}, target, source, move);
+    }
+    // If for some reason hits === 0 (miss/immune), do nothing
   },
 },
 
@@ -23687,7 +23761,7 @@ poop: {
 },
 shatteringscream: {
   name: "Shattering Scream",
-  shortDesc: "Sound. Hits all adjacent foes. 20% each: confuse, paralyze, phaze, flinch.",
+  shortDesc: "Sound. Hits all foes. Rolls 20% each for confuse/paralyze/phaze/flinch, but applies at most one.",
   type: "Psychic",
   basePower: 90,
   accuracy: 100,
@@ -23697,19 +23771,37 @@ shatteringscream: {
   target: "allAdjacentFoes",
   flags: {protect: 1, mirror: 1, sound: 1, bypasssub: 1, metronome: 1},
 
-  // Multiple independent secondary effects (each checked separately at 20%)
-  secondaries: [
-    { chance: 10, volatileStatus: 'confusion' }, // 20% confuse
-    { chance: 10, status: 'par' },               // 20% paralyze
-    { chance: 10, volatileStatus: 'flinch' },    // 20% flinch
-	{ chance: 10,
-      onHit(target, source) {
-        if (target.hp && target.side !== source.side) {
-          target.forceSwitchFlag = true;
-        }}
-	}
-  ],
+  // Independent 20% rolls, then pick ONE success (if any)
+  onHit(target, source, move) {
+    if (!target?.hp || target.side === source.side) return;
+
+    const successes: Array<'confuse'|'par'|'phaze'|'flinch'> = [];
+    if (this.randomChance(1, 5)) successes.push('confuse'); // 20%
+    if (this.randomChance(1, 5)) successes.push('par');     // 20%
+    if (this.randomChance(1, 5)) successes.push('phaze');   // 20%
+    if (this.randomChance(1, 5)) successes.push('flinch');  // 20%
+
+    if (!successes.length) return;
+
+    // If multiple succeeded, choose one uniformly
+    const pick = this.sample(successes);
+    switch (pick) {
+      case 'confuse':
+        target.addVolatile('confusion', source, move);
+        break;
+      case 'par':
+        target.trySetStatus('par', source, move);
+        break;
+      case 'phaze':
+        target.forceSwitchFlag = true;
+        break;
+      case 'flinch':
+        target.addVolatile('flinch', source, move);
+        break;
+    }
+  },
 },
+
 aidofrevival: {
   name: "Aid of Revival",
   shortDesc:
@@ -24460,7 +24552,7 @@ adaptiveforce: {
   name: "Adaptive Force",
   shortDesc: "STAB move. Chooses user's type that hits target harder. Uses higher offensive stat.",
   desc: "On use, this move changes its type to whichever of the user's types is most effective against the target. If both are equal, the first type is chosen. Damage uses the higher of the user's Attack or Special Attack.",
-  basePower: 100,
+  basePower: 80,
   accuracy: 100,
   pp: 10,
   priority: 0,
