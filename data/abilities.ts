@@ -9074,6 +9074,59 @@ phantomcore: {
     }
   },
 },
+shapeshifter: {
+  name: "Shapeshifter",
+  shortDesc:
+    "At the end of every turn, becomes a random fully-evolved species. Keeps HP%, status, boosts/drops, moves, and item. Persists across switch-outs.",
+	onStart(pokemon) { 
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+		},
+
+  // Run late so most end-of-turn effects finish first (adjust if you prefer earlier/later)
+  onResidualOrder: 27,
+  onResidual(pokemon) {
+    if (pokemon.fainted) return;
+
+    const hpRatio = Math.max(0, pokemon.hp) / Math.max(1, pokemon.maxhp);
+
+    const pool = this.dex.species.all().filter(s =>
+      s.exists &&
+      !s.nfe &&
+      !(s as any).isNonstandard &&
+      !(s as any).battleOnly &&
+      !(s as any).isMega &&
+      !(s as any).isPrimal &&
+      !(s as any).isGigantamax
+    );
+    if (!pool.length) return;
+
+    // Avoid no-op if possible
+    let species = this.sample(pool);
+    for (let i = 0; i < 4 && pool.length > 1 && species.name === pokemon.species.name; i++) {
+      species = this.sample(pool);
+    }
+    if (species.name === pokemon.species.name) return;
+
+    pokemon.formeChange(species, this.effect, true);
+    this.add('-formechange', pokemon, species.name);
+
+    // Keep base ability so it persists on future switch-ins
+    pokemon.baseAbility = 'shapeshifter' as ID;
+
+    // Restore HP%
+    const targetHP = Math.max(1, Math.min(pokemon.maxhp, Math.floor(pokemon.maxhp * hpRatio)));
+    pokemon.sethp(targetHP);
+    (pokemon as any).lastDamage = 0;
+    (pokemon as any).hurtThisTurn = false;
+
+    // Queue a one-shot type banner refresh at residual order 28
+    pokemon.addVolatile('shapeshifterrefresh');
+  },
+},
+
+
 
 
 
