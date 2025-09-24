@@ -24613,6 +24613,637 @@ soulrend: {
 },
 
 
+  // ===== Team A – Pyrelith
+  volcaniccrush: {
+    name: "Volcanic Crush",
+    shortDesc: "100 BP Rock; 30% chance to trap target for 2 turns.",
+    accuracy: 95,
+    basePower: 100,
+    pp: 10,
+    category: "Physical",
+    priority: 0,
+    flags: {contact: 1, punch: 1},
+    secondary: {
+      chance: 30,
+      onHit(target) {
+        target.addVolatile('partiallytrapped');
+      },
+    },
+    target: "normal",
+    type: "Rock",
+  },
+  ashenbreath: {
+    name: "Ashen Breath",
+    shortDesc: "80 BP Fire; 20% burn; lowers target’s accuracy by 1.",
+    accuracy: 100,
+    basePower: 80,
+    pp: 15,
+	priority: 0,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    secondaries: [
+      {chance: 20, status: 'brn'},
+      {chance: 100, boosts: {accuracy: -1}},
+    ],
+    target: "normal",
+    type: "Fire",
+  },
+  stonearmor: {
+    name: "Stone Armor",
+    shortDesc: "Raises user's Def by 2 and SpD by 1.",
+    accuracy: true,
+    basePower: 0,
+	priority: 0,
+    pp: 20,
+    category: "Status",
+    flags: {snatch: 1},
+    boosts: {def: 2, spd: 1},
+    target: "self",
+    type: "Rock",
+  },
+  steamburst: {
+    name: "Steam Burst",
+    shortDesc: "60 BP Water; usable only in Steam Field; 2x dmg; ends field.",
+    accuracy: 100,
+    basePower: 60,
+	priority: 0,
+    pp: 10,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    onTry(source, target) {
+      const side = target ? target.side : source.side.foe;
+      if (!side?.sideConditions['steamfield']) {
+        this.add('-fail', source, 'move: Steam Burst');
+        return null;
+      }
+    },
+    onBasePower(basePower, user, target, move) {
+      const side = target ? target.side : user.side.foe;
+      if (side?.sideConditions['steamfield']) {
+        return this.chainModify(2);
+      }
+    },
+    onAfterHit(target, source) {
+      const side = target ? target.side : source.side.foe;
+      if (side?.sideConditions['steamfield']) {
+        side.removeSideCondition('steamfield');
+        this.add('-message', `Steam Field dissipated!`);
+      }
+    },
+    target: "normal",
+    type: "Water",
+  },
+
+  // ===== Team A – Glaciarch
+  auroraray: {
+    name: "Aurora Ray",
+    shortDesc: "90 BP Ice; 10% freeze; always hits in Snow.",
+    accuracy: 100,
+    basePower: 90,
+	priority: 0,
+    pp: 10,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    onModifyMove(move, source, target) {
+      if (this.field.isWeather(['snow'])) move.accuracy = true;
+    },
+    secondary: {chance: 10, status: 'frz'},
+    target: "normal",
+    type: "Ice",
+  },
+  moonblossom: {
+    name: "Moonblossom",
+    shortDesc: "75 BP Fairy; heals user for 25% of damage dealt.",
+    accuracy: 100,
+    basePower: 75,
+	priority: 0,
+    pp: 15,
+    category: "Special",
+    flags: {protect: 1, mirror: 1, heal: 1},
+    drain: [1, 4],
+    target: "normal",
+    type: "Fairy",
+  },
+  mysticpulse: {
+    name: "Mystic Pulse",
+    shortDesc: "80 BP Psychic; 20% confuse.",
+    accuracy: 100,
+    basePower: 80,
+	priority: 0,
+    pp: 15,
+    category: "Special",
+    flags: {protect: 1, mirror: 1, pulse: 1},
+    secondary: {chance: 20, volatileStatus: 'confusion'},
+    target: "normal",
+    type: "Psychic",
+  },
+
+  // ===== Team A – Terrabite
+  earthrend: {
+    name: "Earthrend",
+    shortDesc: "100 BP Ground; ignores Levitate/airborne.",
+    accuracy: 95,
+    basePower: 100,
+    pp: 10,
+	priority: 0,
+    category: "Physical",
+    flags: {protect: 1},
+    onTryHit(target, source, move) {
+      target.removeVolatile('magnetrise');
+      target.removeVolatile('telekinesis');
+      move.ignoreImmunity = {'Ground': true};
+    },
+    target: "normal",
+    type: "Ground",
+  },
+  drillram: {
+    name: "Drill Ram",
+    shortDesc: "85 BP Steel; 30% chance to lower Defense by 1.",
+    accuracy: 100,
+    basePower: 85,
+    pp: 15,
+	priority: 0,
+    category: "Physical",
+    flags: {contact: 1, protect: 1},
+    secondary: {chance: 30, boosts: {def: -1}},
+    target: "normal",
+    type: "Steel",
+  },
+  spikebarrage: {
+    name: "Spike Barrage",
+    shortDesc: "40 BP; hits 2–5 times; each hit 10% flinch.",
+    accuracy: 100,
+    basePower: 40,
+    pp: 15,
+	priority: 0,
+    category: "Physical",
+    multihit: [2, 5],
+    flags: {protect: 1, contact: 1},
+    secondaries: [{chance: 10, volatileStatus: 'flinch'}],
+    target: "normal",
+    type: "Ground",
+  },
+  reinforce: {
+    name: "Reinforce",
+    shortDesc: "Raises an ally’s Atk and Def by 1.",
+    accuracy: true,
+    basePower: 0,
+    pp: 20,
+	priority: 0,
+    category: "Status",
+    flags: {snatch: 1, allyanim: 1},
+    boosts: {atk: 1, def: 1},
+    target: "adjacentAlly",
+    type: "Steel",
+  },
+
+  // ===== Team A – Zephyren
+  cyclonewing: {
+    name: "Cyclone Wing",
+    shortDesc: "90 BP Flying (wind); clears hazards/screens on hit.",
+    accuracy: 100,
+    basePower: 90,
+    pp: 10,
+	priority: 0,
+    category: "Physical",
+    flags: {protect: 1, contact: 1, wind: 1},
+    onAfterHit(target, source) {
+      const side = target.side;
+      for (const cond of ['spikes','toxicspikes','stealthrock','stickyweb','reflect','lightscreen','auroraveil']) {
+        if (side.removeSideCondition(cond)) {
+          this.add('-sideend', side, this.dex.conditions.get(cond).name, '[from] move: Cyclone Wing');
+        }
+      }
+    },
+    target: "normal",
+    type: "Flying",
+  },
+  dracovortex: {
+    name: "Draco Vortex",
+    shortDesc: "100 BP Dragon; forces target to switch.",
+    accuracy: 90,
+    basePower: 100,
+    pp: 5,
+	priority: 0,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    forceSwitch: true,
+    target: "normal",
+    type: "Dragon",
+  },
+  skyreprieve: {
+    name: "Sky Reprieve",
+    shortDesc: "Heals ally 50% and cures status.",
+    accuracy: true,
+    basePower: 0,
+    pp: 10,
+	priority: 0,
+    category: "Status",
+    flags: {allyanim: 1, snatch: 1, heal: 1},
+    onHit(target, source) {
+      if (!target?.hp) return false;
+      this.heal(target.baseMaxhp / 2, target);
+      target.cureStatus();
+    },
+    target: "adjacentAlly",
+    type: "Flying",
+  },
+
+  // ===== Team A – Aqualume
+  mindstream: {
+    name: "Mindstream",
+    shortDesc: "85 BP Psychic; heals lowest-HP ally for 25% of dmg dealt.",
+    accuracy: 100,
+    basePower: 85,
+	priority: 0,
+    pp: 10,
+    category: "Special",
+    flags: {protect: 1, mirror: 1, pulse: 1},
+    onAfterHit(target, source, move) {
+      if (!move || !move.totalDamage) return;
+      const team = source.side.active.filter(p => p && !p.fainted);
+      if (!team.length) return;
+      let healTarget = team[0];
+      for (const p of team) if (p.hp < healTarget.hp) healTarget = p;
+      const amount = Math.floor(move.totalDamage * 0.25);
+      if (amount && healTarget) this.heal(amount, healTarget);
+    },
+    target: "normal",
+    type: "Psychic",
+  },
+  tidalprism: {
+    name: "Tidal Prism",
+    shortDesc: "95 BP Water; 20% chance to lower SpA.",
+    accuracy: 100,
+    basePower: 95,
+	priority: 0,
+    pp: 10,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    secondary: {chance: 20, boosts: {spa: -1}},
+    target: "normal",
+    type: "Water",
+  },
+  clarityveil: {
+    name: "Clarity Veil",
+    shortDesc: "Removes status and stat drops from allies.",
+    accuracy: true,
+    basePower: 0,
+	priority: 0,
+    pp: 15,
+    category: "Status",
+    flags: {snatch: 1},
+    onHit(pokemon) {
+      for (const ally of pokemon.side.active) {
+        if (!ally) continue;
+        ally.cureStatus();
+        const neg: SparseBoostsTable = {};
+        for (const stat of ['atk','def','spa','spd','spe','accuracy','evasion'] as const) {
+          if (ally.boosts[stat] < 0) neg[stat] = -ally.boosts[stat];
+        }
+        if (Object.keys(neg).length) this.boost(neg, ally);
+      }
+    },
+    target: "allySide",
+    type: "Psychic",
+  },
+
+  // ===== Team A – Floracern
+  
+  lotusfist: {
+    name: "Lotus Fist",
+    shortDesc: "80 BP Fighting; heals user 50% of damage dealt.",
+    accuracy: 100,
+    basePower: 80,
+    pp: 15,
+	priority: 0,
+    category: "Physical",
+    flags: {contact: 1, protect: 1, punch: 1, heal: 1},
+    drain: [1, 2],
+    target: "normal",
+    type: "Fighting",
+  },
+  sporeguard: {
+    name: "Sporeguard",
+    shortDesc: "Grants ally a 1-time shield against status.",
+    accuracy: true,
+    basePower: 0,
+    pp: 15,
+	priority: 0,
+    category: "Status",
+    flags: {snatch: 1},
+    onHit(target) {
+      target.addVolatile('sporeguardshield');
+    },
+    condition: {
+      onStart(pokemon) {
+        this.add('-start', pokemon, 'Sporeguard');
+      },
+      onSetStatus(status, target) {
+        this.add('-activate', target, 'move: Sporeguard');
+        target.removeVolatile('sporeguardshield');
+        return false;
+      },
+    },
+    target: "adjacentAlly",
+    type: "Grass",
+  },
+  naturesresolve: {
+    name: "Nature’s Resolve",
+    shortDesc: "Raises user’s Atk and Def by 1.",
+    accuracy: true,
+    basePower: 0,
+	priority: 0,
+    pp: 20,
+    category: "Status",
+    flags: {snatch: 1},
+    boosts: {atk: 1, def: 1},
+    target: "self",
+    type: "Grass",
+  },
+
+  // ===== Team B – Umbraquill
+  midnightslash: {
+    name: "Midnight Slash",
+    shortDesc: "85 BP Dark; high crit.",
+    accuracy: 100,
+    basePower: 85,
+    pp: 15,
+	priority: 0,
+    category: "Physical",
+    flags: {contact: 1, protect: 1, slicing: 1},
+    critRatio: 2,
+    target: "normal",
+    type: "Dark",
+  },
+  dreadgale: {
+    name: "Dread Gale",
+    shortDesc: "90 BP Flying (wind); 20% flinch.",
+    accuracy: 95,
+    basePower: 90,
+    pp: 10,
+	priority: 0,
+    category: "Special",
+    flags: {protect: 1, mirror: 1, wind: 1},
+    secondary: {chance: 20, volatileStatus: 'flinch'},
+    target: "normal",
+    type: "Flying",
+  },
+  feathercloak: {
+    name: "Feather Cloak",
+    shortDesc: "Raises user’s Evasion and Spe by 1.",
+    accuracy: true,
+    basePower: 0,
+	priority: 0,
+    pp: 15,
+    category: "Status",
+    flags: {snatch: 1},
+    boosts: {evasion: 1, spe: 1},
+    target: "self",
+    type: "Flying",
+  },
+  toxicmaw: {
+    name: "Toxic Maw",
+    shortDesc: "90 BP Poison; 50% badly poisons.",
+    accuracy: 100,
+    basePower: 90,
+	priority: 0,
+	pp: 10,
+    category: "Physical",
+    flags: {contact: 1, protect: 1, bite: 1},
+    secondary: {chance: 50, status: 'tox'},
+    target: "normal",
+    type: "Poison",
+  },
+  dracospike: {
+    name: "Dracospike",
+    shortDesc: "100 BP Dragon; -1 Spe.",
+    accuracy: 90,
+    basePower: 100,
+	priority: 0,
+	pp: 10,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    secondary: {chance: 100, boosts: {spe: -1}},
+    target: "normal",
+    type: "Dragon",
+  },
+  venomstorm: {
+    name: "Venom Storm",
+    shortDesc: "65 BP Poison; hits 2–3 times; each hit 10% flinch.",
+    accuracy: 100,
+    basePower: 65,
+	priority: 0,
+	pp: 10,
+    category: "Special",
+    multihit: [2, 3],
+    flags: {protect: 1},
+    secondaries: [{chance: 10, volatileStatus: 'flinch'}],
+    target: "normal",
+    type: "Poison",
+  },
+  scaleguard: {
+    name: "Scale Guard",
+    shortDesc: "+1 Def, +1 SpD; cure status.",
+    accuracy: true,
+    basePower: 0,
+	priority: 0,
+	pp: 10,
+    category: "Status",
+    flags: {snatch: 1},
+    boosts: {def: 1, spd: 1},
+    onHit(pokemon) {
+      pokemon.cureStatus();
+    },
+    target: "self",
+    type: "Dragon",
+  },
+
+  // ===== Team B – Oblivara
+  hauntspire: {
+    name: "Hauntspire",
+    shortDesc: "85 BP Ghost; -1 SpD.",
+    accuracy: 100,
+	priority: 0,
+	pp: 10,
+    basePower: 85,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    secondary: {chance: 100, boosts: {spd: -1}},
+    target: "normal",
+    type: "Ghost",
+  },
+  creepingroot: {
+    name: "Creeping Root",
+    shortDesc: "90 BP Grass; traps 2–3 turns.",
+    accuracy: 100,
+    basePower: 90,
+	priority: 0,
+	pp: 10,
+    category: "Physical",
+    flags: {contact: 1, protect: 1},
+    onHit(target) {
+      target.addVolatile('partiallytrapped');
+    },
+    target: "normal",
+    type: "Grass",
+  },
+  
+  lifesap: {
+    name: "Life Sap",
+    shortDesc: "Drains 50% of target's max HP and heals user (like Strength Sap but HP).",
+    accuracy: 100,
+    basePower: 0,
+	priority: 0,
+	pp: 10,
+    category: "Status",
+    flags: {protect: 1, reflectable: 1},
+    onHit(target, source) {
+      if (!target?.hp) return false;
+      const amount = Math.floor(target.baseMaxhp / 2);
+      this.damage(amount, target, source);
+      this.heal(amount, source);
+    },
+    target: "normal",
+    type: "Grass",
+  },
+
+  // ===== Team B – Ferraclaw
+  ironrend: {
+    name: "Iron Rend",
+    shortDesc: "100 BP Steel; breaks Protect and Sub.",
+    accuracy: 100,
+    basePower: 100,
+	priority: 0,
+	pp: 10,
+    category: "Physical",
+    flags: {protect: 1, contact: 1},
+    breaksProtect: true,
+    // Sub interaction handled via item/flag synergy; allow damage through sub with 'authentic' feel
+    target: "normal",
+    type: "Steel",
+  },
+  shadowrend: {
+    name: "Shadow Rend",
+    shortDesc: "95 BP Dark; 20% flinch.",
+    accuracy: 95,
+	priority: 0,
+	pp: 10,
+    basePower: 95,
+    category: "Physical",
+    flags: {contact: 1, protect: 1},
+    secondary: {chance: 20, volatileStatus: 'flinch'},
+    target: "normal",
+    type: "Dark",
+  },
+  metalicroar: {
+    name: "Metallic Roar",
+    shortDesc: "80 BP Steel (Special); -1 Atk to target.",
+    accuracy: 100,
+    basePower: 80,
+	priority: 0,
+	pp: 10,
+    category: "Special",
+    flags: {protect: 1, sound: 1, mirror: 1},
+    secondary: {chance: 100, boosts: {atk: -1}},
+    target: "normal",
+    type: "Steel",
+  },
+  armorlock: {
+    name: "Armor Lock",
+    shortDesc: "+2 Def and Taunt the target.",
+    accuracy: 100,
+    basePower: 0,
+	priority: 0,
+	pp: 10,
+    category: "Status",
+    flags: {reflectable: 1, protect: 1},
+    boosts: {def: 2},
+    onHit(target) {
+      target.addVolatile('taunt');
+    },
+    target: "normal",
+    type: "Steel",
+  },
+
+  // ===== Team B – Embergeist
+  wraithflame: {
+    name: "Wraithflame",
+    shortDesc: "95 BP Ghost (Special); 20% -1 SpD.",
+    accuracy: 100,
+    basePower: 95,
+	priority: 0,
+	pp: 10,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    secondary: {chance: 20, boosts: {spd: -1}},
+    target: "normal",
+    type: "Ghost",
+  },
+  spectralblaze: {
+    name: "Spectral Blaze",
+    shortDesc: "90 BP Fire; 30% burn.",
+    accuracy: 100,
+    basePower: 90,
+	priority: 0,
+	pp: 10,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    secondary: {chance: 30, status: 'brn'},
+    target: "normal",
+    type: "Fire",
+  },
+
+  // ===== Team B – Thornox
+  pincercrush: {
+    name: "Pincer Crush",
+    shortDesc: "90 BP Bug; 30% -1 Def.",
+    accuracy: 100,
+    basePower: 90,
+	priority: 0,
+	pp: 10,
+    category: "Physical",
+    flags: {contact: 1, protect: 1, bite: 1},
+    secondary: {chance: 30, boosts: {def: -1}},
+    target: "normal",
+    type: "Bug",
+  },
+  martiallunge: {
+    name: "Martial Lunge",
+    shortDesc: "80 BP Fighting; if it KOs, user +1 Atk.",
+    accuracy: 100,
+    basePower: 80,
+	priority: 0,
+	pp: 10,
+    category: "Physical",
+    flags: {contact: 1, protect: 1},
+    onAfterSubDamage(damage, target, source) {
+      // no-op
+    },
+    onAfterHit(target, source, move) {
+      if (target.fainted) this.boost({atk: 1}, source);
+    },
+    target: "normal",
+    type: "Fighting",
+  },
+  
+  crashingpalm: {
+    name: "Crashing Palm",
+    shortDesc: "100 BP Fighting; 30% paralyze.",
+    accuracy: 90,
+    basePower: 100,
+	priority: 0,
+	pp: 10,
+    category: "Physical",
+    flags: {contact: 1, protect: 1},
+    secondary: {chance: 30, status: 'par'},
+    target: "normal",
+    type: "Fighting",
+  },
+
+  
+   
+
 
 
 

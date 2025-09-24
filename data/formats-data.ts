@@ -6084,4 +6084,52 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 		tier: "OU",
 		isNonstandard: null,
 	},
+	pyrelith: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  glaciarch: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  terrabite: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  zephyren: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  aqualume: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  floracern: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  umbraquill: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  venomire: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  oblivara: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  ferraclaw: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  embergeist: {
+    tier: "OU",
+    isNonstandard: null,
+  },
+  thornox: {
+    tier: "OU",
+    isNonstandard: null,
+  },
 };
