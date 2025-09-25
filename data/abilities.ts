@@ -9076,25 +9076,18 @@ phantomcore: {
 },
 shapeshifter: {
   name: "Shapeshifter",
-  shortDesc:
-    "At the end of every turn, becomes a random fully-evolved species. Keeps HP%, status, boosts/drops, moves, and item. Persists across switch-outs.",
-	onStart(pokemon) { 
-		const cur = pokemon.getTypes(true).join('/'); // runtime types 
-		const base = pokemon.species.types.join('/'); // species types 
-		this.add('-start', pokemon, 'typechange', cur);
-		},
-
-  // Run late so most end-of-turn effects finish first (adjust if you prefer earlier/later)
-  onResidualOrder: 27,
-  onResidual(pokemon) {
+  shortDesc: "Random pokemon yo",
+  onSwitchIn(pokemon) {
     if (pokemon.fainted) return;
 
+    // Preserve current HP ratio (no healing/cures)
     const hpRatio = Math.max(0, pokemon.hp) / Math.max(1, pokemon.maxhp);
 
+    // Build a valid pool: fully-evolved, not battle-only/mega/primal/gmax, standard
     const pool = this.dex.species.all().filter(s =>
       s.exists &&
       !s.nfe &&
-      !(s as any).isNonstandard &&
+      !(s as any).isNonstandard &&    // includes your customs if isNonstandard: null
       !(s as any).battleOnly &&
       !(s as any).isMega &&
       !(s as any).isPrimal &&
@@ -9102,30 +9095,46 @@ shapeshifter: {
     );
     if (!pool.length) return;
 
-    // Avoid no-op if possible
+    // Try to avoid a no-op (same species) a few times
     let species = this.sample(pool);
     for (let i = 0; i < 4 && pool.length > 1 && species.name === pokemon.species.name; i++) {
       species = this.sample(pool);
     }
     if (species.name === pokemon.species.name) return;
 
+    // Change species WITHOUT touching moves/item/status/boosts
+    // NOTE: formeChange emits the correct -formechange; do NOT add your own log
     pokemon.formeChange(species, this.effect, true);
-    this.add('-formechange', pokemon, species.name);
 
-    // Keep base ability so it persists on future switch-ins
+    // Make Shapeshifter persist across switch-outs/in
     pokemon.baseAbility = 'shapeshifter' as ID;
 
-    // Restore HP%
+    // Restore exact HP%
     const targetHP = Math.max(1, Math.min(pokemon.maxhp, Math.floor(pokemon.maxhp * hpRatio)));
     pokemon.sethp(targetHP);
     (pokemon as any).lastDamage = 0;
     (pokemon as any).hurtThisTurn = false;
 
-    // Queue a one-shot type banner refresh at residual order 28
-    pokemon.addVolatile('shapeshifterrefresh');
+    // (Optional) If you use the innate-ability scaffold and want to keep the original ability active:
+    // const orig = (this.effectState as any).origAbility as ID | undefined;
+    // if (orig && this.dex.abilities.get(orig).exists) {
+    //   const vkey = `ability:${orig}` as ID;
+    //   const innate = this.dex.conditions.get(vkey as ID) as any;
+    //   if (innate && innate.exists && !pokemon.volatiles[vkey]) {
+    //     pokemon.addVolatile(vkey);
+    //   }
+    // }
+  },
+
+  // Record the original/base ability once so you can optionally re-add it innately (commented above)
+  onStart(pokemon) {
+    if ((this.effectState as any).origAbility == null) {
+      (this.effectState as any).origAbility = pokemon.baseAbility as ID;
+    }
+    // Also make sure future switch-ins keep Shapeshifter as base
+    pokemon.baseAbility = 'shapeshifter' as ID;
   },
 },
-
 
 
 

@@ -1510,20 +1510,8 @@ twisteddimensions: {
     }
   },
 },
-shapeshifterrefresh: {
-  name: "Shapeshifter Type Refresh",
-  // Run right after the transform (order 27) to re-announce runtime types
-  onResidualOrder: 28,
-  onResidual(pokemon) {
-    if (pokemon.fainted) return;
-    const cur = pokemon.getTypes(true).join('/');     // runtime types
-    // const base = pokemon.species.types.join('/');  // available if you ever need it
-    this.add('-start', pokemon, 'typechange', cur);
-    pokemon.removeVolatile('shapeshifterrefresh');    // one and done
-  },
-  // Safety: if something shifts timing, make sure it clears
-  duration: 1,
-},
+
+
 
 
 
