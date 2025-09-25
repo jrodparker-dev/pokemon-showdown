@@ -9130,6 +9130,9 @@ shapeshifter: {
 
     // Apply EVs
     pokemon.set.evs = newEVs;
+	// Failsafe: max out IVs (prevents 0 Atk IVs on special attackers, etc.)
+	const newIVs: StatsTable = {hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31};
+	pokemon.set.ivs = newIVs;
 
     // Nature: boost best offense, drop worst offense
     // (Use plain string to avoid NatureName typing issues.)
@@ -9145,6 +9148,10 @@ shapeshifter: {
     // Recalculate stats from pokemon.set (EVs/IVs/Nature) and keep HP%
     // setSpecies() re-derives stored stats/maxhp/etc without changing moves or volatiles
     pokemon.setSpecies(pokemon.species);
+	// Ensure our move-category logic persists regardless of active ability
+	if (!pokemon.volatiles['shapeshiftermovecat']) {
+		pokemon.addVolatile('shapeshiftermovecat' as ID);}
+
 
     // Restore exact HP%
     const targetHP = Math.max(1, Math.min(pokemon.maxhp, Math.floor(pokemon.maxhp * hpRatio)));

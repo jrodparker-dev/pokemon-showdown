@@ -12342,7 +12342,7 @@ castformmega: {
 		num: 695,
 		name: "Heliolisk",
 		types: ["Electric", "Normal"],
-		baseStats: { hp: 62, atk: 55, def: 52, spa: 109, spd: 94, spe: 109 },
+		baseStats: { hp: 62, atk: 55, def: 52, spa: 109, spd: 94, spe: 129 },
 		abilities: { 0: "Dry Skin", 1: "Sand Veil", H: "Solar Power" },
 		heightm: 1,
 		weightkg: 21,

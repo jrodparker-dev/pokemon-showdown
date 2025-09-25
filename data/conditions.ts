@@ -1510,8 +1510,20 @@ twisteddimensions: {
     }
   },
 },
+shapeshiftermovecat: {
+  noCopy: true,
+  duration: 0,
+  // Convert damaging moves to Physical/Special based on higher raw Atk vs SpA (ignores boosts)
+  onModifyMove(move, pokemon) {
+    if (move.category === 'Status') return;
+    if ((move as any).damage || (move as any).ohko) return;
+    if (move.id === 'struggle') return;
 
-
+    const atk = pokemon.getStat('atk', false, true);
+    const spa = pokemon.getStat('spa', false, true);
+    move.category = atk >= spa ? 'Physical' : 'Special';
+  },
+},
 
 
 
