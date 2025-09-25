@@ -9089,10 +9089,10 @@ steelfangs: {
 
     // Scale numeric base power directly; otherwise flag to scale in BasePower hook
     if (typeof moveCopy.basePower === 'number' && moveCopy.basePower > 0) {
-      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.60));
+      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.50));
     } else {
       // Covers variable-BP / fixed-damage / OHKO style moves where BP isn't a number
-      (moveCopy as any).mimicWandScale75 = true;
+      (moveCopy as any).mimicWandScale50 = true;
     }
 
     // Avoid interacting with other reflectors/counters
@@ -9106,8 +9106,8 @@ steelfangs: {
 
   onBasePower(basePower, user, target, move) {
     // Apply 0.75 scaling for echoed moves that couldn't be pre-scaled numerically
-    if ((move as any)?.mimicWandScale75) {
-      return this.chainModify(0.60);
+    if ((move as any)?.mimicWandScale50) {
+      return this.chainModify(0.50);
     }
   },
 },

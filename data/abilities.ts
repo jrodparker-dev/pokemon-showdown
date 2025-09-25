@@ -9087,7 +9087,7 @@ shapeshifter: {
     const pool = this.dex.species.all().filter(s =>
       s.exists &&
       !s.nfe &&
-      !(s as any).isNonstandard &&    // includes your customs if isNonstandard: null
+      !(s as any).isNonstandard &&
       !(s as any).battleOnly &&
       !(s as any).isMega &&
       !(s as any).isPrimal &&
@@ -9109,21 +9109,48 @@ shapeshifter: {
     // Make Shapeshifter persist across switch-outs/in
     pokemon.baseAbility = 'shapeshifter' as ID;
 
+    // ----- EV / Nature adjustment based on the new species -----
+    const stats = species.baseStats;
+    const atk = stats.atk;
+    const spa = stats.spa;
+    const spe = stats.spe;
+
+    // Best/worst offense among Atk/SpA
+    const bestAtk: 'atk' | 'spa' = atk >= spa ? 'atk' : 'spa';
+    const worstAtk: 'atk' | 'spa' = atk >= spa ? 'spa' : 'atk';
+
+    // Build EVs (must be a full StatsTable)
+    const newEVs: StatsTable = {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
+    newEVs[bestAtk] = 252;
+    if (spe > 80) {
+      newEVs.spe = 252;
+    } else {
+      newEVs.hp = 252;
+    }
+
+    // Apply EVs
+    pokemon.set.evs = newEVs;
+
+    // Nature: boost best offense, drop worst offense
+    // (Use plain string to avoid NatureName typing issues.)
+    const natureMap: Record<string, string> = {
+      'atk:spa': 'Adamant',
+      'atk:spe': 'Brave',   // if you ever want to key off 'spe' specifically
+      'spa:atk': 'Modest',
+      'spa:spe': 'Quiet',
+    };
+    const nature: string = natureMap[`${bestAtk}:${worstAtk}`] ?? 'Serious';
+    pokemon.set.nature = nature;
+
+    // Recalculate stats from pokemon.set (EVs/IVs/Nature) and keep HP%
+    // setSpecies() re-derives stored stats/maxhp/etc without changing moves or volatiles
+    pokemon.setSpecies(pokemon.species);
+
     // Restore exact HP%
     const targetHP = Math.max(1, Math.min(pokemon.maxhp, Math.floor(pokemon.maxhp * hpRatio)));
     pokemon.sethp(targetHP);
     (pokemon as any).lastDamage = 0;
     (pokemon as any).hurtThisTurn = false;
-
-    // (Optional) If you use the innate-ability scaffold and want to keep the original ability active:
-    // const orig = (this.effectState as any).origAbility as ID | undefined;
-    // if (orig && this.dex.abilities.get(orig).exists) {
-    //   const vkey = `ability:${orig}` as ID;
-    //   const innate = this.dex.conditions.get(vkey as ID) as any;
-    //   if (innate && innate.exists && !pokemon.volatiles[vkey]) {
-    //     pokemon.addVolatile(vkey);
-    //   }
-    // }
   },
 
   // Record the original/base ability once so you can optionally re-add it innately (commented above)
@@ -9134,7 +9161,8 @@ shapeshifter: {
     // Also make sure future switch-ins keep Shapeshifter as base
     pokemon.baseAbility = 'shapeshifter' as ID;
   },
-},
+}
+
 
 
 
