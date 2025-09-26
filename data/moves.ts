@@ -22982,6 +22982,196 @@ if (itemPool.length) {
     (pokemon as any).m.callforaidUses = uses + 1;
   },
 },
+dnalaser: {
+  name: "DNA Laser",
+  shortDesc:
+    "FE non-legend pool. Target becomes a random species, cures status, heals to full. Halves boosts. Sets 252 HP/Spe + 252 best offense + beneficial nature. Replaces moves: 2 STABs + Adaptive Force + Call for Aid. Applies 'shapeshiftermovecat' volatile. Blocked by Protect/Sub.",
+  type: "Normal",
+  basePower: 0,
+  category: "Status",
+  accuracy: true,
+  pp: 1,
+  noPPBoosts: true,
+  priority: -7,
+  target: "normal",
+  flags: {protect: 1}, // Protect blocks; we also hard-block Substitute below
+
+  // Explicitly blocked by Substitute
+  onTryHit(target, source, move) {
+    if (target.volatiles['substitute']) {
+      this.add('-fail', source, 'move: DNA Laser', '[still]');
+      return null;
+    }
+  },
+
+  onHit(target, source) {
+    // ---------- 1) Build valid species pool (Fully-Evolved, Non-legendary) ----------
+    const pool = this.dex.species.all().filter(s =>
+      s.exists &&
+      !s.nfe &&
+      !(s as any).isNonstandard &&
+      !(s as any).battleOnly &&
+      !(s as any).isMega &&
+      !(s as any).isPrimal &&
+      !(s as any).isGigantamax &&
+      !(s as any).isLegendary &&
+      !(s as any).isMythical &&
+      !(s as any).isUltraBeast
+    );
+    if (!pool.length) return false;
+
+    // Avoid no-op (same species) if possible
+    let species = this.sample(pool);
+    for (let i = 0; i < 4 && pool.length > 1 && species.name === target.species.name; i++) {
+      species = this.sample(pool);
+    }
+    if (species.name === target.species.name) {
+      // If it insists on matching itself, still proceed (randomness is part of design),
+      // but you can 'return false' instead if you prefer to fail instead of no-op.
+    }
+
+    // ---------- 2) Prepare new movepool: 2 STABs + Adaptive Force + Call for Aid ----------
+    let moveIds: string[] = [];
+
+    const addUnique = (arr: string[], id: string) => { if (!arr.includes(id)) arr.push(id); };
+    const learnsets = (this.dex.data as any).Learnsets as
+      Record<string, {learnset?: Record<string, any>}>;
+    const ls = learnsets?.[species.id];
+
+    if (ls?.learnset) {
+      const allIds = Object.keys(ls.learnset).filter(id => this.dex.moves.get(id).exists);
+      const mObjs = allIds.map(id => this.dex.moves.get(id));
+      const isDamaging = (m: any) =>
+        m.category !== 'Status' && (m.basePower > 0 || (m as any).damage || (m as any).ohko);
+
+      const [t1, t2] = species.types as [string, string?];
+      let stab1Pool = mObjs.filter(m => m.type === t1 && isDamaging(m)).map(m => m.id);
+      let stab2Pool = t2 ? mObjs.filter(m => m.type === t2 && isDamaging(m)).map(m => m.id) : [];
+
+      // Unique combined STAB pool
+      let stabPool = Array.from(new Set([...stab1Pool, ...stab2Pool]));
+
+      // Take up to 2 STAB damaging moves at random
+      while (moveIds.length < 2 && stabPool.length) {
+        const idx = this.random(stabPool.length);
+        const pick = stabPool.splice(idx, 1)[0];
+        addUnique(moveIds, pick);
+      }
+
+      // If we didn't find 2 STABs, backfill with other damaging moves
+      if (moveIds.length < 2) {
+        let damagingPool = mObjs.filter(m => isDamaging(m)).map(m => m.id);
+        // Remove any already chosen
+        damagingPool = damagingPool.filter(id => !moveIds.includes(id));
+        while (moveIds.length < 2 && damagingPool.length) {
+          const idx = this.random(damagingPool.length);
+          const pick = damagingPool.splice(idx, 1)[0];
+          addUnique(moveIds, pick);
+        }
+      }
+    }
+
+    // Safety fallback if learnset was missing/empty
+    if (moveIds.length < 2) moveIds = ['superpunch', 'suckerpunch'];
+
+    // Slot 3: Adaptive Force; Slot 4: Call for Aid
+    addUnique(moveIds, 'adaptiveforce');
+    addUnique(moveIds, 'callforaid');
+
+    // Keep exactly 4 moves with order: [2 picks] + adaptiveforce + callforaid
+    if (moveIds.length > 4) moveIds = [moveIds[0], moveIds[1], 'adaptiveforce', 'callforaid'];
+    while (moveIds.length < 4) moveIds.push('tackle'); // extreme safety (shouldn't occur)
+
+    // ---------- 3) Apply the species change ----------
+    target.formeChange(species, this.effect, true);
+
+    // ---------- 4) Halve current boosts (toward 0) ----------
+    {
+      const delta: SparseBoostsTable = {};
+      for (const s in target.boosts) {
+        const stat = s as BoostID;
+        const cur = target.boosts[stat] || 0;
+        if (!cur) continue;
+        const next = cur > 0 ? Math.floor(cur / 2) : Math.ceil(cur / 2);
+        const d = next - cur;
+        if (d) delta[stat] = d;
+      }
+      if (Object.keys(delta).length) {
+        this.boost(delta, target, source, this.effect);
+        this.add('-message', `${target.name}'s boosts were halved!`);
+      }
+    }
+
+    // ---------- 5) Cure status & heal to full ----------
+    target.cureStatus();
+    // We will fully recalc stats below, then heal to 100% of the *new* max HP.
+
+    // ---------- 6) Triple-252 EVs (HP/Spe/best offense), max IVs, beneficial nature ----------
+    const bst = species.baseStats;
+    const bestOff: 'atk' | 'spa' = (bst.atk >= bst.spa) ? 'atk' : 'spa';
+    const worstOff: 'atk' | 'spa' = (bestOff === 'atk') ? 'spa' : 'atk';
+
+    const newEVs: StatsTable = {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
+    newEVs.hp = 252;
+    newEVs.spe = 252;
+    newEVs[bestOff] = 252;
+
+    const maxIVs: StatsTable = {hp:31, atk:31, def:31, spa:31, spd:31, spe:31};
+    target.set.evs = {...newEVs};
+    target.set.ivs = {...maxIVs};
+
+    // Nature: boost best offensive stat, drop the other
+    // (Keep it simple and explicit.)
+    let nature = 'Serious';
+    if (bestOff === 'atk') nature = 'Adamant'; // +Atk, -SpA
+    else nature = 'Modest';                    // +SpA, -Atk
+    target.set.nature = nature;
+
+    // Recalculate derived stats from set (keeps current species)
+    target.setSpecies(target.species);
+
+    // ---------- 7) Full heal (to new max), clean damage markers ----------
+    if (target.hp < target.maxhp) {
+      const delta = target.maxhp - target.hp;
+      if (delta > 0) this.heal(delta, target, null, this.effect);
+    }
+    target.sethp(target.maxhp);
+    target.baseMaxhp = target.maxhp;
+    (target as any).lastDamage = 0;
+    (target as any).hurtThisTurn = false;
+
+    // ---------- 8) Overwrite moves ----------
+    target.moveSlots.splice(0, target.moveSlots.length);
+    (target.baseMoveSlots as any).splice(0, (target.baseMoveSlots as any).length);
+
+    for (const id of moveIds) {
+      const mv = this.dex.moves.get(id);
+      const slot = {
+        move: mv.name,
+        id: mv.id as ID,
+        pp: mv.pp,
+        maxpp: mv.pp,
+        target: mv.target,
+        disabled: false,
+        disabledSource: '',
+        used: false,
+      };
+      target.moveSlots.push({ ...slot });
+      (target.baseMoveSlots as any).push({ ...slot });
+    }
+
+    // ---------- 9) Apply move-category volatile (Photon Geyser–style) ----------
+    if (!target.volatiles['shapeshiftermovecat']) {
+      target.addVolatile('shapeshiftermovecat' as ID);
+    }
+
+    // Flavor line
+    this.add('-message', `${target.name} was rewritten by the DNA Laser!`);
+
+    return true;
+  },
+},
+
 
 
 moonstrike: {
@@ -25241,8 +25431,212 @@ soulrend: {
     type: "Fighting",
   },
 
-  
-   
+ loadoutshift: {
+  name: "Loadout Shift",
+  shortDesc:
+    "Protect-style block this turn, then swap pages: [TM ≥70 (best cat), Metronome-eligible, Signature (best cat), Loadout Shift]. Using it again swaps back; each alt entry re-rolls all three.",
+  type: "Normal",
+  basePower: 0,
+  category: "Status",
+  accuracy: true,
+  pp: 10,
+  priority: 4,
+  target: "self",
+  flags: { noassist: 1, failcopycat: 1 },
+  stallingMove: true,
+  volatileStatus: 'protect',
+
+  onPrepareHit(pokemon) {
+    return !!this.queue.willAct() && this.runEvent('StallMove', pokemon);
+  },
+
+  onHit(pokemon) {
+    pokemon.addVolatile('stall');
+
+    (pokemon as any).m ??= {};
+    const data = (pokemon as any).m;
+
+    // Cache original moves once
+    if (!data.ls_orig) {
+      data.ls_orig = (pokemon.moveSlots || []).map(s => s.id as ID);
+      if (!data.ls_orig.includes('loadoutshift' as ID)) {
+        if (data.ls_orig.length >= 4) data.ls_orig[3] = 'loadoutshift' as ID;
+        else data.ls_orig.push('loadoutshift' as ID);
+      }
+      data.ls_onAlt = false;
+      data.ls_swaps = 0;
+    }
+
+    const overwriteMoves = (ids: ID[]) => {
+      pokemon.moveSlots.splice(0, pokemon.moveSlots.length);
+      (pokemon.baseMoveSlots as any).splice(0, (pokemon.baseMoveSlots as any).length);
+      for (const id of ids) {
+        const mv = this.dex.moves.get(id);
+        const slot = {
+          move: mv.name, id: mv.id as ID, pp: mv.pp, maxpp: mv.pp, target: mv.target,
+          disabled: false, disabledSource: '', used: false,
+        };
+        pokemon.moveSlots.push({ ...slot });
+        (pokemon.baseMoveSlots as any).push({ ...slot });
+      }
+    };
+
+    // ---------- Global pools (cached once per battle) ----------
+    const getGlobalTMIds = (battle: Battle): Set<ID> => {
+      (battle as any).m ??= {};
+      const cache = (battle as any).m;
+      if (cache.globalTMIds) return cache.globalTMIds as Set<ID>;
+
+      const tmSet = new Set<ID>();
+      const learnsets = (this.dex.data as any).Learnsets as
+        Record<string, {learnset?: Record<string, any>}>;
+      for (const sid in learnsets) {
+        const ls = learnsets[sid]?.learnset; if (!ls) continue;
+        for (const mid in ls) {
+          const entry: any = ls[mid];
+          const srcs: string[] = Array.isArray(entry)
+            ? entry
+            : Array.isArray(entry?.learned) ? entry.learned
+            : Object.keys(entry || {});
+          if (srcs.some(s => /M\b/.test(s) || /HM\b/.test(s) || /TR\b/.test(s))) {
+            tmSet.add(this.toID(mid) as ID);
+          }
+        }
+      }
+      cache.globalTMIds = tmSet;
+      return tmSet;
+    };
+
+    // Signature = learned by ≤2 species by non-TM methods (heuristic)
+    const getGlobalSignatureIds = (battle: Battle): Set<ID> => {
+      (battle as any).m ??= {};
+      const cache = (battle as any).m;
+      if (cache.signatureIds) return cache.signatureIds as Set<ID>;
+
+      const learnsets = (this.dex.data as any).Learnsets as
+        Record<string, {learnset?: Record<string, any>}>;
+      const counts = new Map<ID, number>();
+      const isTMTag = (s: string) => /M\b/.test(s) || /HM\b/.test(s) || /TR\b/.test(s);
+
+      for (const sid in learnsets) {
+        const ls = learnsets[sid]?.learnset; if (!ls) continue;
+        for (const mid in ls) {
+          const id = this.toID(mid) as ID;
+          const entry: any = ls[mid];
+          const srcs: string[] = Array.isArray(entry)
+            ? entry
+            : Array.isArray(entry?.learned) ? entry.learned
+            : Object.keys(entry || {});
+          if (!srcs.some(isTMTag)) {
+            counts.set(id, (counts.get(id) || 0) + 1);
+          }
+        }
+      }
+
+      const sig = new Set<ID>();
+      for (const [id, n] of counts) if (n <= 2) sig.add(id);
+      cache.signatureIds = sig;
+      return sig;
+    };
+
+    const pickOne = (arr: ID[]) => (arr.length ? arr[this.random(arr.length)] : undefined);
+
+    // ---------- Slot builders ----------
+    // Slot 1: TM/TR/HM, ≥70 BP, matches higher offensive CATEGORY (runtime), skip charge/recharge, no dupes
+    const buildSlot1_TM = (): ID | undefined => {
+      const atk = pokemon.getStat('atk', false, true);
+      const spa = pokemon.getStat('spa', false, true);
+      const bestCat: 'Physical' | 'Special' = atk >= spa ? 'Physical' : 'Special';
+
+      const tmIds = getGlobalTMIds(this);
+      const origSet = new Set<ID>(data.ls_orig as ID[]);
+      const bans = new Set<ID>(['struggle' as ID, 'loadoutshift' as ID]);
+
+      const cands: ID[] = [];
+      for (const id of tmIds) {
+        if (origSet.has(id) || bans.has(id)) continue;
+        const mv = this.dex.moves.get(id);
+        if (!mv?.exists) continue;
+        if (mv.category !== bestCat) continue;
+        if (typeof mv.basePower !== 'number' || mv.basePower < 70) continue;
+        if (mv.isZ || (mv as any).isMax) continue;
+        if ((mv as any).ohko) continue;
+        if (mv.flags?.charge || mv.flags?.recharge) continue;
+        cands.push(id);
+      }
+      return pickOne(cands);
+    };
+
+    // Slot 2: Metronome-eligible (noMetronome=false), exclude Z/Max/Metronome/Struggle, avoid dupes
+    const buildSlot2_MetEligible = (): ID | undefined => {
+      const origSet = new Set<ID>(data.ls_orig as ID[]);
+      const bans = new Set<ID>(['metronome' as ID, 'struggle' as ID, 'loadoutshift' as ID]);
+
+      const cands: ID[] = [];
+      for (const mv of this.dex.moves.all()) {
+        if (!mv?.exists) continue;
+        const id = mv.id as ID;
+        if (origSet.has(id) || bans.has(id)) continue;
+        if ((mv as any).noMetronome) continue;
+        if (mv.isZ || (mv as any).isMax) continue;
+        cands.push(id);
+      }
+      return pickOne(cands);
+    };
+
+    // Slot 3: Signature move whose CATEGORY matches higher attacking BASE stat (Atk vs SpA).
+    // No typing requirement; exclude Z/Max; avoid dupes.
+    const buildSlot3_SignatureBestBaseCat = (): ID | undefined => {
+      const {atk: bAtk, spa: bSpa} = pokemon.species.baseStats;
+      const bestCat: 'Physical' | 'Special' = bAtk >= bSpa ? 'Physical' : 'Special';
+
+      const sigIds = getGlobalSignatureIds(this);
+      const origSet = new Set<ID>(data.ls_orig as ID[]);
+      const bans = new Set<ID>(['struggle' as ID, 'loadoutshift' as ID]);
+
+      const cands: ID[] = [];
+      for (const id of sigIds) {
+        if (origSet.has(id) || bans.has(id)) continue;
+        const mv = this.dex.moves.get(id);
+        if (!mv?.exists) continue;
+        if (mv.isZ || (mv as any).isMax) continue;
+        if (mv.category !== bestCat) continue; // category match to base Atk/SpA
+        cands.push(id);
+      }
+      return pickOne(cands);
+    };
+
+    // ---------- Assemble alt page ----------
+    if (!data.ls_onAlt) {
+      const picks: ID[] = [];
+
+      const p1 = buildSlot1_TM();
+      if (p1) picks.push(p1);
+
+      const seen = new Set<ID>([...(data.ls_orig as ID[]), ...picks]);
+
+      let p2 = buildSlot2_MetEligible();
+      for (let i = 0; i < 30 && p2 && seen.has(p2); i++) p2 = buildSlot2_MetEligible();
+      if (p2) { picks.push(p2); seen.add(p2); }
+
+      let p3 = buildSlot3_SignatureBestBaseCat();
+      for (let i = 0; i < 30 && p3 && seen.has(p3); i++) p3 = buildSlot3_SignatureBestBaseCat();
+      if (p3) { picks.push(p3); seen.add(p3); }
+
+      while (picks.length < 3) picks.push('tackle' as ID); // extreme safety
+      picks.push('loadoutshift' as ID);
+
+      overwriteMoves(picks.slice(0, 4));
+      data.ls_onAlt = true;
+      data.ls_swaps++;
+      this.add('-message', `${pokemon.name} shifted its loadout (Alt Page ${data.ls_swaps})!`);
+    } else {
+      overwriteMoves(data.ls_orig as ID[]);
+      data.ls_onAlt = false;
+      this.add('-message', `${pokemon.name} reverted to its original loadout!`);
+    }
+  },
+},
 
 
 
