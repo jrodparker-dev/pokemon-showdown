@@ -9048,32 +9048,41 @@ stampede: {
 		name: "Stampede",
 	},
 phantomcore: {
-	name: "Phantom Core",
-	onStart(pokemon) { 
-		const cur = pokemon.getTypes(true).join('/'); // runtime types 
-		const base = pokemon.species.types.join('/'); // species types 
-		this.add('-start', pokemon, 'typechange', cur);
-		},
-	onSourceModifyDamage(damage, source, target, move) {
+  name: "Phantom Core",
+
+  // Show runtime types on switch-in (your original effect)
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+  },
+
+  // Reduce INCOMING Fairy damage to the holder by 50%
+  // (This runs on the target; correct hook for mitigating incoming damage.)
+  onSourceModifyDamage(damage, source, target, move) {
     if (move.type === 'Fairy') {
       this.debug('Phantom Core Fairy resist');
       return this.chainModify(0.5);
     }
   },
 
-  // Heal 75% of damage dealt by Ghost-type moves
-  onDamagingHit(damage, target, source, move) {
-    // 'source' = attacker (the ability holder)
-    if (!source || !source.hp) return;
-    if (move && move.type === 'Ghost' && damage > 0) {
-      const healAmount = Math.floor(damage * 0.75);
-      if (healAmount > 0) {
-        this.heal(healAmount, source, source, move);
-        this.add('-ability', source, 'Phantom Core');
-      }
+  // Heal 75% of DAMAGE DEALT by the holder's Ghost-type moves
+  // Runs after the move resolves; `move.totalDamage` is the sum you dealt.
+  onAfterMoveSecondarySelf(pokemon, target, move) {
+    if (!move || move.category === 'Status') return;
+    if (move.type !== 'Ghost') return;
+
+    // PS sets totalDamage only for damaging moves that actually hit
+    const total = (move as any).totalDamage;
+    if (!total || typeof total !== 'number' || total <= 0) return;
+
+    const healAmount = Math.floor(total * 0.75);
+    if (healAmount > 0 && pokemon.hp && !pokemon.fainted) {
+      this.heal(healAmount, pokemon, pokemon, move);
+      this.add('-ability', pokemon, 'Phantom Core');
     }
   },
 },
+
 shapeshifter: {
   name: "Shapeshifter",
   shortDesc: "Random pokemon yo",
