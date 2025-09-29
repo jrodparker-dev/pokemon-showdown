@@ -1205,6 +1205,26 @@ moveIds.push(AF);
   },
 },
 
+bleeding: {
+  name: "Bleeding",
+  // Volatile so it clears on switch/force-out, Baton Pass does NOT pass volatiles by default
+  noCopy: true,
+  // Order near other end-of-turn effects (Leech Seed is 9; we go slightly later)
+  onResidualOrder: 11,
+  onResidualSubOrder: 2,
+  onStart(target) {
+    this.add('-start', target, 'Bleeding');
+  },
+  onResidual(pokemon) {
+    // 1/16 max HP end-of-turn chip
+    this.damage(pokemon.baseMaxhp / 16, pokemon, null, this.dex.conditions.get('bleeding'));
+  },
+  onEnd(target) {
+    this.add('-end', target, 'Bleeding');
+  },
+},
+
+
 
 
 

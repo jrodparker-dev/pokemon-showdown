@@ -25637,6 +25637,27 @@ soulrend: {
     }
   },
 },
+serratedfangs: {
+  name: "Serrated Fangs",
+  shortDesc: "Biting move. Inflicts Bleeding (1/16 max HP/turn) until the foe switches.",
+  desc: "A biting attack. On hit, the target becomes Bleeding. Bleeding causes the target to lose 1/16 of its maximum HP at the end of each turn and ends when the target leaves the field. Does not stack.",
+  accuracy: 90,
+  basePower: 75,
+  pp: 15,
+  priority: 0,
+  category: "Physical",
+  type: "Blood",
+  target: "normal",
+  flags: {contact: 1, bite: 1, protect: 1, mirror: 1}, // Strong Jaw boosts via `bite`
+  onHit(target) {
+    // Apply our custom volatile; no stacking
+    if (!target.volatiles['bleeding']) {
+      target.addVolatile('bleeding');
+    }
+  },
+  secondary: null,
+  // Optional message flair (shown on successful application is handled by the volatile)
+},
 
 
 
