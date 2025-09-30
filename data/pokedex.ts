@@ -20027,7 +20027,7 @@ oinkolognemega: {
 		eggGroups: ["Field"],
 		isMega: true,
 },
-
+/* 
   // TEAM A – Order of the Elementals
   // =========================
   pyrelith: {
@@ -20154,7 +20154,7 @@ oinkolognemega: {
     weightkg: 112,
     eggGroups: ["Bug"],
   },
-
+*/
 
 
 
