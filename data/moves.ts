@@ -22991,7 +22991,7 @@ dnalaser: {
   basePower: 0,
   category: "Status",
   accuracy: true,
-  pp: 1,
+  pp: 2,
   noPPBoosts: true,
   priority: -7,
   target: "normal",
@@ -24069,7 +24069,8 @@ benchhex: {
   category: "Status",
   basePower: 0,
   accuracy: 100,
-  pp: 5,
+  pp: 1,
+  noPPBoosts: true,
   priority: 0,
   target: "foeSide",
   flags: {reflectable: 1, mirror: 1, metronome: 1},
@@ -24872,14 +24873,14 @@ soulrend: {
   },
   moonblossom: {
     name: "Moonblossom",
-    shortDesc: "75 BP Fairy; heals user for 25% of damage dealt.",
+    shortDesc: "75 BP Fairy; heals user for 50% of damage dealt.",
     accuracy: 100,
     basePower: 75,
 	priority: 0,
     pp: 15,
     category: "Special",
     flags: {protect: 1, mirror: 1, heal: 1},
-    drain: [1, 4],
+    drain: [1, 2],
     target: "normal",
     type: "Fairy",
   },
@@ -24906,7 +24907,7 @@ soulrend: {
     pp: 10,
 	priority: 0,
     category: "Physical",
-    flags: {protect: 1},
+    flags: {protect: 1, contact: 1},
     onTryHit(target, source, move) {
       target.removeVolatile('magnetrise');
       target.removeVolatile('telekinesis');
@@ -24941,19 +24942,6 @@ soulrend: {
     secondaries: [{chance: 10, volatileStatus: 'flinch'}],
     target: "normal",
     type: "Ground",
-  },
-  reinforce: {
-    name: "Reinforce",
-    shortDesc: "Raises an ally’s Atk and Def by 1.",
-    accuracy: true,
-    basePower: 0,
-    pp: 20,
-	priority: 0,
-    category: "Status",
-    flags: {snatch: 1, allyanim: 1},
-    boosts: {atk: 1, def: 1},
-    target: "adjacentAlly",
-    type: "Steel",
   },
 
   // ===== Team A – Zephyren
@@ -25557,7 +25545,7 @@ serratedfangs: {
   category: "Physical",
   type: "Blood",
   target: "normal",
-  flags: {contact: 1, bite: 1, protect: 1, mirror: 1}, // Strong Jaw boosts via `bite`
+  flags: {contact: 1, bite: 1, protect: 1, metronome: 1, mirror: 1}, // Strong Jaw boosts via `bite`
   onHit(target) {
     // Apply our custom volatile; no stacking
     if (!target.volatiles['bleeding']) {
@@ -25794,6 +25782,37 @@ vinebreaker: {
     flags: {snatch: 1},
     sideCondition: 'sporeguard',
   },
+dualswap: {
+  name: "Dual Swap",
+  shortDesc: "Swaps the target's Atk↔Def and SpA↔SpD until it switches out.",
+  accuracy: true,
+  basePower: 0,
+  pp: 10,
+  priority: 0,
+  category: "Status",
+  type: "Psychic",
+  target: "normal",
+  flags: {protect: 1, mirror: 1},
+  onHit(target) {
+    if (target.volatiles['dualswap']) return false; // already swapped; fail gracefully
+    target.addVolatile('dualswap');
+    this.add('-start', target, 'move: Dual Swap');
+  },
+  condition: {
+    // Use storedStats like Power Trick to avoid recursion in getStat()
+    onStart(pokemon) {
+      const s = pokemon.storedStats;
+      [s.atk, s.def] = [s.def, s.atk];
+      [s.spa, s.spd] = [s.spd, s.spa];
+    },
+    onEnd(pokemon) {
+      const s = pokemon.storedStats;
+      [s.atk, s.def] = [s.def, s.atk];
+      [s.spa, s.spd] = [s.spd, s.spa];
+      this.add('-end', pokemon, 'move: Dual Swap');
+    },
+  },
+}
 
 
 };
