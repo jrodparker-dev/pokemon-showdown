@@ -1570,6 +1570,48 @@ steamfield: {
     duration: 2, // persists through the user's next action attempt, then falls off
     // No extra hooks needed — the presence alone blocks the next attempt via onTry above
   },
+sporeguard: {
+    name: "Sporeguard",
+    duration: 5,
+
+    onStart(side) {
+      this.add('-sidestart', side, 'move: Sporeguard');
+    },
+
+    onSetStatus(status, target, source, effect) {
+      if (target && target.side === this.effectState.target) {
+        this.add('-activate', target, 'move: Sporeguard');
+        return false; // block the status
+      }
+    },
+
+    onTryHitPriority: 1,
+		onTryHit(target, source, move) {
+			if (target === source || move.hasBounced || !move.flags['reflectable'] || target.isSemiInvulnerable()) {
+				return;
+			}
+			const newMove = this.dex.getActiveMove(move.id);
+			newMove.hasBounced = true;
+			newMove.pranksterBoosted = false;
+			this.actions.useMove(newMove, target, { target: source });
+			return null;
+		},
+		onAllyTryHitSide(target, source, move) {
+			if (target.isAlly(source) || move.hasBounced || !move.flags['reflectable'] || target.isSemiInvulnerable()) {
+				return;
+			}
+			const newMove = this.dex.getActiveMove(move.id);
+			newMove.hasBounced = true;
+			newMove.pranksterBoosted = false;
+			this.actions.useMove(newMove, this.effectState.target, { target: source });
+			move.hasBounced = true; // only bounce once in free-for-all battles
+			return null;
+		},
+    onEnd(side) {
+      this.add('-sideend', side, 'move: Sporeguard');
+    },
+  },
+
 
 
 

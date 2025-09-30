@@ -25046,31 +25046,7 @@ soulrend: {
     target: "normal",
     type: "Fighting",
   },
-  sporeguard: {
-    name: "Sporeguard",
-    shortDesc: "Grants ally a 1-time shield against status.",
-    accuracy: true,
-    basePower: 0,
-    pp: 15,
-	priority: 0,
-    category: "Status",
-    flags: {snatch: 1},
-    onHit(target) {
-      target.addVolatile('sporeguardshield');
-    },
-    condition: {
-      onStart(pokemon) {
-        this.add('-start', pokemon, 'Sporeguard');
-      },
-      onSetStatus(status, target) {
-        this.add('-activate', target, 'move: Sporeguard');
-        target.removeVolatile('sporeguardshield');
-        return false;
-      },
-    },
-    target: "adjacentAlly",
-    type: "Grass",
-  },
+  
   naturesresolve: {
     name: "Nature’s Resolve",
     shortDesc: "Raises user’s Atk and Def by 1.",
@@ -25771,6 +25747,52 @@ tornado: {
         this.add('-message', `Clarity Veil faded!`);
       },
     },
+  },
+aquabarrier: {
+    name: "Aqua Barrier",
+    shortDesc: "Raises the user's Sp. Def by 3 stages.",
+    accuracy: true,
+    basePower: 0,
+    pp: 10,
+    priority: 0,
+    category: "Status",
+    type: "Water",
+    target: "self",
+    flags: {snatch: 1},
+    boosts: {spd: 3},
+  },
+vinebreaker: {
+    name: "Vinebreaker",
+    shortDesc: "90 BP Grass. Ignores Reflect and Light Screen (does not remove them).",
+    accuracy: 100,
+    basePower: 90,
+    pp: 15,
+    priority: 0,
+    category: "Physical",
+    type: "Grass",
+    target: "normal",
+    flags: {contact: 1, protect: 1, mirror: 1},
+
+    // Reflect / Light Screen are normally handled in onAnyModifyDamage hooks.
+    // This bypass flag tells PS to skip them for this move.
+    ignoreDefensive: true,
+
+    onTryHit(target, source, move) {
+      this.add('-message', `${source.name}'s Vinebreaker sliced through protective screens!`);
+    },
+  },
+  sporeguard: {
+    name: "Sporeguard",
+    shortDesc: "For 5 turns, prevents status and bounces back status moves used on the user’s side.",
+    accuracy: true,
+    basePower: 0,
+    pp: 10,
+    priority: 0,
+    category: "Status",
+    type: "Grass",
+    target: "allySide",
+    flags: {snatch: 1},
+    sideCondition: 'sporeguard',
   },
 
 
