@@ -22837,17 +22837,18 @@ if (moveIds.length > 4) moveIds = [moveIds[0], moveIds[1], 'adaptiveforce', 'cal
     pokemon.formeChange(species, this.effect, true);
 	{
   const delta: SparseBoostsTable = {};
-  for (const s in pokemon.boosts) {
-    const stat = s as BoostID;
+  const statsToHalve: BoostID[] = ['atk','def','spa','spd','spe','evasion']; // no accuracy
+
+  for (const stat of statsToHalve) {
     const cur = pokemon.boosts[stat] || 0;
     if (!cur) continue;
-    const next = cur > 0 ? Math.floor(cur / 2) : Math.ceil(cur / 2); // toward zero
-    const d = next - cur; // this.boost expects a delta
+    const next = cur > 0 ? Math.floor(cur / 2) : Math.ceil(cur / 2);
+    const d = next - cur;
     if (d) delta[stat] = d;
   }
   if (Object.keys(delta).length) {
     this.boost(delta, pokemon, pokemon, this.effect);
-    this.add('-message', `${pokemon.name}'s boosts were halved by Call for Aid!`);
+    this.add('-message', `${pokemon.name}'s boosts (except accuracy) were halved by Call for Aid!`);
   }
 }
 
@@ -24851,38 +24852,6 @@ soulrend: {
     target: "self",
     type: "Rock",
   },
-  steamburst: {
-    name: "Steam Burst",
-    shortDesc: "60 BP Water; usable only in Steam Field; 2x dmg; ends field.",
-    accuracy: 100,
-    basePower: 60,
-	priority: 0,
-    pp: 10,
-    category: "Special",
-    flags: {protect: 1, mirror: 1},
-    onTry(source, target) {
-      const side = target ? target.side : source.side.foe;
-      if (!side?.sideConditions['steamfield']) {
-        this.add('-fail', source, 'move: Steam Burst');
-        return null;
-      }
-    },
-    onBasePower(basePower, user, target, move) {
-      const side = target ? target.side : user.side.foe;
-      if (side?.sideConditions['steamfield']) {
-        return this.chainModify(2);
-      }
-    },
-    onAfterHit(target, source) {
-      const side = target ? target.side : source.side.foe;
-      if (side?.sideConditions['steamfield']) {
-        side.removeSideCondition('steamfield');
-        this.add('-message', `Steam Field dissipated!`);
-      }
-    },
-    target: "normal",
-    type: "Water",
-  },
 
   // ===== Team A – Glaciarch
   auroraray: {
@@ -25008,19 +24977,7 @@ soulrend: {
     target: "normal",
     type: "Flying",
   },
-  dracovortex: {
-    name: "Draco Vortex",
-    shortDesc: "100 BP Dragon; forces target to switch.",
-    accuracy: 90,
-    basePower: 100,
-    pp: 5,
-	priority: 0,
-    category: "Special",
-    flags: {protect: 1, mirror: 1},
-    forceSwitch: true,
-    target: "normal",
-    type: "Dragon",
-  },
+  
   skyreprieve: {
     name: "Sky Reprieve",
     shortDesc: "Heals ally 50% and cures status.",
@@ -25074,30 +25031,6 @@ soulrend: {
     target: "normal",
     type: "Water",
   },
-  clarityveil: {
-    name: "Clarity Veil",
-    shortDesc: "Removes status and stat drops from allies.",
-    accuracy: true,
-    basePower: 0,
-	priority: 0,
-    pp: 15,
-    category: "Status",
-    flags: {snatch: 1},
-    onHit(pokemon) {
-      for (const ally of pokemon.side.active) {
-        if (!ally) continue;
-        ally.cureStatus();
-        const neg: SparseBoostsTable = {};
-        for (const stat of ['atk','def','spa','spd','spe','accuracy','evasion'] as const) {
-          if (ally.boosts[stat] < 0) neg[stat] = -ally.boosts[stat];
-        }
-        if (Object.keys(neg).length) this.boost(neg, ally);
-      }
-    },
-    target: "allySide",
-    type: "Psychic",
-  },
-
   // ===== Team A – Floracern
   
   lotusfist: {
@@ -25658,8 +25591,187 @@ serratedfangs: {
   secondary: null,
   // Optional message flair (shown on successful application is handled by the volatile)
 },
+steamburst: {
+    name: "Steam Burst",
+    shortDesc: "60 BP Water. Only usable if target’s side has Steam Field; deals 2× power and then clears it.",
+    accuracy: 100,
+    basePower: 60,
+    pp: 10,
+    priority: 0,
+    category: "Special",
+    flags: {protect: 1, mirror: 1},
+    onTry(source, target) {
+      // Only usable if the TARGET'S SIDE is under Steam Field
+      const side = target?.side;
+      if (!side?.sideConditions['steamfield']) {
+        this.add('-fail', source, 'move: Steam Burst');
+        return null;
+      }
+    },
+    onBasePower(basePower, user, target, move) {
+      const side = target?.side;
+      if (side?.sideConditions['steamfield']) {
+        return this.chainModify(2);
+      }
+    },
+    onAfterHit(target, source) {
+      const side = target?.side;
+      if (side?.sideConditions['steamfield']) {
+        side.removeSideCondition('steamfield');
+        this.add('-message', `Steam Field dissipated!`);
+      }
+    },
+    target: "normal",
+    type: "Water",
+  },
+frozenbarrier: {
+  num: 30002, // pick any free ID
+  accuracy: true,
+  basePower: 0,
+  category: "Status",
+  name: "Frozen Barrier",
+  shortDesc: "Protect. If foe hits with a contact move they are frozen",
+  pp: 10,
+  priority: 4,
+  flags: { noassist: 1, failcopycat: 1 }, // match Baneful Bunker behavior
+  stallingMove: true,
+  volatileStatus: 'frozenbarrier',
+  onPrepareHit(pokemon) {
+    return !!this.queue.willAct() && this.runEvent('StallMove', pokemon);
+  },
+  onHit(pokemon) {
+    pokemon.addVolatile('stall');
+  },
+  condition: {
+    duration: 1,
+    onStart(target) {
+      this.add('-singleturn', target, 'move: Protect');
+    },
+    onTryHitPriority: 3,
+    onTryHit(target, source, move) {
+      // Block moves affected by Protect
+      if (!move.flags['protect']) {
+        if (['gmaxoneblow', 'gmaxrapidflow'].includes(move.id)) return;
+        if (move.isZ || move.isMax) target.getMoveHitData(move).zBrokeProtect = true;
+        return;
+      }
+      if (move.smartTarget) {
+        move.smartTarget = false;
+      } else {
+        this.add('-activate', target, 'move: Protect');
+      }
 
+      // Reset Outrage-style lock if applicable
+      const lockedmove = source.getVolatile('lockedmove');
+      if (lockedmove) {
+        if (source.volatiles['lockedmove'].duration === 2) {
+          delete source.volatiles['lockedmove'];
+        }
+      }
 
+      // Contact into the protect -> put the attacker to freeze
+      if (this.checkMoveMakesContact(move, source, target)) {
+        source.trySetStatus('frz', target);
+      }
+      return this.NOT_FAIL;
+    },
+    onHit(target, source, move) {
+      // Z/Max-powered moves that make contact and get blocked also trigger freeze
+      if (move.isZOrMaxPowered && this.checkMoveMakesContact(move, source, target)) {
+        source.trySetStatus('frz', target);
+      }
+    },
+  },
+  secondary: null,
+  target: "self",
+  type: "Ice",
+  zMove: { boost: { def: 1 } }, // optional, mirrors Baneful Bunker
+  contestType: "Cute",
+},
+
+dracovortex: {
+    name: "Draco Vortex",
+    shortDesc: "100 BP Dragon; forces target to switch. Cannot be used two turns in a row.",
+    accuracy: 90,
+    basePower: 100,
+    pp: 5,
+    priority: 0,
+    category: "Special",
+    type: "Dragon",
+    target: "normal",
+    flags: {protect: 1, mirror: 1},
+
+    // Prevent consecutive use
+    onTry(source, target, move) {
+      if (source.volatiles['dracovortexcooldown']) {
+        this.add('-fail', source, 'move: Draco Vortex');
+        return null;
+      }
+    },
+    onAfterMove(source, target, move) {
+      // Apply a 1-turn cooldown that blocks the very next attempt only
+      source.addVolatile('dracovortexcooldown');
+    },
+
+    // Force the target to switch (standard Showdown mechanic)
+    forceSwitch: true,
+  },
+tornado: {
+    name: "Tornado",
+    shortDesc: "80 BP Flying, 50% chance to confuse the target.",
+    accuracy: 90,
+    basePower: 80,
+    pp: 15,
+    priority: 0,
+    category: "Special",
+    type: "Flying",
+    target: "normal",
+    flags: {protect: 1, mirror: 1, wind: 1}, // wind flag lets abilities like Wind Rider interact
+    secondary: {
+      chance: 50,
+      volatileStatus: 'confusion',
+    },
+  },
+  clarityveil: {
+    name: "Clarity Veil",
+    accuracy: true,
+    basePower: 0,
+    pp: 10,
+    priority: 0,
+    category: "Status",
+    type: "Psychic",
+    target: "allySide",
+    flags: {snatch: 1},
+    sideCondition: 'clarityveil',
+
+    condition: {
+      name: "Clarity Veil",
+      duration: 5,
+      onAnyModifyDamage(damage, source, target, move) {
+        if (target !== source && this.effectState.target.hasAlly?.(target)) {
+          if ((target.side.getSideCondition('reflect') && this.getCategory(move) === 'Physical') ||
+              (target.side.getSideCondition('lightscreen') && this.getCategory(move) === 'Special')) {
+            return;
+          }
+          if (!target.getMoveHitData(move).crit && !move.infiltrates) {
+            if (this.activePerHalf > 1) return this.chainModify([2732, 4096]);
+            return this.chainModify(0.5);
+          }
+        }
+      },
+      onSideStart(side) {
+        // 🔸 Emit the Aurora Veil tag so the client shows the same overlay
+        this.add('-sidestart', side, 'move: Aurora Veil');
+        // Optional: also print a clarifying line for your custom move
+        this.add('-message', `${side.name} is protected by Clarity Veil!`);
+      },
+      onSideEnd(side) {
+        // 🔸 End with Aurora Veil tag for matching fade-out
+        this.add('-sideend', side, 'move: Aurora Veil');
+        this.add('-message', `Clarity Veil faded!`);
+      },
+    },
+  },
 
 
 };

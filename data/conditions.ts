@@ -1544,8 +1544,32 @@ shapeshiftermovecat: {
     move.category = atk >= spa ? 'Physical' : 'Special';
   },
 },
-
-
+steamfield: {
+    name: "Steam Field",
+    // This is a SIDE condition: it sits on one team’s side and affects moves used by that side.
+    duration: 3,
+    onStart(side) {
+      this.add('-sidestart', side, 'Steam Field');
+    },
+    onAnyModifyAccuracy(accuracy, target, source, move) {
+      // Reduce accuracy of moves USED BY the afflicted side (i.e., the "source" side)
+      if (typeof accuracy !== 'number') return;
+      if (source && source.side === this.effectState.target) {
+        return this.chainModify(0.9);
+      }
+    },
+    onEnd(side) {
+      this.add('-sideend', side, 'Steam Field');
+    },
+  },
+// Cooldown volatile (lives on the user)
+  dracovortexcooldown: {
+    // This key lives alongside moves as a condition entry
+    // Showdown allows conditions here; alternatively put it in conditions.ts
+    name: "Draco Vortex Cooldown",
+    duration: 2, // persists through the user's next action attempt, then falls off
+    // No extra hooks needed — the presence alone blocks the next attempt via onTry above
+  },
 
 
 

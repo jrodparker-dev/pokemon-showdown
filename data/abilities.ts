@@ -9177,7 +9177,33 @@ shapeshifter: {
     // Also make sure future switch-ins keep Shapeshifter as base
     pokemon.baseAbility = 'shapeshifter' as ID;
   },
-}
+},
+magmavein: {
+    name: "Magma Vein",
+    shortDesc: "When hit by a Water move, halves damage and inflicts Steam Field (3 turns) on the attacker’s side.",
+    // Halve Water-type damage taken (like Fluffy-style hook)
+    onSourceModifyDamage(damage, source, target, move) {
+      if (move.type === 'Water') {
+        return this.chainModify(0.25);
+      }
+    },
+    // When actually hit by a Water move, apply Steam Field to the attacker's side
+    onDamagingHit(damage, target, source, move) {
+      if (move.type !== 'Water' || !source?.side) return;
+      const side = source.side;
+      // (Re)apply/refresh for 3 turns
+      if (!side.sideConditions['steamfield']) {
+        side.addSideCondition('steamfield');
+        this.add('-message', `${target.name}'s Magma Vein filled the foe’s side with steam!`);
+      } else {
+        // Refresh duration if already present
+        side.sideConditions['steamfield'].duration = 3;
+        this.add('-message', `Steam Field on the foe’s side was refreshed!`);
+      }
+    },
+    rating: 4,
+    num: -3001,
+  },
 
 
 
