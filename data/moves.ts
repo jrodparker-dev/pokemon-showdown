@@ -25812,7 +25812,105 @@ dualswap: {
       this.add('-end', pokemon, 'move: Dual Swap');
     },
   },
-}
+},
+revvingdrill: {
+  num: -1000001, // custom ID
+  accuracy: true,
+  basePower: 0,
+  category: "Status",
+  name: "Revving Drill",
+  shortDesc: "Sets Revving on the user. Each turn raises Atk by 1. Clears on switch.",
+  pp: 20,
+  priority: 0,
+  flags: {snatch: 1},
+  condition: 'revving',
+  self: {
+    volatileStatus: 'revving',
+  },
+  onHit(pokemon) {
+    this.add('-message', `${pokemon.name} started revving its drill!`);
+  },
+  secondary: null,
+  target: "self",
+  type: "Steel",
+},
+phantomdive: {
+	accuracy: 100,
+	basePower: 120,
+	category: "Physical",
+	name: "Phantom Dive",
+	shortDesc: "Disappear turn 1, attack and heal turn 2. Breaks Protect",
+	pp: 8,
+	priority: 0,
+	flags: { contact: 1, charge: 1, mirror: 1, metronome: 1, nosleeptalk: 1, noassist: 1, failinstruct: 1 },
+	breaksProtect: true,
+	onTryMove(attacker, defender, move) {
+		if (attacker.removeVolatile(move.id)) {
+			// Strike turn: show Dive hit animation
+			this.add('-anim', attacker, 'Dive', defender);
+			return;
+		}
+		// Charge turn: show Dve vanish/prepare animation
+		this.add('-prepare', attacker, 'Dive', defender);
+		if (!this.runEvent('ChargeMove', attacker, defender, move)) {
+			return;
+		}
+		attacker.addVolatile('twoturnmove', defender);
+		return null;
+	},
+	condition: {
+		duration: 2,
+		onInvulnerability: false,
+	},
+	
+	secondary: null,
+	target: "normal",
+	type: "Dark",
+	contestType: "Cool",
+},
+// moves.ts
+phantomguard: {
+  accuracy: true,
+  basePower: 0,
+  category: "Status",
+  name: "Phantom Guard",
+  shortDesc: "For 5 turns, user’s side takes 25% less damage from attacks.",
+  pp: 10,
+  priority: 2,
+  target: "allySide",
+  type: "Ghost",
+  flags: { snatch: 1 },
+  sideCondition: 'phantomguard',
+  condition: {
+    name: 'Phantom Guard',
+    duration: 5,
+
+    onSideStart(side, source) {
+      this.add('-sidestart', side, 'move: Phantom Guard', '[of] ' + (source?.name || ''));
+    },
+
+    // Reduce damage from *attacking* moves by 25% for this side
+    onAnyModifyDamage(damage, source, target, move) {
+  if (!target || !source || !move) return;
+
+  // Only reduce damage if the target is an ally of the protected side
+  if (target.isAlly(source) && target.side === this.effectState.target && move.category !== 'Status') {
+    return this.chainModify([3, 4]); // 0.75x damage
+  }
+},
+
+
+    onSideEnd(side) {
+      this.add('-sideend', side, 'move: Phantom Guard');
+    },
+
+    // (Optional) Refresh text if used again while active
+    onSideRestart(side, source) {
+      this.add('-sidestart', side, 'move: Phantom Guard', '[of] ' + (source?.name || ''), '[refresh]');
+    },
+  },
+},
+
 
 
 };

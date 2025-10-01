@@ -1611,6 +1611,20 @@ sporeguard: {
       this.add('-sideend', side, 'move: Sporeguard');
     },
   },
+revving: {
+  name: "Revving",
+  noCopy: true, // prevents baton pass etc. unless you want it to copy
+  onStart(pokemon) {
+    this.add('-start', pokemon, 'Revving');
+  },
+  onResidual(pokemon) {
+    this.boost({atk: 1}, pokemon, pokemon);
+    this.add('-message', `${pokemon.name}'s drill revs higher, increasing its Attack!`);
+  },
+  onEnd(pokemon) {
+    this.add('-end', pokemon, 'Revving');
+  },
+},
 
 
 
