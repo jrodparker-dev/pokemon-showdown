@@ -49,7 +49,7 @@ export interface MoveAction {
 /** A switch action */
 export interface SwitchAction {
 	/** action type */
-	choice: 'switch' | 'instaswitch' | 'revivalblessing';
+	choice: 'switch' | 'instaswitch' | 'revivalblessing' | 'aidofrevival';
 	order: 3 | 6 | 103;
 	/** priority of the action (lower first) */
 	priority: number;
@@ -172,6 +172,7 @@ export class BattleQueue {
 				beforeTurn: 4,
 				beforeTurnMove: 5,
 				revivalblessing: 6,
+				aidofrevival: 7,
 
 				runSwitch: 101,
 				switch: 103,

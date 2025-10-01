@@ -27,7 +27,7 @@ import { toID } from './dex';
 
 /** A single action that can be chosen. Choices will have one Action for each pokemon. */
 export interface ChosenAction {
-	choice: 'move' | 'switch' | 'instaswitch' | 'revivalblessing' | 'team' | 'shift' | 'pass';// action type
+	choice: 'move' | 'switch' | 'instaswitch' | 'revivalblessing' | 'aidofrevival' | 'team' | 'shift' | 'pass';// action type
 	pokemon?: Pokemon; // the pokemon doing the action
 	targetLoc?: number; // relative location of the target to pokemon (move action only)
 	moveid: string; // a move to use (move action only)
@@ -308,6 +308,7 @@ export class Side {
 			case 'switch':
 			case 'instaswitch':
 			case 'revivalblessing':
+			case 'aidofrevival':
 				return `switch ${action.target!.position + 1}`;
 			case 'team':
 				return `team ${action.pokemon!.position + 1}`;
@@ -872,22 +873,29 @@ export class Side {
 			return this.emitChoiceError(`Can't switch: You sent more choices than unfainted Pokémon`);
 		}
 		const pokemon = this.active[index];
+		const hasRevivalBlessing =
+  		!!this.slotConditions[pokemon.position]['revivalblessing'];
+		const hasAidOfRevival =
+  		!!this.slotConditions[pokemon.position]['aidofrevivalslot'];
+
 		let slot;
 		if (!slotText) {
-			if (this.requestState !== 'switch') {
-				return this.emitChoiceError(`Can't switch: You need to select a Pokémon to switch in`);
-			}
-			if (this.slotConditions[pokemon.position]['revivalblessing']) {
-				slot = 0;
-				while (!this.pokemon[slot].fainted) slot++;
-			} else {
-				if (!this.choice.forcedSwitchesLeft) return this.choosePass();
-				slot = this.active.length;
-				while (this.choice.switchIns.has(slot) || this.pokemon[slot].fainted) slot++;
-			}
+ 		 if (this.requestState !== 'switch') {
+ 		   return this.emitChoiceError(`Can't switch: You need to select a Pokémon to switch in`);
+ 		 }
+ 		 if (hasRevivalBlessing || hasAidOfRevival) {
+ 		   // choose first fainted slot
+ 		   slot = 0;
+ 		   while (!this.pokemon[slot].fainted) slot++;
+ 		 } else {
+ 		   if (!this.choice.forcedSwitchesLeft) return this.choosePass();
+ 		   slot = this.active.length;
+ 		   while (this.choice.switchIns.has(slot) || this.pokemon[slot].fainted) slot++;
+ 		 }
 		} else {
-			slot = parseInt(slotText) - 1;
+		  slot = parseInt(slotText) - 1;
 		}
+
 		if (isNaN(slot) || slot < 0) {
 			// maybe it's a name/species id!
 			slot = -1;
@@ -903,27 +911,53 @@ export class Side {
 		}
 		if (slot >= this.pokemon.length) {
 			return this.emitChoiceError(`Can't switch: You do not have a Pokémon in slot ${slot + 1} to switch to`);
-		} else if (slot < this.active.length && !this.slotConditions[pokemon.position]['revivalblessing']) {
+		} else if (slot < this.active.length && !(hasRevivalBlessing || hasAidOfRevival)) {
 			return this.emitChoiceError(`Can't switch: You can't switch to an active Pokémon`);
-		} else if (this.choice.switchIns.has(slot)) {
+		}else if (this.choice.switchIns.has(slot)) {
 			return this.emitChoiceError(`Can't switch: The Pokémon in slot ${slot + 1} can only switch in once`);
 		}
 		const targetPokemon = this.pokemon[slot];
 
-		if (this.slotConditions[pokemon.position]['revivalblessing']) {
-			if (!targetPokemon.fainted) {
-				return this.emitChoiceError(`Can't switch: You have to pass to a fainted Pokémon`);
-			}
-			// Should always subtract, but stop at 0 to prevent errors.
-			this.choice.forcedSwitchesLeft = this.battle.clampIntRange(this.choice.forcedSwitchesLeft - 1, 0);
-			pokemon.switchFlag = false;
-			this.choice.actions.push({
-				choice: 'revivalblessing',
-				pokemon,
-				target: targetPokemon,
-			} as ChosenAction);
-			return true;
-		}
+		if (hasRevivalBlessing) {
+  if (!targetPokemon.fainted) {
+    return this.emitChoiceError(`Can't switch: You have to pass to a fainted Pokémon`);
+  }
+  this.choice.forcedSwitchesLeft = this.battle.clampIntRange(this.choice.forcedSwitchesLeft - 1, 0);
+  pokemon.switchFlag = false;
+  this.choice.actions.push({
+    choice: 'revivalblessing',
+    pokemon,
+    target: targetPokemon,
+  } as ChosenAction);
+  return true;
+}
+
+if (hasAidOfRevival) {
+  if (!targetPokemon.fainted) {
+    return this.emitChoiceError(`Can't switch: You have to pass to a fainted Pokémon`);
+  }
+  // Mirror the stock flow’s counters
+  this.choice.forcedSwitchesLeft = this.battle.clampIntRange(this.choice.forcedSwitchesLeft - 1, 0);
+  pokemon.switchFlag = false;
+
+  // Tag for your watcher — robust double mark:
+  (targetPokemon as any).m ??= {};
+  (targetPokemon as any).m.aorPending = true;
+
+  const sc = this.sideConditions['aidofrevivalwatch'];
+  if (sc && (sc as any).state) {
+    (sc as any).state.revivedTeamSlot = targetPokemon.position;
+  }
+
+  // Push a DISTINCT action so it won't hit the stock RB handler
+  this.choice.actions.push({
+    choice: 'aidofrevival',
+    pokemon,
+    target: targetPokemon,
+  } as ChosenAction);
+  return true;
+}
+	
 
 		if (targetPokemon.fainted) {
 			return this.emitChoiceError(`Can't switch: You can't switch to a fainted Pokémon`);

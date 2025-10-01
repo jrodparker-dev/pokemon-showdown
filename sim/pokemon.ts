@@ -1144,7 +1144,8 @@ export class Pokemon {
 		if (this.battle.gen > 6) entry.ability = this.ability;
 		if (this.battle.gen >= 9) {
 			entry.commanding = !!this.volatiles['commanding'] && !this.fainted;
-			entry.reviving = this.isActive && !!this.side.slotConditions[this.position]['revivalblessing'];
+			entry.reviving = this.isActive && !!(this.side.slotConditions[this.position]['revivalblessing'] ||
+  												this.side.slotConditions[this.position]['aidofrevivalslot']);
 		}
 		if (this.battle.gen === 9) {
 			entry.teraType = this.teraType;

@@ -2783,7 +2783,8 @@ export class Battle {
 				}
 			}
 			break;
-		case 'revivalblessing':
+		// --- STOCK: keep Revival Blessing pure; NO custom hooks here ---
+case 'revivalblessing': {
   action.pokemon.side.pokemonLeft++;
   if (action.target.position < action.pokemon.side.active.length) {
     this.queue.addChoice({ choice: 'instaswitch', pokemon: action.target, target: action.target });
@@ -2792,38 +2793,54 @@ export class Battle {
   action.target.faintQueued = false;
   action.target.subFainted = false;
   action.target.status = '';
-  action.target.hp = 1; // Needed so hp functions works
+  action.target.hp = 1; // Needed so hp functions work
   action.target.sethp(action.target.maxhp / 2);
   this.add('-heal', action.target, action.target.getHealth, '[from] move: Revival Blessing');
 
- // --- Aid of Revival hook: mark who was revived and ensure watcher is armed ---
-{
+  action.pokemon.side.removeSlotCondition(action.pokemon, 'revivalblessing');
+  break;
+}
+// --- NEW: Aid of Revival has its own action branch ---
+case 'aidofrevival': {
   const side = action.pokemon.side;
-  const revived = action.target;
+  const revived = action.target!;
 
-  // Make sure the watcher exists, then reset it for this use
+  side.pokemonLeft++;
+  if (revived.position < side.active.length) {
+    this.queue.addChoice({ choice: 'instaswitch', pokemon: revived, target: revived });
+  }
+
+  // Minimal revive now; your watcher will full-heal & makeover on switch-in
+  revived.fainted = false;
+  revived.faintQueued = false;
+  revived.subFainted = false;
+  revived.status = '';
+  revived.hp = 1;
+  revived.sethp(Math.floor(revived.maxhp / 2)); // or 1 if you prefer
+  this.add('-heal', revived, revived.getHealth, '[from] move: Aid of Revival');
+
+  // Arm the watcher + tag THIS revived mon only
   if (!side.getSideCondition('aidofrevivalwatch')) {
     side.addSideCondition('aidofrevivalwatch', action.pokemon, this.dex.moves.get('aidofrevival') as any);
   }
-  const watchState = side.getSideConditionData('aidofrevivalwatch') as any;
-  if (watchState) {
-    watchState.revivedTeamSlot = revived.position; // optional helper
-    watchState.done = false;                        // re-arm
+
+  // Save the slot and reset any "done" latch
+  const sc = side.getSideConditionData?.('aidofrevivalwatch') as any
+          || side.sideConditions['aidofrevivalwatch']?.state as any;
+  if (sc) {
+    sc.revivedTeamSlot = revived.position;
+    sc.done = false;
   }
 
-  // ① Tag the exact revived mon with a persistent flag (survives benching)
   (revived as any).m ??= {};
   (revived as any).m.aorPending = true;
-
-  // ② Also add a tiny volatile as a backup (covers rare forks)
   revived.addVolatile('aor_makeovertag');
-}
-// --- end Aid of Revival hook ---
 
-
-
-  action.pokemon.side.removeSlotCondition(action.pokemon, 'revivalblessing');
+  side.removeSlotCondition(action.pokemon, 'aidofrevivalslot');
   break;
+}
+
+
 
 		case 'runSwitch':
 			this.actions.runSwitch(action.pokemon);

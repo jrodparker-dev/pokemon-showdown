@@ -24006,7 +24006,7 @@ aidofrevival: {
   priority: 0,
   target: "self",
   flags: { snatch: 1, mirror: 1 },
-  slotCondition: 'revivalblessing',
+  slotCondition: 'aidofrevivalslot',
   selfSwitch: true,
   condition: { duration: 1 },
 
@@ -24018,7 +24018,7 @@ aidofrevival: {
   },
 
   onHit(_side, source, move) {
-    source.side.addSlotCondition(source, 'revivalblessing', source, move);
+    source.side.addSlotCondition(source, 'aidofrevivalslot', source, move);
     if (!source.side.getSideCondition('aidofrevivalwatch')) {
       source.side.addSideCondition('aidofrevivalwatch', source, move);
     }
