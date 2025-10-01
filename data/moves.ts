@@ -24971,7 +24971,7 @@ soulrend: {
     shortDesc: "Heals ally 50% and cures status.",
     accuracy: true,
     basePower: 0,
-    pp: 10,
+    pp: 5,
 	priority: 0,
     category: "Status",
     flags: {allyanim: 1, snatch: 1, heal: 1},
@@ -24980,14 +24980,14 @@ soulrend: {
       this.heal(target.baseMaxhp / 2, target);
       target.cureStatus();
     },
-    target: "adjacentAlly",
+    target: "adjacentAllyOrSelf",
     type: "Flying",
   },
 
   // ===== Team A – Aqualume
   mindstream: {
     name: "Mindstream",
-    shortDesc: "85 BP Psychic; heals lowest-HP ally for 25% of dmg dealt.",
+    shortDesc: "85 BP Psychic; heals lowest-HP ally for 50% of dmg dealt.",
     accuracy: 100,
     basePower: 85,
 	priority: 0,
@@ -25000,7 +25000,7 @@ soulrend: {
       if (!team.length) return;
       let healTarget = team[0];
       for (const p of team) if (p.hp < healTarget.hp) healTarget = p;
-      const amount = Math.floor(move.totalDamage * 0.25);
+      const amount = Math.floor(move.totalDamage * 0.50);
       if (amount && healTarget) this.heal(amount, healTarget);
     },
     target: "normal",

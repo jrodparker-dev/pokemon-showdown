@@ -9092,17 +9092,28 @@ shapeshifter: {
     // Preserve current HP ratio (no healing/cures)
     const hpRatio = Math.max(0, pokemon.hp) / Math.max(1, pokemon.maxhp);
 
-    // Build a valid pool: fully-evolved, not battle-only/mega/primal/gmax, standard
-    const pool = this.dex.species.all().filter(s =>
-      s.exists &&
-      !s.nfe &&
-      !(s as any).isNonstandard &&
-      !(s as any).battleOnly &&
-      !(s as any).isMega &&
-      !(s as any).isPrimal &&
-      !(s as any).isGigantamax
-    );
-    if (!pool.length) return;
+    // Build a valid pool: fully-evolved, not battle-only/mega/primal/gmax, standard,
+// and exclude legendaries, sublegendaries, and mythicals
+const pool = this.dex.species.all().filter(s =>
+  s.exists &&
+  !s.nfe &&
+  !(s as any).isNonstandard &&
+  !(s as any).battleOnly &&
+  !(s as any).isMega &&
+  !(s as any).isPrimal &&
+  !(s as any).isGigantamax &&
+  !(s as any).isLegendary &&        // exclude legendaries
+  !(s as any).isMythical &&         // exclude mythicals
+  !(s as any).isSubLegendary &&     // exclude sublegendaries (if field exists)
+  !(s.tags && (
+    s.tags.includes('Restricted Legendary') ||
+    s.tags.includes('Sub-Legendary') ||
+    s.tags.includes('Mythical')
+  ))
+);
+
+if (!pool.length) return;
+
 
     // Try to avoid a no-op (same species) a few times
     let species = this.sample(pool);
