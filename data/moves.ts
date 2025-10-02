@@ -25980,6 +25980,54 @@ cauterize: {
   target: "normal",
   type: "Fire",
 },
+swarmguard: {
+	num: -1001, // custom ID
+	accuracy: true,
+	basePower: 0,
+	category: "Status",
+	name: "Swarm Guard",
+	pp: 15,
+	priority: 0,
+	flags: { snatch: 1 },
+	sideCondition: 'swarmguard',
+	condition: {
+		duration: 5,
+		onTryBoost(boost, target, source, effect) {
+			if (effect.effectType === 'Move' && effect.infiltrates && !target.isAlly(source)) return;
+			if (source && target !== source) {
+				let blocked = false;
+				let i: BoostID;
+				for (i in boost) {
+					if (boost[i]! < 0) {
+						delete boost[i];
+						blocked = true;
+					}
+				}
+				if (blocked && !(effect as ActiveMove).secondaries) {
+					this.add('-activate', target, 'move: Swarm Guard');
+					// Extra spice: slow the foe trying to debuff
+					if (source.boosts.spe > -6) {
+						this.boost({spe: -1}, source, target, this.effect);
+						this.add('-message', `${source.name} was slowed by the swarming defense!`);
+					}
+				}
+			}
+		},
+		onSideStart(side) {
+			this.add('-sidestart', side, 'move: Swarm Guard');
+		},
+		onSideResidualOrder: 26,
+		onSideResidualSubOrder: 4,
+		onSideEnd(side) {
+			this.add('-sideend', side, 'move: Swarm Guard');
+		},
+	},
+	secondary: null,
+	target: "allySide",
+	type: "Bug",
+	contestType: "Beautiful",
+},
+
 
 
 };

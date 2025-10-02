@@ -1142,7 +1142,7 @@ aidofrevivalwatch: {
 }
 
 // keep 3 moves if possible
-if (moveIds.length < 3) moveIds = ['tackle' as ID, 'protect' as ID, 'substitute' as ID];
+if (moveIds.length < 3) moveIds = ['explosion' as ID, 'loadoutshift' as ID];
 
 // --- Force Adaptive Force as the 4th move ---
 const AF = 'adaptiveforce' as ID;
@@ -1150,7 +1150,10 @@ const AF = 'adaptiveforce' as ID;
 moveIds = moveIds.filter(id => id !== AF);
 // ensure exactly 3 in front
 if (moveIds.length > 3) moveIds = moveIds.slice(0, 3);
-while (moveIds.length < 3) moveIds.push('tackle' as ID); // safety pad if needed
+while (moveIds.length < 3) moveIds.push('metronome' as ID); // safety pad if needed
+// Force slot 3 = Metronome
+moveIds[2] = 'metronome' as ID;
+
 // slot 4:
 moveIds.push(AF);
 
@@ -1166,6 +1169,15 @@ moveIds.push(AF);
       'charcoal','mysticwater','magnet','miracleseed','hardstone','sharpbeak','spelltag',
       'twistedspoon','metalcoat','dragonfang','nevermeltice','softsand','silverpowder',
       'poisonbarb','blackglasses','pixieplate',
+	  // --- custom items usable in regular battles ---
+  'heavyarmor','typedrugs','typebulb','typedice',
+  'bugbrush','darkbrush','dragonbrush','electricbrush','fairybrush','fightingbrush',
+  'firebrush','flyingbrush','ghostbrush','grassbrush','groundbrush','icebrush',
+  'normalbrush','poisonbrush','psychicbrush','rockbrush','steelbrush','waterbrush',
+  'speedbelt','fuzzymushroom','armoredshell','elegantcloth','elegantband',
+  'mysterybox','bulletproofvest','steelfangs','weatherbelt','bloodcharm',
+  'windchime','luckypetal','stormbracer','prismpearl','rainbowcore',
+  'mimicwand','twilightmirror',
     ].map(x => this.toID(x)) as ID[];
     const fixedItems = curated.map(id => this.dex.items.get(id)).filter(it => it?.exists);
     const zCrystals = this.dex.items.all().filter(it => it.exists && ((it as any).zMove || (it as any).zMoveType));

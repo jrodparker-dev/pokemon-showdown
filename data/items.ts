@@ -9175,6 +9175,214 @@ oinkite: {
 	onTakeItem: false,
 	gen: 9
 },
+  // Team A
+  embercoreshard: {
+    name: "Embercore Shard",
+    shortDesc: "Fire moves 1.5x power if holder is at <50% HP.",
+    onBasePower(basePower, user, target, move) {
+      if (move.type === 'Fire' && user.hp <= user.maxhp / 2) {
+        return this.chainModify(1.5);
+      }
+    },
+  },
+
+  crystaltiara: {
+    name: "Crystal Tiara",
+    shortDesc: "Fairy moves 1.2x power; prevents the holder's stats from being lowered by opposing Pokémon.",
+    gen: 9,
+
+    // Power boost remains straightforward
+    onBasePower(basePower, user, target, move) {
+        if (move.type === 'Fairy') return this.chainModify(1.2);
+    },
+
+    // --- Core functionality: PREVENT stat drops ---
+    onTryBoost(boost, target, source, effect) {
+        // Only block drops caused by an opponent's move or ability.
+        // Drops from self (e.g., Close Combat, abilities like Contrary, or self-inflicted confusion) are allowed.
+        if (target.side === source?.side) {
+            return;
+        }
+
+        // Iterate through the stat boosts that are about to be applied
+        let B: BoostID;
+        let showMessage = false;
+        const negatedBoosts: SparseBoostsTable = {};
+
+        for (B in boost) {
+            // Check if the boost is a stat drop (negative value)
+            if (boost[B]! < 0) {
+                // If it's a drop, negate it by setting it to 0
+                negatedBoosts[B] = 0;
+                showMessage = true;
+            } else {
+                // Keep positive boosts (e.g., the opponent used Coil, and this would boost their stats)
+                negatedBoosts[B] = boost[B]!;
+            }
+        }
+        
+        // If we negated any drops, apply the new, modified boosts and display the message
+        if (showMessage) {
+            // We use target.setBoost and return true to inform the game that the boost attempt was handled.
+            // setBoost(negatedBoosts) will apply all the non-negated boosts
+            target.setBoost(negatedBoosts);
+            this.add('-block', target, 'item: Crystal Tiara', '[of] ' + target);
+            return null; // Return null to prevent the original boost from applying (already applied the modified one)
+        }
+    },
+    
+    // The previous complex White Herb-style code is no longer needed
+},
+
+  // ---------------------------
+  // Ironroot Core
+  // ---------------------------
+  ironrootcore: {
+    name: "Ironroot Core",
+    shortDesc: "When holder first falls to ≤50% HP, it gains +1 Atk/Def.",
+    gen: 9,
+
+    // Sitrus Berry–style threshold check each update tick
+    onUpdate(pokemon) {
+      if (!pokemon.hp) return;
+      if (pokemon.volatiles['ironrootcore_used']) return; // already procced
+      if (pokemon.hp <= Math.floor(pokemon.maxhp / 2)) {
+        pokemon.addVolatile('ironrootcore_used');
+        this.add('-activate', pokemon, 'item: Ironroot Core');
+        this.boost({atk: 1, def: 1}, pokemon);
+      }
+    },
+
+    // tiny marker volatile so we only trigger once
+    condition: {
+      // no hooks needed; presence == used
+    },
+  },
+
+  galependant: {
+    name: "Gale Pendant",
+    shortDesc: "First Flying move used each battle has 2x power.",
+    onStart(pokemon) {
+      pokemon.addVolatile('galependant');
+    },
+    condition: {
+      onBasePower(basePower, attacker, defender, move) {
+        if (move.type === 'Flying') {
+          this.debug('Gale Pendant boost');
+          attacker.removeVolatile('galependant');
+          return this.chainModify(2);
+        }
+      },
+    },
+  },
+
+  mindwaveorb: {
+    name: "Mindwave Orb",
+    shortDesc: "Psychic moves 1.3x power but lowers Def by 1 on use.",
+    onBasePower(basePower, user, target, move) {
+      if (move.type === 'Psychic') {
+        return this.chainModify(1.3);
+      }
+    },
+    onAfterMove(source, target, move) {
+      if (move.type === 'Psychic') {
+        this.boost({def: -1}, source);
+      }
+    },
+  },
+
+  petalbrandgauntlet: {
+    name: "Petalbrand Gauntlet",
+    shortDesc: "Grass & Fighting moves deal 1/8 chip to target after damage.",
+    onAfterMove(source, target, move) {
+      if (['Grass', 'Fighting'].includes(move.type) && target.hp) {
+        this.damage(Math.floor(target.baseMaxhp / 8), target, source, move);
+        this.add('-message', `${target.name} was hurt by Petalbrand Gauntlet!`);
+      }
+    },
+  },
+
+  // Team B
+  blackwingtalisman: {
+    name: "Blackwing Talisman",
+    shortDesc: "Dark & Flying moves 1.2x power.",
+    onBasePower(basePower, user, target, move) {
+      if (['Dark', 'Flying'].includes(move.type)) {
+        return this.chainModify(1.2);
+      }
+    },
+  },
+
+  acidfangbrooch: {
+    name: "Acidfang Brooch",
+    shortDesc: "First Poison move each battle has 2x power.",
+    onStart(pokemon) {
+      pokemon.addVolatile('acidfangbrooch');
+    },
+    condition: {
+      onBasePower(basePower, attacker, defender, move) {
+        if (move.type === 'Poison') {
+          attacker.removeVolatile('acidfangbrooch');
+          return this.chainModify(2);
+        }
+      },
+    },
+  },
+
+  witherseedrelic: {
+    name: "Witherseed Relic",
+    shortDesc: "Grass moves heal the user by 25% of damage dealt.",
+    onModifyMove(move) {
+      if (move.type === 'Grass' && move.drain) {
+        move.drain[0] += 1; // increase drain from e.g. 1/2 to 3/4
+      } else if (move.type === 'Grass') {
+        move.drain = [1, 4]; // add 25% drain
+      }
+    },
+  },
+
+  obsidianclaw: {
+  name: "Obsidian Claw",
+  shortDesc: "Steel-type moves ignore Protect and Substitute.",
+  onModifyMove(move) {
+    if (move.type === 'Steel') {
+      move.breaksProtect = true;  // hit through Protect/Detect/Spiky Shield (still blocked by Max Guard)
+      move.infiltrates = true;    // bypass Substitute and screens
+    }
+  },
+},
+
+  cursedlantern: {
+    name: "Cursed Lantern",
+    shortDesc: "Fire moves make target Ghost-type in addition to current types for 2 turns.",
+    onAfterMoveSecondary(target, source, move) {
+      if (move.type === 'Fire' && target.hp) {
+        target.addType('Ghost');
+        this.add('-message', `${target.name} is haunted by Cursed Lantern!`);
+        target.addVolatile('cursedlantern');
+      }
+    },
+    condition: {
+      duration: 2,
+      onEnd(pokemon) {
+        pokemon.setType(pokemon.baseSpecies.types); // reset
+        this.add('-message', `${pokemon.name} is no longer haunted.`);
+      },
+    },
+  },
+
+  carapacegauntlet: {
+    name: "Carapace Gauntlet",
+    shortDesc: "Contact moves vs holder inflict Bleed + Insect Sting.",
+    onDamagingHit(damage, target, source, move) {
+      if (move.flags['contact'] && source.hp) {
+        source.addVolatile('bleed');
+        source.addVolatile('insectsting');
+        this.add('-message', `${source.name} was afflicted with bleeding and insect stings!`);
+      }
+    },
+  },
+
 
 // === Item ===
 mysterybox: {

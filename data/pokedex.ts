@@ -20027,7 +20027,7 @@ oinkolognemega: {
 		eggGroups: ["Field"],
 		isMega: true,
 },
-/* 
+
   // TEAM A – Order of the Elementals
   // =========================
   pyrelith: {
@@ -20154,7 +20154,20 @@ oinkolognemega: {
     weightkg: 112,
     eggGroups: ["Bug"],
   },
-*/
+
+  //EXTREME BOSS POKEMON ONLY 1 ON TEAM AND NO OTHER POKEMON||
+  fearmongrodon: {
+  num: -1013,
+  name: "Fearmongrodon",
+  types: ["Steel", "Ghost", "Fairy", "Flying", "Ground", "Water", "Poison", "Dark"],
+  baseStats: {hp: 500, atk: 200, def: 100, spa: 200, spd: 100, spe: 200},
+  abilities: {0: "Weak Armor"},
+  heightm: 200,
+  weightkg: 500,
+  eggGroups: ["Undiscovered"],
+  tags: ["Restricted Legendary"],
+  },
+
 
 
 

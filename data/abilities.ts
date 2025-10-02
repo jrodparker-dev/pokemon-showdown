@@ -9195,7 +9195,7 @@ magmavein: {
     // Halve Water-type damage taken (like Fluffy-style hook)
     onSourceModifyDamage(damage, source, target, move) {
       if (move.type === 'Water') {
-        return this.chainModify(0.25);
+        return this.chainModify(0.5);
       }
     },
     // When actually hit by a Water move, apply Steam Field to the attacker's side
@@ -9215,6 +9215,189 @@ magmavein: {
     rating: 4,
     num: -3001,
   },
+  // Team A Abilities
+  snowveil: {
+    name: "Snowveil",
+    shortDesc: "Immune to Rock; when hit by Rock move, restores 25% HP.",
+    onTryHit(target, source, move) {
+      if (move.type === 'Rock') {
+        this.add('-immune', target, '[from] ability: Snowveil');
+        this.heal(target.baseMaxhp / 4, target);
+        return null;
+      }
+    },
+  },
+
+  coredriller: {
+    name: "Core Driller",
+    shortDesc: "Contact: Attacker loses item. Takes 50% dmg from Ground.",
+    onDamagingHit(damage, target, source, move) {
+      if (move.flags['contact'] && source?.isActive) {
+        if (source.hp && source.item) {
+          source.takeItem();
+          this.add('-enditem', source, source.getItem().name, '[from] ability: Core Driller', '[of] ' + target);
+        }
+      }
+    },
+    onSourceModifyDamage(damage, source, target, move) {
+      if (move.type === 'Ground') {
+        this.debug('Core Driller reduce Ground dmg');
+        return this.chainModify(0.5);
+      }
+    },
+  },
+
+  tempestsurge: {
+    name: "Tempest Surge",
+    shortDesc: "Flying moves 1.3x power; removes hazards on user’s side after use.",
+    onBasePowerPriority: 19,
+    onBasePower(basePower, attacker, defender, move) {
+      if (move.type === 'Flying') {
+        return this.chainModify([5325, 4096]); // ~1.3x
+      }
+    },
+    onAfterMoveSecondarySelf(source, target, move) {
+      if (move.type === 'Flying') {
+        for (const hazard of ['spikes', 'toxicspikes', 'stealthrock', 'stickyweb']) {
+          if (source.side.removeSideCondition(hazard)) {
+            this.add('-sideend', source.side, this.dex.conditions.get(hazard).name, '[from] ability: Tempest Surge');
+          }
+        }
+      }
+    },
+  },
+
+ luminousflow: {
+  name: "Luminous Flow",
+  shortDesc: "Heals the user and all allies (active and benched) by 1/16 max HP at the end of each turn.",
+  onResidualOrder: 29,
+  onResidualSubOrder: 3,
+  onResidual(pokemon) {
+    for (const ally of pokemon.side.pokemon) {
+      if (ally?.hp && ally.hp < ally.maxhp) {
+        this.heal(Math.floor(ally.baseMaxhp / 16), ally, pokemon);
+      }
+    }
+  },
+},
+
+
+
+  battlebloom: {
+    name: "Battle Bloom",
+    shortDesc: "First time user clicks a Grass move: +1 Atk.",
+    onPrepareHit(source, target, move) {
+      if (move.type === 'Grass' && !source.volatiles['battlebloomused']) {
+        source.addVolatile('battlebloomused');
+        this.boost({atk: 1}, source);
+      }
+    },
+    condition: {
+      noCopy: true,
+    },
+  },
+
+  // Team B Abilities
+  shadowglide: {
+    name: "Shadow Glide",
+    shortDesc: "Dark moves +1 priority if user has >75% HP.",
+    onModifyPriority(priority, attacker, defender, move) {
+      if (move?.type === 'Dark' && attacker.hp > attacker.maxhp * 0.75) {
+        return priority + 1;
+      }
+    },
+  },
+
+  corrosionscales: {
+    name: "Corrosion Scales",
+    shortDesc: "Immune to status; Poison moves hit Steel.",
+    onSetStatus(status, target, source, effect) {
+      if (status.id) {
+        this.add('-immune', target, '[from] ability: Corrosion Scales');
+        return false;
+      }
+    },
+    onModifyMove(move) {
+      if (move.type === 'Poison') move.ignoreImmunity = true;
+    },
+  },
+
+  gravebloom: {
+    name: "Grave Bloom",
+    shortDesc: "On switch-in: +1 SpA and SpD for each fainted ally.",
+    onStart(pokemon) {
+      let fainted = 0;
+      for (const ally of pokemon.side.pokemon) {
+        if (ally.fainted) fainted++;
+      }
+      if (fainted > 0) this.boost({spa: fainted, spd: fainted}, pokemon);
+    },
+  },
+
+  ruthlessedge: {
+    name: "Ruthless Edge",
+    shortDesc: "Dark moves deal 1.3x damage vs foes under 50% HP.",
+    onBasePower(basePower, attacker, defender, move) {
+      if (move.type === 'Dark' && defender.hp < defender.maxhp / 2) {
+        return this.chainModify([5325, 4096]);
+      }
+    },
+  },
+
+  burningspirit: {
+  name: "Burning Spirit",
+  shortDesc: "Ghost moves hit again at 25% power as Fire; Fire moves hit again at 25% power as Ghost.",
+  // Run per target the original move affected
+  onAfterMoveSecondary(source, target, move) {
+    if (!target || target.fainted) return;
+    // Don’t echo status moves or the echo itself
+    const m = move as ActiveMove;
+    if (!m || m.category === 'Status' || m.id === 'burningspiritecho') return;
+
+    // Decide echo type
+    let echoType: 'Fire' | 'Ghost' | null = null;
+    if (m.type === 'Ghost') echoType = 'Fire';
+    else if (m.type === 'Fire') echoType = 'Ghost';
+    if (!echoType) return;
+
+    // Quarter the base power (minimum 1)
+    const origBP = typeof m.basePower === 'number' ? m.basePower : 0;
+    const echoBP = Math.max(1, Math.floor(origBP * 0.25));
+
+    // Construct a lightweight ActiveMove for the echo
+    const echoMove = this.dex.getActiveMove({
+      id: 'burningspiritecho',
+      name: 'Burning Spirit Echo',
+      accuracy: true,
+      basePower: echoBP,
+      category: m.category,        // keep Physical/Special
+      priority: 0,
+      type: echoType,
+      // reasonable flags so it interacts like a normal hit but avoids weird loops
+      flags: {protect: 1, mirror: 1},
+      // prevent Parental Bond and other multihit/eo effects from multiplying again
+      multihit: undefined,
+      // mark as ability-generated so we can skip recursive triggers if needed
+      isNonstandard: null,
+    } as any);
+
+    // Try the echo hit – does full type effectiveness & interactions
+    this.actions.tryMoveHit(target, source, echoMove);
+    this.add('-message', `${source.name}'s Burning Spirit echoes as ${echoType}!`);
+  },
+},
+
+
+  hiveguard: {
+    name: "Hiveguard",
+    shortDesc: "At <50% HP, Bug/Fighting moves gain +1 priority.",
+    onModifyPriority(priority, source, target, move) {
+      if (source.hp < source.maxhp / 2 && ['Bug', 'Fighting'].includes(move.type)) {
+        return priority + 1;
+      }
+    },
+  },
+
 
 
 

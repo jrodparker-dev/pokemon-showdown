@@ -6132,4 +6132,8 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
     tier: "OU",
     isNonstandard: null,
   },
+  fearmongrodon: {
+	tier: "OU",
+    isNonstandard: null,
+  },
 };
