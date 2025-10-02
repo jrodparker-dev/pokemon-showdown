@@ -1570,47 +1570,70 @@ steamfield: {
     duration: 2, // persists through the user's next action attempt, then falls off
     // No extra hooks needed — the presence alone blocks the next attempt via onTry above
   },
+
 sporeguard: {
-    name: "Sporeguard",
-    duration: 5,
+  name: "Sporeguard",
+  duration: 5,
 
-    onStart(side) {
-      this.add('-sidestart', side, 'move: Sporeguard');
-    },
-
-    onSetStatus(status, target, source, effect) {
-      if (target && target.side === this.effectState.target) {
-        this.add('-activate', target, 'move: Sporeguard');
-        return false; // block the status
-      }
-    },
-
-    onTryHitPriority: 1,
-		onTryHit(target, source, move) {
-			if (target === source || move.hasBounced || !move.flags['reflectable'] || target.isSemiInvulnerable()) {
-				return;
-			}
-			const newMove = this.dex.getActiveMove(move.id);
-			newMove.hasBounced = true;
-			newMove.pranksterBoosted = false;
-			this.actions.useMove(newMove, target, { target: source });
-			return null;
-		},
-		onAllyTryHitSide(target, source, move) {
-			if (target.isAlly(source) || move.hasBounced || !move.flags['reflectable'] || target.isSemiInvulnerable()) {
-				return;
-			}
-			const newMove = this.dex.getActiveMove(move.id);
-			newMove.hasBounced = true;
-			newMove.pranksterBoosted = false;
-			this.actions.useMove(newMove, this.effectState.target, { target: source });
-			move.hasBounced = true; // only bounce once in free-for-all battles
-			return null;
-		},
-    onEnd(side) {
-      this.add('-sideend', side, 'move: Sporeguard');
-    },
+  onSideStart(side, source) {
+    (this.effectState as any).side = side as Side; // remember protected side
+    this.add('-sidestart', side, 'move: Sporeguard');
   },
+
+  // Block major status aimed at Pokémon on this side
+  onSetStatus(status, target, source, effect) {
+    const protectedSide: Side | undefined = (this.effectState as any).side;
+    if (!protectedSide || !target || target.side !== protectedSide) return;
+    this.add('-activate', target, 'move: Sporeguard');
+    return false;
+  },
+
+  // Reflect reflectable single-target status (Spore, Taunt, etc.)
+  onTryHitPriority: 1,
+  onTryHit(target, source, move) {
+    const protectedSide: Side | undefined = (this.effectState as any).side;
+    if (!protectedSide || !target || !source || !move) return;
+    if (target === source) return;
+    if (target.side !== protectedSide) return;
+    if ((move as any).hasBounced || !move.flags?.reflectable) return;
+    if (target.isSemiInvulnerable()) return;
+
+    const newMove = this.dex.getActiveMove(move.id);
+    (newMove as any).hasBounced = true;
+    (newMove as any).pranksterBoosted = false;
+
+    this.add('-activate', target, 'move: Sporeguard');
+    this.actions.useMove(newMove, target, { target: source }); // ✅ options object
+    (move as any).hasBounced = true; // bounce only once in weird formats
+    return null;
+  },
+
+  // Reflect reflectable side-targeting moves (hazards: SR/Spikes/TSpikes/Web)
+  onTryHitSide(_sideParam, source, move) {
+    const protectedSide: Side | undefined = (this.effectState as any).side;
+    if (!protectedSide || !source || !move) return;
+    if ((move as any).hasBounced || !move.flags?.reflectable) return;
+
+    // Choose any living mon on our protected side to "cast" the reflected move
+    const caster = protectedSide.active.find(p => p && !p.fainted);
+    if (!caster) return;
+
+    const newMove = this.dex.getActiveMove(move.id);
+    (newMove as any).hasBounced = true;
+    (newMove as any).pranksterBoosted = false;
+
+    this.add('-activate', caster, 'move: Sporeguard');
+    this.actions.useMove(newMove, caster, { target: source }); // ✅ reflect back at the user
+    (move as any).hasBounced = true;
+    return null;
+  },
+
+  onSideEnd(side) {
+    this.add('-sideend', side, 'move: Sporeguard');
+  },
+},
+
+
 revving: {
   name: "Revving",
   noCopy: true, // prevents baton pass etc. unless you want it to copy

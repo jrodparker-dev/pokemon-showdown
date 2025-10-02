@@ -25177,23 +25177,25 @@ soulrend: {
   },
   
   lifesap: {
-    name: "Life Sap",
-    shortDesc: "Drains 50% of target's max HP and heals user (like Strength Sap but HP).",
-    accuracy: 100,
-    basePower: 0,
-	priority: 0,
-	pp: 10,
-    category: "Status",
-    flags: {protect: 1, reflectable: 1},
-    onHit(target, source) {
-      if (!target?.hp) return false;
-      const amount = Math.floor(target.baseMaxhp / 2);
-      this.damage(amount, target, source);
-      this.heal(amount, source);
-    },
-    target: "normal",
-    type: "Grass",
+  name: "Life Sap",
+  shortDesc: "Drains 50% of target's current HP and heals the user.",
+  accuracy: 100,
+  basePower: 0,
+  priority: 0,
+  pp: 10,
+  category: "Status",
+  flags: {protect: 1, reflectable: 1},
+  onHit(target, source) {
+    if (!target?.hp) return false;
+    // 50% of current HP, rounded down
+    const amount = Math.floor(target.hp / 2);
+    if (amount <= 0) return false;
+    this.damage(amount, target, source);
+    this.heal(amount, source);
   },
+  target: "normal",
+  type: "Grass",
+},
 
   // ===== Team B – Ferraclaw
   ironrend: {
@@ -25223,7 +25225,7 @@ soulrend: {
     target: "normal",
     type: "Dark",
   },
-  metalicroar: {
+  metallicroar: {
     name: "Metallic Roar",
     shortDesc: "80 BP Steel (Special); -1 Atk to target.",
     accuracy: 100,
@@ -25237,21 +25239,24 @@ soulrend: {
     type: "Steel",
   },
   armorlock: {
-    name: "Armor Lock",
-    shortDesc: "+2 Def and Taunt the target.",
-    accuracy: 100,
-    basePower: 0,
-	priority: 0,
-	pp: 10,
-    category: "Status",
-    flags: {reflectable: 1, protect: 1},
-    boosts: {def: 2},
-    onHit(target) {
-      target.addVolatile('taunt');
-    },
-    target: "normal",
-    type: "Steel",
+  name: "Armor Lock",
+  shortDesc: "User +2 Def; Taunts the target.",
+  accuracy: true,
+  basePower: 0,
+  priority: 0,
+  pp: 10,
+  category: "Status",
+  flags: {reflectable: 1, protect: 1},
+  self: {
+    boosts: {def: 2}, // boosts the user
   },
+  onHit(target) {
+    target.addVolatile('taunt'); // taunts the foe
+  },
+  target: "normal",
+  type: "Steel",
+},
+
 
   // ===== Team B – Embergeist
   wraithflame: {
@@ -25322,7 +25327,7 @@ soulrend: {
 	priority: 0,
 	pp: 10,
     category: "Physical",
-    flags: {contact: 1, protect: 1},
+    flags: {contact: 1, protect: 1, punch: 1},
     secondary: {chance: 30, status: 'par'},
     target: "normal",
     type: "Fighting",
@@ -25700,6 +25705,7 @@ tornado: {
     name: "Clarity Veil",
     accuracy: true,
     basePower: 0,
+	shortDesc: 'Sets aurora veil like screen on users side for 5 turns',
     pp: 10,
     priority: 0,
     category: "Status",
@@ -25835,14 +25841,14 @@ revvingdrill: {
   type: "Steel",
 },
 phantomdive: {
-	accuracy: 100,
+	accuracy: true,
 	basePower: 120,
 	category: "Physical",
 	name: "Phantom Dive",
-	shortDesc: "Disappear turn 1, attack and heal turn 2. Breaks Protect",
+	shortDesc: "Disappear turn 1, attack turn 2. Breaks Protect",
 	pp: 8,
 	priority: 0,
-	flags: { contact: 1, charge: 1, mirror: 1, metronome: 1, nosleeptalk: 1, noassist: 1, failinstruct: 1 },
+	flags: { contact: 1, charge: 1, mirror: 1, nosleeptalk: 1, noassist: 1, failinstruct: 1 },
 	breaksProtect: true,
 	onTryMove(attacker, defender, move) {
 		if (attacker.removeVolatile(move.id)) {
@@ -25868,49 +25874,112 @@ phantomdive: {
 	type: "Dark",
 	contestType: "Cool",
 },
-// moves.ts
 phantomguard: {
   accuracy: true,
   basePower: 0,
   category: "Status",
   name: "Phantom Guard",
-  shortDesc: "For 5 turns, user’s side takes 25% less damage from attacks.",
+  shortDesc: "5 turns. Stacks to 3 layers (25%/50%/60%) and refreshes on reuse.",
   pp: 10,
-  priority: 2,
+  priority: 2, // optional
   target: "allySide",
   type: "Ghost",
   flags: { snatch: 1 },
   sideCondition: 'phantomguard',
+
   condition: {
     name: 'Phantom Guard',
     duration: 5,
 
     onSideStart(side, source) {
-      this.add('-sidestart', side, 'move: Phantom Guard', '[of] ' + (source?.name || ''));
+      this.effectState.layers = 1;   // start at 1 layer
+      this.effectState.side = side;  // remember protected side
+      this.add('-sidestart', side, 'move: Phantom Guard', '[of] ' + (source?.name || ''), '[layers] 1');
     },
 
-    // Reduce damage from *attacking* moves by 25% for this side
+    // Reuse while active: +1 layer (max 3) and refresh duration
+    onSideRestart(side, source) {
+      const cur = this.effectState.layers || 1;
+      const next = this.clampIntRange(cur + 1, 1, 3);
+      this.effectState.layers = next;
+      this.effectState.duration = 5; // refresh timer
+
+      const pct = next === 1 ? 25 : next === 2 ? 50 : 60;
+      this.add('-sidestart', side, 'move: Phantom Guard', '[of] ' + (source?.name || ''), '[refresh]', `[layers] ${next}`);
+      this.add('-message', `Phantom Guard strengthens to ${next}/3 layers (${pct}% damage reduction) and is refreshed to 5 turns.`);
+    },
+
+    // Apply reduction to damaging attacks that hit this side
     onAnyModifyDamage(damage, source, target, move) {
-  if (!target || !source || !move) return;
+      if (!target || !move || move.category === 'Status') return;
+      if (target.side !== this.effectState.side) return;
 
-  // Only reduce damage if the target is an ally of the protected side
-  if (target.isAlly(source) && target.side === this.effectState.target && move.category !== 'Status') {
-    return this.chainModify([3, 4]); // 0.75x damage
-  }
-},
+      // (Optional) mirror screen exclusions
+      if ((move as any).ohko || (move as any).damage) return;
+      if (move.id === 'futuresight' || move.id === 'doomdesire') return;
 
+      const layers: number = this.effectState.layers || 1;
+      // 1 layer: 0.75, 2 layers: 0.5, 3 layers: 0.4
+      const mult = layers === 1 ? [3, 4] : layers === 2 ? [1, 2] : [2, 5];
+      return this.chainModify(mult);
+    },
+
+    // Per-turn status message
+    onResidualOrder: 6, // runs each turn; adjust order as desired
+    onResidual(side) {
+      const layers: number = this.effectState.layers || 1;
+      const pct = layers === 1 ? 25 : layers === 2 ? 50 : 60;
+      const turnsLeft = this.effectState.duration; // turns remaining on this effect
+      this.add('-message', `Phantom Guard active (${layers}/3 layers): ${pct}% damage reduction. ${turnsLeft} turn${turnsLeft === 1 ? '' : 's'} remaining.`);
+    },
 
     onSideEnd(side) {
       this.add('-sideend', side, 'move: Phantom Guard');
     },
-
-    // (Optional) Refresh text if used again while active
-    onSideRestart(side, source) {
-      this.add('-sidestart', side, 'move: Phantom Guard', '[of] ' + (source?.name || ''), '[refresh]');
-    },
   },
 },
 
+soulspark: {
+  name: "Soul Spark",
+  shortDesc: "Always crits if the target is burned.",
+  accuracy: 100,
+  basePower: 60,
+  category: "Special",
+  pp: 15,
+  priority: 0,
+  flags: { protect: 1, mirror: 1 },
+  onModifyMove(move, pokemon, target) {
+    // Guarantee a crit against burned targets
+    if (target && target.status === 'brn') move.willCrit = true;
+  },
+  secondary: null,
+  target: "normal",
+  type: "Ghost",
+},
+
+cauterize: {
+  name: "Cauterize",
+  shortDesc: "Heals the user by 25% of its max HP and burns the target.",
+  accuracy: true,
+  basePower: 0,
+  category: "Status",
+  pp: 10,
+  priority: 0,
+  flags: { protect: 1, reflectable: 1, mirror: 1 },
+
+
+  onHit(target, source, move) {
+    // Try to burn first; if it fails, the move fails (no heal).
+    if (!target.trySetStatus('brn', source, move)) return false;
+
+    // Heal user for 1/4 max HP
+    const amount = Math.floor(source.baseMaxhp / 4);
+    if (amount > 0) this.heal(amount, source);
+  },
+
+  target: "normal",
+  type: "Fire",
+},
 
 
 };
