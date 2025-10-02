@@ -99942,7 +99942,7 @@ export const Learnsets: import('../sim/dex-species').LearnsetDataTable = {
       earthrend:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
       drillram:       ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
       spikebarrage:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
-      reinforce:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      revvingdrill:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
     },
   },
   zephyren: {
@@ -99950,7 +99950,7 @@ export const Learnsets: import('../sim/dex-species').LearnsetDataTable = {
       cyclonewing:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
       dracovortex:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
       skyreprieve:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
-      hurricane:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      tornado:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
     },
   },
   aqualume: {
@@ -99999,7 +99999,7 @@ export const Learnsets: import('../sim/dex-species').LearnsetDataTable = {
     learnset: {
       ironrend:       ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
       shadowrend:     ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
-      metalicroar:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      metallicroar:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
       armorlock:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
     },
   },
@@ -100008,7 +100008,7 @@ export const Learnsets: import('../sim/dex-species').LearnsetDataTable = {
       wraithflame:    ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
       spectralblaze:  ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
       soulspark:      ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
-      infernalveil:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
+      cauterize:   ['9L2','8L2','7L2','6L2','5L2','4L2','3L2','2L2','1L2'],
     },
   },
   thornox: {
