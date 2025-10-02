@@ -25981,51 +25981,58 @@ cauterize: {
   type: "Fire",
 },
 swarmguard: {
-	num: -1001, // custom ID
-	accuracy: true,
-	basePower: 0,
-	category: "Status",
-	name: "Swarm Guard",
-	pp: 15,
-	priority: 0,
-	flags: { snatch: 1 },
-	sideCondition: 'swarmguard',
-	condition: {
-		duration: 5,
-		onTryBoost(boost, target, source, effect) {
-			if (effect.effectType === 'Move' && effect.infiltrates && !target.isAlly(source)) return;
-			if (source && target !== source) {
-				let blocked = false;
-				let i: BoostID;
-				for (i in boost) {
-					if (boost[i]! < 0) {
-						delete boost[i];
-						blocked = true;
-					}
-				}
-				if (blocked && !(effect as ActiveMove).secondaries) {
-					this.add('-activate', target, 'move: Swarm Guard');
-					// Extra spice: slow the foe trying to debuff
-					if (source.boosts.spe > -6) {
-						this.boost({spe: -1}, source, target, this.effect);
-						this.add('-message', `${source.name} was slowed by the swarming defense!`);
-					}
-				}
-			}
-		},
-		onSideStart(side) {
-			this.add('-sidestart', side, 'move: Swarm Guard');
-		},
-		onSideResidualOrder: 26,
-		onSideResidualSubOrder: 4,
-		onSideEnd(side) {
-			this.add('-sideend', side, 'move: Swarm Guard');
-		},
-	},
-	secondary: null,
-	target: "allySide",
-	type: "Bug",
-	contestType: "Beautiful",
+    num: -1001, // custom ID
+    accuracy: true,
+    basePower: 0,
+    category: "Status",
+    name: "Swarm Guard",
+    pp: 15,
+    priority: 0,
+    flags: { snatch: 1 },
+    sideCondition: 'swarmguard',
+    condition: {
+        duration: 5,
+        onTryBoost(boost, target, source, effect) {
+            // This hook runs for *every* Pokémon on the side with Swarm Guard.
+            // Check 1: Infiltrator check (allows Infiltrator to bypass the side condition)
+            if (effect.effectType === 'Move' && effect.infiltrates && !target.isAlly(source)) return;
+
+            // Check 2: Block the stat drops, whether they are self-inflicted (Close Combat) or foe-inflicted (Icy Wind)
+            let blocked = false;
+            let i: BoostID;
+            for (i in boost) {
+                if (boost[i]! < 0) {
+                    delete boost[i];
+                    blocked = true;
+                }
+            }
+
+            if (blocked) {
+                this.add('-activate', target, 'move: Swarm Guard');
+
+                // Check 3: Re-apply the speed drop "spice" only if the drop came from a foe
+                if (source && target !== source) {
+                    // Check to make sure the target has not already maxed out the stat drop
+                    if (source.boosts.spe > -6) {
+                        this.boost({spe: -1}, source, target, this.effect);
+                        this.add('-message', `${source.name} was slowed by the swarming defense!`);
+                    }
+                }
+            }
+        },
+        onSideStart(side) {
+            this.add('-sidestart', side, 'move: Swarm Guard');
+        },
+        onSideResidualOrder: 26,
+        onSideResidualSubOrder: 4,
+        onSideEnd(side) {
+            this.add('-sideend', side, 'move: Swarm Guard');
+        },
+    },
+    secondary: null,
+    target: "allySide",
+    type: "Bug",
+    contestType: "Beautiful",
 },
 
 

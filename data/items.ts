@@ -9089,10 +9089,10 @@ steelfangs: {
 
     // Scale numeric base power directly; otherwise flag to scale in BasePower hook
     if (typeof moveCopy.basePower === 'number' && moveCopy.basePower > 0) {
-      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.50));
+      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.60));
     } else {
       // Covers variable-BP / fixed-damage / OHKO style moves where BP isn't a number
-      (moveCopy as any).mimicWandScale50 = true;
+      (moveCopy as any).mimicWandScale60 = true;
     }
 
     // Avoid interacting with other reflectors/counters
@@ -9105,9 +9105,9 @@ steelfangs: {
   },
 
   onBasePower(basePower, user, target, move) {
-    // Apply 0.75 scaling for echoed moves that couldn't be pre-scaled numerically
-    if ((move as any)?.mimicWandScale50) {
-      return this.chainModify(0.50);
+    // Apply 0.60 scaling for echoed moves that couldn't be pre-scaled numerically
+    if ((move as any)?.mimicWandScale60) {
+      return this.chainModify(0.60);
     }
   },
 },
@@ -9234,9 +9234,60 @@ oinkite: {
     // The previous complex White Herb-style code is no longer needed
 },
 
-  // ---------------------------
-  // Ironroot Core
-  // ---------------------------
+//ChatGPT code if the Gemini code doesn't work
+/*
+crystaltiara: {
+    name: "Crystal Tiara",
+    shortDesc: "Fairy moves 1.2× power; immediately clears any negative stat drops on the holder.",
+    gen: 9,
+
+    // Fairy damage boost
+    onBasePower(basePower, user, target, move) {
+      if (move.type === 'Fairy') return this.chainModify(1.2);
+    },
+
+    // White Herb–style periodic sweep, but non-consumable
+    // (Runs at the start and then every tick; keeps holder from having negative stages.)
+    onStart(pokemon) {
+      if (!pokemon?.hp) return;
+      let changed = false;
+      const boosts: SparseBoostsTable = {};
+      let s: BoostID;
+      for (s in pokemon.boosts) {
+        if (pokemon.boosts[s] < 0) {
+          boosts[s] = 0;
+          changed = true;
+        }
+      }
+      if (changed) {
+        pokemon.setBoost(boosts);
+        this.add('-clearnegativeboost', pokemon, '[silent]');
+        this.add('-block', pokemon, 'item: Crystal Tiara', '[from] Crystal Tiara prevents stat drop');
+      }
+    },
+
+    // Keep rechecking like Sitrus/White Herb do
+    onUpdate(pokemon) {
+      if (!pokemon?.hp) return;
+      let changed = false;
+      const boosts: SparseBoostsTable = {};
+      let s: BoostID;
+      for (s in pokemon.boosts) {
+        if (pokemon.boosts[s] < 0) {
+          boosts[s] = 0;
+          changed = true;
+        }
+      }
+      if (changed) {
+        pokemon.setBoost(boosts);
+        this.add('-clearnegativeboost', pokemon, '[silent]');
+        this.add('-block', pokemon, 'item: Crystal Tiara', '[from] Crystal Tiara prevents stat drop');
+      }
+    },
+  },
+   */
+
+
   ironrootcore: {
     name: "Ironroot Core",
     shortDesc: "When holder first falls to ≤50% HP, it gains +1 Atk/Def.",
