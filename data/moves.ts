@@ -25206,7 +25206,7 @@ soulrend: {
 	priority: 0,
 	pp: 10,
     category: "Physical",
-    flags: {protect: 1, contact: 1},
+    flags: {sound: 1, contact: 1},
     breaksProtect: true,
     // Sub interaction handled via item/flag synergy; allow damage through sub with 'authentic' feel
     target: "normal",
@@ -25309,12 +25309,9 @@ soulrend: {
 	pp: 10,
     category: "Physical",
     flags: {contact: 1, protect: 1},
-    onAfterSubDamage(damage, target, source) {
-      // no-op
-    },
-    onAfterHit(target, source, move) {
-      if (target.fainted) this.boost({atk: 1}, source);
-    },
+    onAfterMoveSecondarySelf(pokemon, target, move) {
+			if (!target || target.fainted || target.hp <= 0) this.boost({ atk: 1 }, pokemon, pokemon, move);
+		},
     target: "normal",
     type: "Fighting",
   },
@@ -25668,21 +25665,7 @@ dracovortex: {
     category: "Special",
     type: "Dragon",
     target: "normal",
-    flags: {protect: 1, mirror: 1},
-
-    // Prevent consecutive use
-    onTry(source, target, move) {
-      if (source.volatiles['dracovortexcooldown']) {
-        this.add('-fail', source, 'move: Draco Vortex');
-        return null;
-      }
-    },
-    onAfterMove(source, target, move) {
-      // Apply a 1-turn cooldown that blocks the very next attempt only
-      source.addVolatile('dracovortexcooldown');
-    },
-
-    // Force the target to switch (standard Showdown mechanic)
+    flags: {protect: 1, mirror: 1, cantusetwice: 1},
     forceSwitch: true,
   },
 tornado: {
@@ -25756,25 +25739,27 @@ aquabarrier: {
     boosts: {spd: 3},
   },
 vinebreaker: {
-    name: "Vinebreaker",
-    shortDesc: "90 BP Grass. Ignores Reflect and Light Screen (does not remove them).",
-    accuracy: 100,
-    basePower: 90,
-    pp: 15,
-    priority: 0,
-    category: "Physical",
-    type: "Grass",
-    target: "normal",
-    flags: {contact: 1, protect: 1, mirror: 1},
+  name: "Vinebreaker",
+  shortDesc: "90 BP Grass. Ignores Reflect/Light Screen/Aurora Veil (does not remove them).",
+  accuracy: 100,
+  basePower: 90,
+  pp: 15,
+  priority: 0,
+  category: "Physical",
+  type: "Grass",
+  target: "normal",
+  flags: {contact: 1, protect: 1, mirror: 1},
 
-    // Reflect / Light Screen are normally handled in onAnyModifyDamage hooks.
-    // This bypass flag tells PS to skip them for this move.
-    ignoreDefensive: true,
-
-    onTryHit(target, source, move) {
-      this.add('-message', `${source.name}'s Vinebreaker sliced through protective screens!`);
-    },
+  // Make this move act like Infiltrator so screens don't reduce damage
+  onModifyMove(move) {
+    (move as any).infiltrates = true;
   },
+
+  onTryHit(target, source, move) {
+    this.add('-message', `${source.name}'s Vinebreaker sliced through protective screens!`);
+  },
+},
+
   sporeguard: {
     name: "Sporeguard",
     shortDesc: "For 5 turns, prevents status and bounces back status moves used on the user’s side.",
@@ -26034,7 +26019,342 @@ swarmguard: {
     type: "Bug",
     contestType: "Beautiful",
 },
+searingstab: {
+		accuracy: true,
+		basePower: 50,
+		shortDesc: 'Guaranteed crit.',
+		category: "Physical",
+		name: "Searing Stab",
+		pp: 10,
+		priority: 0,
+		flags: { protect: 1, mirror: 1, metronome: 1, slicing: 1 },
+		willCrit: true,
+		secondary: null,
+		target: "normal",
+		type: "Fire",
+	},
+overwhelm: {
+		accuracy: 100,
+		basePower: 80,
+		shortDesc: 'Also super effective against fighting types.',
+		category: "Physical",
+		name: "Overwhelm",
+		pp: 20,
+		priority: 0,
+		flags: { protect: 1, mirror: 1, metronome: 1 , contact: 1},
+		onEffectiveness(typeMod, target, type) {
+			if (type === 'Fighting') return 1;
+		},
+		target: "normal",
+		type: "Dark",
+		contestType: "Beautiful",
+	},
+evaporate: {
+		accuracy: 100,
+		basePower: 80,
+		shortDesc: 'Also super effective against water types.',
+		category: "Special",
+		name: "Overwhelm",
+		pp: 20,
+		priority: 0,
+		flags: { protect: 1, mirror: 1, metronome: 1 },
+		onEffectiveness(typeMod, target, type) {
+			if (type === 'Water') return 1;
+		},
+		target: "normal",
+		type: "Fire",
+		contestType: "Beautiful",
+	},
+	sandyvortex: {
+    name: "Sandy Vortex",
+    shortDesc: "120 BP Rock. Can't miss in Sandstorm.",
+    accuracy: 70,
+    basePower: 120,
+    pp: 10,
+    priority: 0,
+    category: "Special",
+    type: "Rock",
+    target: "normal",
+    flags: {protect: 1, mirror: 1},
+    onModifyMove(move, source, target) {
+      if (this.field.isWeather(['sandstorm'])) move.accuracy = true;
+    },
+  },
+
+  solarvortex: {
+    name: "Solar Vortex",
+    shortDesc: "120 BP Fire. Can't miss in Harsh Sunlight.",
+    accuracy: 70,
+    basePower: 120,
+    pp: 10,
+    priority: 0,
+    category: "Special",
+    type: "Fire",
+    target: "normal",
+    flags: {protect: 1, mirror: 1},
+    onModifyMove(move, source, target) {
+      if (this.field.isWeather(['sunnyday', 'desolateland'])) move.accuracy = true;
+    },
+  },
+
+  // ——————————— Team/utility ———————————
+
+  beautycoil: {
+    name: "Beauty Coil",
+    shortDesc: "Raises SpA, Spe, Accuracy, Evasion by 1; lowers Def, SpD by 2.",
+    accuracy: true,
+    basePower: 0,
+    pp: 2,
+    priority: 0,
+    category: "Status",
+    type: "Fairy",
+    target: "self",
+    flags: {snatch: 1},
+    boosts: {spa: 1, spe: 1, accuracy: 1, evasion: 1, def: -2, spd: -2},
+  },
+
+  rootguard: {
+    name: "Root Guard",
+    shortDesc: "Raises user's Def and SpD by 1.",
+    accuracy: true,
+    basePower: 0,
+    pp: 20,
+    priority: 0,
+    category: "Status",
+    type: "Ground",
+    target: "self",
+    flags: {snatch: 1},
+    boosts: {def: 1, spd: 1},
+  },
+
+  // ——————————— Fangs ———————————
+
+  venomfangs: {
+    name: "Venom Fangs",
+    shortDesc: "85 BP Poison. 20% poison; 10% badly poison.",
+    accuracy: 90,
+    basePower: 85,
+    pp: 16,
+    priority: 0,
+    category: "Physical",
+    type: "Poison",
+    target: "normal",
+    flags: {contact: 1, protect: 1, mirror: 1, bite: 1},
+    // If both proc, PS will apply the last one that lands; that's fine here.
+    secondaries: [
+      {chance: 20, status: 'psn'},
+      {chance: 10, status: 'tox'},
+    ],
+  },
+
+  nuclearfangs: {
+    // NOTE: per your request this is temporarily Water-type
+    name: "Nuclear Fangs",
+    shortDesc: "75 BP Water. Badly poisons; 30%: give target Radioactive (if present).",
+    accuracy: 80,
+    basePower: 75,
+    pp: 8,
+    priority: 0,
+    category: "Physical",
+    type: "Water",
+    target: "normal",
+    flags: {contact: 1, protect: 1, mirror: 1, bite: 1},
+    // Always badly poison on hit
+    status: 'tox',
+    onHit(target, source, move) {
+      // 30%: give the target the Radioactive ability if your mod defines it.
+      if (this.randomChance(3, 10)) {
+        if (this.dex.abilities.get('radioactive')?.exists) {
+          if (!target.setAbility('radioactive')) return;
+          this.add('-ability', target, 'Radioactive', '[from] move: Nuclear Fangs');
+        } else {
+          this.add('-message', `${target.name} would gain Radioactive (ability not present).`);
+        }
+      }
+    },
+  },
+
+  // ——————————— Multihit (Rainbow Punching–style) ———————————
+
+  strikingstorm: {
+    name: "Striking Storm",
+    shortDesc: "Hits 3×: Flying → Dragon → Electric. Continues past immunities.",
+    accuracy: 100,
+    basePower: 35,
+    pp: 16,
+    priority: 0,
+    category: "Physical",
+    flags: {contact: 1, protect: 1, mirror: 1},
+    multihit: 3,
+    type: "Flying", // placeholder; per-hit type is set dynamically below
+
+    onTryMove(attacker) {
+      attacker.addVolatile('strikingstorm');
+    },
+    condition: {
+      duration: 1,
+      onStart(pokemon) {
+        this.effectState.types = ['Flying','Dragon','Electric'];
+        this.effectState.index = 0;
+      },
+    },
+    onTryHit(target, source, move) {
+      const vol = source.volatiles['strikingstorm'];
+      if (!vol) return;
+      const idx = vol.index ?? 0;
+      const t = (vol.types as string[])[idx] || 'Flying';
+      move.type = t;
+
+      // Keep going even if a given hit would be immune
+      move.ignoreImmunity = true;
+
+      // Track would-be immunity for power nulling
+      let wouldBeImmune = false;
+      if ((t === 'Normal' && target.hasType('Ghost')) ||
+          (t === 'Ghost' && target.hasType('Normal')) ||
+          (t === 'Psychic' && target.hasType('Dark')) ||
+          (t === 'Dragon' && target.hasType('Fairy')) ||
+          (t === 'Electric' && target.hasType('Ground')) ||
+          (t === 'Ground' && (target.hasType('Flying') ||
+                              target.hasAbility('levitate') ||
+                              target.volatiles['magnetrise'] ||
+                              target.volatiles['telekinesis']))) {
+        wouldBeImmune = true;
+      }
+      (vol as any).immune = wouldBeImmune;
+
+      this.add('-message', `(${t} hit)`);
+    },
+    onBasePower(basePower, source, target, move) {
+      const vol = source.volatiles['strikingstorm'];
+      if (!vol) return;
+      if ((vol as any).immune) return this.chainModify(0);
+    },
+    onAfterSubDamage(_d, _t, source, move) {
+      if (move.id !== 'strikingstorm') return;
+      const vol = source.volatiles['strikingstorm'];
+      if (vol) { vol.index++; (vol as any).immune = false; }
+    },
+    onAfterHit(_t, source, move) {
+      if (move.id !== 'strikingstorm') return;
+      const vol = source.volatiles['strikingstorm'];
+      if (vol) { vol.index++; (vol as any).immune = false; }
+    },
+    target: "normal",
+    secondary: null,
+  },
+
+  // ——————————— Ghost tech ———————————
+
+  spiritbeam: {
+    name: "Spirit Beam",
+    shortDesc: "120 BP Ghost. Ignores Normal immunity; can't miss if user shares a type with target.",
+    accuracy: 70,
+    basePower: 120,
+    pp: 8,
+    priority: 0,
+    category: "Special",
+    type: "Ghost",
+    target: "normal",
+    flags: {protect: 1, mirror: 1},
+    onModifyMove(move, source, target) {
+      move.ignoreImmunity = {Ghost: true};
+      // If the user shares ANY type with the target, this move can't miss
+      const userTypes = source.getTypes();
+      const tgtTypes = target?.getTypes?.() ?? [];
+      if (tgtTypes.some(t => userTypes.includes(t))) move.accuracy = true;
+    },
+  },
+
+haunt: {
+  name: "Haunt",
+  shortDesc: "Neg. prio. Target's next damaging move automatically misses.",
+  accuracy: true,
+  basePower: 0,
+  pp: 4,
+  noPPBoosts: true,
+  priority: -6,
+  category: "Status",
+  type: "Ghost",
+  target: "normal",
+  flags: {protect: 1, reflectable: 1},
+
+  // Don’t stack the effect
+  onTryHit(target) {
+    if (target.volatiles['haunt']) return false;
+  },
+
+  onHit(target, source) {
+    target.addVolatile('haunt', source);
+    // IMPORTANT: pass a Pokemon token (not just name) after "[of]"
+    this.add('-activate', target, 'move: Haunt', `[of] ${source}`);
+  },
+
+  // Inline volatile (Lock-On style)
+  condition: {
+    noCopy: true,
+    duration: 2, // same timing as Lock-On (next action window)
+
+    onStart(holder) {
+      this.add('-start', holder, 'move: Haunt');
+    },
+
+    // Force the holder’s next damaging move to miss, then consume
+    onSourceAccuracy(accuracy, target, source, move) {
+      if (!move || move.category === 'Status') return;
+      source.removeVolatile('haunt');
+      return 0; // numeric 0% accuracy (Lock-On uses true to auto-hit)
+    },
+
+    // Fallback for always-hit paths that bypass numeric accuracy
+    onBeforeMovePriority: 99,
+    onBeforeMove(pokemon, target, move) {
+      if (!pokemon.volatiles['haunt']) return;
+      if (!move || move.category === 'Status') return;
+
+      pokemon.removeVolatile('haunt');
+
+      // Show a miss message safely (target may be undefined/spread)
+      if (target && !target.fainted) {
+        this.add('-miss', pokemon, target);
+      } else {
+        this.add('-miss', pokemon);
+      }
+      return false;
+    },
+
+    onEnd(holder) {
+      this.add('-end', holder, 'move: Haunt');
+    },
+  },
+},
 
 
+
+eyecontact: {
+  name: "Eye Contact",
+  shortDesc: "Target cannot attack foes that share a typing with it (persists on switch).",
+  accuracy: true,
+  basePower: 0,
+  pp: 5,
+  priority: 0,
+  category: "Status",
+  type: "Ghost",
+  target: "normal",
+  flags: {reflectable: 1, protect: 1},
+  onHit(target) {
+    // per-mon marker that survives switching (lives on the Pokemon object)
+    (target as any).m ??= {};
+    (target as any).m.eyecontactban = true;
+
+    // apply the actual disabling logic as a volatile (clears on switch)
+    target.addVolatile('eyecontactban');
+
+    // ensure the afflicted side has a watcher to reapply when they switch in
+    if (!target.side.getSideCondition('eyecontactwatch')) {
+      target.side.addSideCondition('eyecontactwatch');
+    }
+  },
+},
 
 };

@@ -1662,6 +1662,47 @@ revving: {
 },
 
 
+eyecontactban: {
+  name: "Eye Contact Ban",
+  noCopy: true,
+  onStart(pokemon) {
+    this.add('-start', pokemon, 'Eye Contact');
+  },
+  onDisableMove(pokemon) {
+    if (!pokemon?.moveSlots?.length) return;
+    const attackerTypes = pokemon.getTypes();
+    for (const moveSlot of pokemon.moveSlots) {
+      const move = this.dex.moves.get(moveSlot.id);
+      if (!move || move.category === 'Status') continue;
+      for (const foe of pokemon.side.foe.active) {
+        if (!foe || foe.fainted) continue;
+        const defenderTypes = foe.getTypes();
+        if (defenderTypes.some(t => attackerTypes.includes(t))) {
+          pokemon.disableMove(moveSlot.id);
+          this.add('-message', `${pokemon.name} cannot bring itself to attack ${foe.name} due to Eye Contact!`);
+          break;
+        }
+      }
+    }
+  },
+  onEnd(pokemon) {
+    this.add('-end', pokemon, 'Eye Contact');
+    // optional: if you want a hard “cure” to clear the persistent mark, do it here
+    // (pokemon as any).m && ((pokemon as any).m.eyecontactban = false);
+  },
+},
+
+eyecontactwatch: {
+  name: "Eye Contact Watch",
+  // lives for the whole battle; very lightweight
+  // (you can add duration if you want, but not necessary)
+  onSwitchIn(pokemon) {
+    // if this mon was previously marked, restore the volatile
+    if ((pokemon as any).m?.eyecontactban && !pokemon.volatiles['eyecontactban']) {
+      pokemon.addVolatile('eyecontactban');
+    }
+  },
+},
 
 
 };
