@@ -9270,16 +9270,35 @@ magmavein: {
  luminousflow: {
   name: "Luminous Flow",
   shortDesc: "Heals the user and all allies (active and benched) by 1/16 max HP at the end of each turn.",
+  // Keep your end-of-turn timing
   onResidualOrder: 29,
   onResidualSubOrder: 3,
   onResidual(pokemon) {
-    for (const ally of pokemon.side.pokemon) {
-      if (ally?.hp && ally.hp < ally.maxhp) {
-        this.heal(Math.floor(ally.baseMaxhp / 16), ally, pokemon);
+    const side = pokemon.side;
+    for (const ally of side.pokemon) {
+      if (!ally || ally.fainted) continue;
+
+      // Only heal if missing HP
+      if (ally.hp >= ally.maxhp) continue;
+
+      const maxhp = ally.baseMaxhp || ally.maxhp;
+      const amount = Math.max(1, Math.floor(maxhp / 16));
+
+      if (ally.isActive) {
+        // Normal path for actives (respects Heal Block etc.)
+        this.heal(amount, ally, pokemon, this.effect);
+      } else {
+        // Safe path for benched mons (ensures it actually applies)
+        const newHp = Math.min(ally.hp + amount, ally.maxhp);
+        if (newHp !== ally.hp) {
+          ally.sethp(newHp);
+          this.add('-heal', ally, ally.getHealth, '[from] ability: Luminous Flow');
+        }
       }
     }
   },
 },
+
 
 
 
@@ -9347,45 +9366,56 @@ magmavein: {
   burningspirit: {
   name: "Burning Spirit",
   shortDesc: "Ghost moves hit again at 25% power as Fire; Fire moves hit again at 25% power as Ghost.",
-  // Run per target the original move affected
-  onAfterMoveSecondary(source, target, move) {
-    if (!target || target.fainted) return;
-    // Don’t echo status moves or the echo itself
-    const m = move as ActiveMove;
-    if (!m || m.category === 'Status' || m.id === 'burningspiritecho') return;
 
-    // Decide echo type
+  // Runs once after the user’s move resolves (only if it actually connected/hit something)
+  onAfterMoveSecondarySelf(source, target, move) {
+    // ignore Status and our own echo
+    if (!move || move.category === 'Status' || move.id === 'burningspiritecho') return;
+
+    // only Fire↔Ghost
     let echoType: 'Fire' | 'Ghost' | null = null;
-    if (m.type === 'Ghost') echoType = 'Fire';
-    else if (m.type === 'Fire') echoType = 'Ghost';
+    if (move.type === 'Ghost') echoType = 'Fire';
+    else if (move.type === 'Fire') echoType = 'Ghost';
     if (!echoType) return;
 
-    // Quarter the base power (minimum 1)
-    const origBP = typeof m.basePower === 'number' ? m.basePower : 0;
+    // base power @ 25% (>=1)
+    const origBP = typeof move.basePower === 'number' ? move.basePower : 0;
     const echoBP = Math.max(1, Math.floor(origBP * 0.25));
 
-    // Construct a lightweight ActiveMove for the echo
+    // Build the echo as a normal damaging move (same category)
     const echoMove = this.dex.getActiveMove({
       id: 'burningspiritecho',
       name: 'Burning Spirit Echo',
       accuracy: true,
       basePower: echoBP,
-      category: m.category,        // keep Physical/Special
+      category: move.category,
       priority: 0,
       type: echoType,
-      // reasonable flags so it interacts like a normal hit but avoids weird loops
-      flags: {protect: 1, mirror: 1},
-      // prevent Parental Bond and other multihit/eo effects from multiplying again
-      multihit: undefined,
-      // mark as ability-generated so we can skip recursive triggers if needed
-      isNonstandard: null,
+      flags: {protect: 1, mirror: 1}, // standard interactors; no weird loops
     } as any);
 
-    // Try the echo hit – does full type effectiveness & interactions
-    this.actions.tryMoveHit(target, source, echoMove);
-    this.add('-message', `${source.name}'s Burning Spirit echoes as ${echoType}!`);
+    // Determine who to hit:
+    // - In singles, `target` is the primary foe. Use it if valid.
+    // - If it's missing (can happen with some spread/edge cases), fall back to any live foe.
+    const targets: Pokemon[] = [];
+    if (target && !target.fainted) {
+      targets.push(target);
+    } else {
+      for (const foe of source.side.foe.active) if (foe && !foe.fainted) targets.push(foe);
+    }
+    if (!targets.length) return;
+
+    // Fire the echo on each chosen target
+    for (const t of targets) {
+      // Try a normal hit with full type effectiveness
+      this.actions.tryMoveHit(t, source, echoMove);
+    }
+
+    // Optional flavor line (comment out if you don’t want extra text)
+    // this.add('-message', `${source.name}'s Burning Spirit echoes as ${echoType}!`);
   },
 },
+
 
 
   hiveguard: {

@@ -9425,8 +9425,8 @@ crystaltiara: {
     shortDesc: "Contact moves vs holder inflict Bleed + Insect Sting.",
     onDamagingHit(damage, target, source, move) {
       if (move.flags['contact'] && source.hp) {
-        source.addVolatile('bleed');
-        source.addVolatile('insectsting');
+        source.addVolatile('bleeding');
+        source.addVolatile('sting');
         this.add('-message', `${source.name} was afflicted with bleeding and insect stings!`);
       }
     },

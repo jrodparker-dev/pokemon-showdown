@@ -1703,6 +1703,31 @@ eyecontactwatch: {
     }
   },
 },
+sting: {
 
+    onStart(pokemon, source) {
+      // remember who applied it for KO credit
+      this.effectState.source = source || (pokemon as any).m?.permaStungSource || null;
+    },
+	onAfterMove(pokemon, target, move) {
+    if (!move) return;
+    if (!pokemon?.volatiles?.['sting']) return;      // must be actively stung
+    if (pokemon.hp <= 0) return;
+
+    // credit damage to original stinger if known
+    const src =
+      (pokemon as any).m?.permaStungSource ||
+      pokemon.volatiles['sting']?.source ||
+      pokemon;
+
+    const dmg = Math.max(1, Math.floor(pokemon.baseMaxhp / 8));
+    this.damage(dmg, pokemon, src, {id: 'sting'} as any);
+    this.add('-message', `${pokemon.name} was hurt by Insect Sting!`);
+  },
+    onEnd(pokemon) {
+      // cosmetic; the watcher will re-apply on switch-in
+      this.add('-message', `${pokemon.name} is no longer actively stung...`);
+    },
+  },
 
 };

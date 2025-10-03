@@ -20074,7 +20074,7 @@ oinkolognemega: {
     num: -1005,
     name: "Aqualume",
     types: ["Water", "Psychic"],
-    baseStats: {hp: 90, atk: 70, def: 80, spa: 120, spd: 100, spe: 80},
+    baseStats: {hp: 80, atk: 70, def: 80, spa: 115, spd: 100, spe: 105},
     abilities: {0: "Luminous Flow"},
     heightm: 2.0,
     weightkg: 44,

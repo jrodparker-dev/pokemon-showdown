@@ -24984,26 +24984,58 @@ soulrend: {
 
   // ===== Team A – Aqualume
   mindstream: {
-    name: "Mindstream",
-    shortDesc: "85 BP Psychic; heals lowest-HP ally for 50% of dmg dealt.",
-    accuracy: 100,
-    basePower: 85,
-	priority: 0,
-    pp: 10,
-    category: "Special",
-    flags: {protect: 1, mirror: 1, pulse: 1},
-    onAfterHit(target, source, move) {
-      if (!move || !move.totalDamage) return;
-      const team = source.side.active.filter(p => p && !p.fainted);
-      if (!team.length) return;
-      let healTarget = team[0];
-      for (const p of team) if (p.hp < healTarget.hp) healTarget = p;
-      const amount = Math.floor(move.totalDamage * 0.50);
-      if (amount && healTarget) this.heal(amount, healTarget);
-    },
-    target: "normal",
-    type: "Psychic",
+  name: "Mindstream",
+  shortDesc: "85 BP Psychic; heals lowest-HP ally for 50% of damage dealt.",
+  accuracy: 100,
+  basePower: 85,
+  priority: 0,
+  pp: 10,
+  category: "Special",
+  type: "Psychic",
+  target: "normal",
+  flags: {protect: 1, mirror: 1, pulse: 1},
+
+  // Run once after the user's move finishes; totalDamage is aggregated here
+  onAfterMoveSecondarySelf(source, target, move) {
+    if (!move || move.category === 'Status') return;
+
+    // Total damage can be number or number[] (multi-hit/spread)
+    let total = 0;
+    if (typeof move.totalDamage === 'number') {
+      total = move.totalDamage;
+    } else if (Array.isArray(move.totalDamage)) {
+      for (const d of move.totalDamage) total += (typeof d === 'number' ? d : 0);
+    }
+    if (!total) return;
+
+    const healAmount = Math.floor(total * 0.5);
+    if (!healAmount) return;
+
+    // Consider *all* living teammates (active + bench), including the user
+    const team = source.side.pokemon.filter(p => p && !p.fainted && p.hp > 0);
+    if (!team.length) return;
+
+    // Pick the ally with the lowest % HP (tie-breaker: lower absolute HP)
+    let healTarget = team[0];
+    for (const p of team) {
+      const pr = p.hp / p.maxhp;
+      const hr = healTarget.hp / healTarget.maxhp;
+      if (pr < hr || (pr === hr && p.hp < healTarget.hp)) healTarget = p;
+    }
+
+    // Heal actives normally; heal bench safely (sethp + log)
+    if (healTarget.isActive) {
+      this.heal(healAmount, healTarget, source, this.dex.getActiveMove('mindstream'));
+    } else {
+      const newHp = Math.min(healTarget.hp + healAmount, healTarget.maxhp);
+      if (newHp !== healTarget.hp) {
+        healTarget.sethp(newHp);
+        this.add('-heal', healTarget, healTarget.getHealth, '[from] move: Mindstream', `[of] ${source}`);
+      }
+    }
   },
+},
+
   tidalprism: {
     name: "Tidal Prism",
     shortDesc: "95 BP Water; 20% chance to lower SpA.",
