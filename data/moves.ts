@@ -24908,10 +24908,8 @@ soulrend: {
 	priority: 0,
     category: "Physical",
     flags: {protect: 1, contact: 1},
-    onTryHit(target, source, move) {
-      target.removeVolatile('magnetrise');
-      target.removeVolatile('telekinesis');
-      move.ignoreImmunity = {'Ground': true};
+    onModifyMove(move, source, target) {
+      move.ignoreImmunity = {Ground: true};
     },
     target: "normal",
     type: "Ground",
@@ -25774,35 +25772,66 @@ vinebreaker: {
     sideCondition: 'sporeguard',
   },
 dualswap: {
-  name: "Dual Swap",
-  shortDesc: "Swaps the target's Atk↔Def and SpA↔SpD until it switches out.",
-  accuracy: true,
-  basePower: 0,
-  pp: 10,
-  priority: 0,
-  category: "Status",
-  type: "Psychic",
-  target: "normal",
-  flags: {protect: 1, mirror: 1},
-  onHit(target) {
-    if (target.volatiles['dualswap']) return false; // already swapped; fail gracefully
-    target.addVolatile('dualswap');
-    this.add('-start', target, 'move: Dual Swap');
-  },
-  condition: {
-    // Use storedStats like Power Trick to avoid recursion in getStat()
-    onStart(pokemon) {
-      const s = pokemon.storedStats;
-      [s.atk, s.def] = [s.def, s.atk];
-      [s.spa, s.spd] = [s.spd, s.spa];
+    name: "Dual Swap",
+    shortDesc: "Swaps the target's Atk↔Def and SpA↔SpD until it switches out.",
+    accuracy: true,
+    basePower: 0,
+    pp: 10,
+    priority: 0,
+    category: "Status",
+    type: "Psychic",
+    target: "normal",
+    flags: {protect: 1, mirror: 1},
+    
+    onTryHit(target) {
+        // Fail if stats are already swapped to prevent issues
+        if (target.volatiles['dualswap']) {
+            return false;
+        }
     },
-    onEnd(pokemon) {
-      const s = pokemon.storedStats;
-      [s.atk, s.def] = [s.def, s.atk];
-      [s.spa, s.spd] = [s.spd, s.spa];
-      this.add('-end', pokemon, 'move: Dual Swap');
+    
+    onHit(target) {
+        target.addVolatile('dualswap');
     },
-  },
+
+    condition: {
+        // Crucial Change 1: Store original stats for proper reversal
+        onStart(pokemon) {
+            this.add('-start', pokemon, 'move: Dual Swap');
+            
+            // Store the original stats (optional, but good practice for clarity)
+            // The volatile can track what was swapped.
+            pokemon.volatiles['dualswap'].originalStats = {
+                atk: pokemon.storedStats.atk,
+                def: pokemon.storedStats.def,
+                spa: pokemon.storedStats.spa,
+                spd: pokemon.storedStats.spd,
+            };
+
+            // Perform the swap on storedStats
+            const s = pokemon.storedStats;
+            [s.atk, s.def] = [s.def, s.atk];
+            [s.spa, s.spd] = [s.spd, s.spa];
+            
+            // Announce the stat change
+            this.add('-message', `${pokemon.name}'s offensive and defensive capabilities were swapped!`);
+        },
+        
+        // Crucial Change 2: Reverse the swap using the same logic
+        onEnd(pokemon) {
+            // Reverse the swap on storedStats
+            const s = pokemon.storedStats;
+            [s.atk, s.def] = [s.def, s.atk];
+            [s.spa, s.spd] = [s.spd, s.spa];
+
+            this.add('-end', pokemon, 'Dual Swap');
+        },
+        
+        // Crucial Change 3: The volatile must be removed on switch out
+        onSwitchOut(pokemon) {
+            pokemon.removeVolatile('dualswap');
+        },
+    },
 },
 revvingdrill: {
   num: -1000001, // custom ID
