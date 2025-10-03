@@ -26000,6 +26000,7 @@ swarmguard: {
     basePower: 0,
     category: "Status",
     name: "Swarm Guard",
+	shortDesc: 'Blocks stat drops. Lowers foes speed if attempted',
     pp: 15,
     priority: 0,
     flags: { snatch: 1 },

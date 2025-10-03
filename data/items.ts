@@ -9289,26 +9289,24 @@ crystaltiara: {
 
 
   ironrootcore: {
-    name: "Ironroot Core",
-    shortDesc: "When holder first falls to ≤50% HP, it gains +1 Atk/Def.",
-    gen: 9,
+  name: "Ironroot Core",
+  shortDesc: "When holder first falls to ≤50% HP, it consumes itself: +1 Atk/Def.",
+  gen: 9,
 
-    // Sitrus Berry–style threshold check each update tick
-    onUpdate(pokemon) {
-      if (!pokemon.hp) return;
-      if (pokemon.volatiles['ironrootcore_used']) return; // already procced
-      if (pokemon.hp <= Math.floor(pokemon.maxhp / 2)) {
-        pokemon.addVolatile('ironrootcore_used');
+  // Sitrus-style threshold check
+  onUpdate(pokemon) {
+    if (!pokemon.hp) return;
+
+    // First time at or below 50%: consume and boost.
+    if (pokemon.hp <= Math.floor(pokemon.maxhp / 2)) {
+      if (pokemon.useItem()) {
         this.add('-activate', pokemon, 'item: Ironroot Core');
         this.boost({atk: 1, def: 1}, pokemon);
       }
-    },
-
-    // tiny marker volatile so we only trigger once
-    condition: {
-      // no hooks needed; presence == used
-    },
+    }
   },
+},
+
 
   galependant: {
     name: "Gale Pendant",
