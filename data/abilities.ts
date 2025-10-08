@@ -9236,16 +9236,40 @@ magmavein: {
 
   // Team A Abilities
   snowveil: {
-    name: "Snowveil",
-    shortDesc: "Immune to Rock; when hit by Rock move, restores 25% HP.",
-    onTryHit(target, source, move) {
-      if (move.type === 'Rock') {
-        this.add('-immune', target, '[from] ability: Snowveil');
-        this.heal(target.baseMaxhp / 4, target);
-        return null;
-      }
-    },
+  name: "Snowveil",
+  shortDesc: "Immune to Rock and heals 25% on Rock hit. Fire/Steel damage is halved; being hit by Fire/Steel summons Snow (once per switch-in).",
+  // Full immunity to Rock + heal (like your original intent, but explicit)
+  onTryHit(target, source, move) {
+    if (move.type === 'Rock') {
+      this.add('-immune', target, '[from] ability: Snowveil');
+      this.heal(Math.floor(target.baseMaxhp / 4), target);
+      return null;
+    }
   },
+  // Halve damage from Fire & Steel
+  onSourceModifyDamage(damage, attacker, defender, move) {
+    if (move.type === 'Fire' || move.type === 'Steel') {
+      return this.chainModify(0.5);
+    }
+  },
+  // Getting hit by Fire/Steel starts Snow once per switch-in
+  onDamagingHit(dmg, target, source, move) {
+    if (!target.hp) return;
+    if ((move.type === 'Fire' || move.type === 'Steel') && !target.volatiles['snowveil_trig']) {
+      target.addVolatile('snowveil_trig');
+      if (!this.field.isWeather('snow')) {
+        this.field.setWeather('snow');
+        this.add('-weather', 'Snow');
+      }
+    }
+  },
+  condition: {
+    // marker volatile to avoid multiple weather sets per switch-in
+    // cleared automatically on switch/KO
+  },
+  rating: 4,
+},
+
 
   coredriller: {
     name: "Core Driller",

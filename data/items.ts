@@ -9342,15 +9342,26 @@ crystaltiara: {
 },
 
   petalbrandgauntlet: {
-    name: "Petalbrand Gauntlet",
-    shortDesc: "Grass & Fighting moves deal 1/8 chip to target after damage.",
-    onAfterMove(source, target, move) {
-      if (['Grass', 'Fighting'].includes(move.type) && target.hp) {
-        this.damage(Math.floor(target.baseMaxhp / 8), target, source, move);
-        this.add('-message', `${target.name} was hurt by Petalbrand Gauntlet!`);
-      }
-    },
+  name: "Petalbrand Gauntlet",
+  shortDesc: "Grass & Fighting moves deal 1/8 chip to foes after damage. If user targets itself, it heals 1/8 HP.",
+  onAfterMove(source, target, move) {
+    // Only run if the move has a target and is a Grass/Fighting damaging move
+    if (!move || move.category === 'Status') return;
+    if (!target || !target.hp) return;
+    if (!['Grass', 'Fighting'].includes(move.type)) return;
+
+    // If user targeted itself, heal instead of dealing damage
+    if (target === source) {
+      const healAmount = Math.floor(source.baseMaxhp / 8);
+      this.heal(healAmount, source, source, move);
+      this.add('-message', `${source.name} absorbed energy from the Petalbrand Gauntlet!`);
+    } else {
+      const dmg = Math.floor(target.baseMaxhp / 8);
+      this.damage(dmg, target, source, move);
+      this.add('-message', `${target.name} was hurt by Petalbrand Gauntlet!`);
+    }
   },
+},
 
   // Team B
   blackwingtalisman: {
