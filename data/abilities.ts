@@ -9190,31 +9190,50 @@ if (!pool.length) return;
   },
 },
 magmavein: {
-    name: "Magma Vein",
-    shortDesc: "When hit by a Water move, halves damage and inflicts Steam Field (3 turns) on the attacker’s side.",
-    // Halve Water-type damage taken (like Fluffy-style hook)
-    onSourceModifyDamage(damage, source, target, move) {
-      if (move.type === 'Water') {
-        return this.chainModify(0.5);
-      }
-    },
-    // When actually hit by a Water move, apply Steam Field to the attacker's side
-    onDamagingHit(damage, target, source, move) {
-      if (move.type !== 'Water' || !source?.side) return;
-      const side = source.side;
-      // (Re)apply/refresh for 3 turns
-      if (!side.sideConditions['steamfield']) {
-        side.addSideCondition('steamfield');
-        this.add('-message', `${target.name}'s Magma Vein filled the foe’s side with steam!`);
-      } else {
-        // Refresh duration if already present
-        side.sideConditions['steamfield'].duration = 3;
-        this.add('-message', `Steam Field on the foe’s side was refreshed!`);
-      }
-    },
-    rating: 4,
-    num: -3001,
+  name: "Magma Vein",
+  shortDesc:
+    "Halves Water damage; when hit by OR when using a Water move, sets Steam Field on the opposing side (3 turns).",
+
+  // Halve Water damage taken
+  onSourceModifyDamage(damage, source, target, move) {
+    if (move.type === 'Water') {
+      return this.chainModify(0.5);
+    }
   },
+
+  // If HIT by a Water move, steam the attacker's side
+  onDamagingHit(damage, target, source, move) {
+    if (!source?.side || move.type !== 'Water') return;
+    const foeSide = source.side;
+    foeSide.addSideCondition('steamfield', target);
+    const sc = foeSide.sideConditions['steamfield'];
+    if (sc) sc.duration = 3; // refresh to 3
+    this.add('-message', `${target.name}'s Magma Vein filled the foe’s side with steam!`);
+  },
+
+  // After THIS mon uses a Water move (hit/miss/status), steam the opposing side,
+  // unless Steam Burst just cleared it this move.
+  onAfterMoveSecondarySelf(pokemon, target, move) {
+    if (!move || move.type !== 'Water') return;
+
+    // Skip re-apply if Steam Burst cleared it this move
+    if ((pokemon as any).skipMagmaVeinSteamApply) {
+      (pokemon as any).skipMagmaVeinSteamApply = false; // consume the flag
+      return;
+    }
+
+    const foeSide = pokemon.side.foe;
+    if (!foeSide) return;
+    foeSide.addSideCondition('steamfield', pokemon);
+    const sc = foeSide.sideConditions['steamfield'];
+    if (sc) sc.duration = 3;
+    this.add('-message', `${pokemon.name}'s Magma Vein shrouded the opposing side in steam!`);
+  },
+
+  rating: 4,
+  num: -3001,
+},
+
   // Team A Abilities
   snowveil: {
     name: "Snowveil",

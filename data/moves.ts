@@ -25096,7 +25096,7 @@ soulrend: {
   dreadgale: {
     name: "Dread Gale",
     shortDesc: "100 BP Flying (wind); 30% flinch.",
-    accuracy: 90,
+    accuracy: 85,
     basePower: 100,
     pp: 10,
 	priority: 0,
@@ -25588,38 +25588,38 @@ serratedfangs: {
   // Optional message flair (shown on successful application is handled by the volatile)
 },
 steamburst: {
-    name: "Steam Burst",
-    shortDesc: "60 BP Water. Only usable if target’s side has Steam Field; deals 2× power and then clears it.",
-    accuracy: 100,
-    basePower: 60,
-    pp: 10,
-    priority: 0,
-    category: "Special",
-    flags: {protect: 1, mirror: 1},
-    onTry(source, target) {
-      // Only usable if the TARGET'S SIDE is under Steam Field
-      const side = target?.side;
-      if (!side?.sideConditions['steamfield']) {
-        this.add('-fail', source, 'move: Steam Burst');
-        return null;
-      }
-    },
-    onBasePower(basePower, user, target, move) {
-      const side = target?.side;
-      if (side?.sideConditions['steamfield']) {
-        return this.chainModify(2);
-      }
-    },
-    onAfterHit(target, source) {
-      const side = target?.side;
-      if (side?.sideConditions['steamfield']) {
-        side.removeSideCondition('steamfield');
-        this.add('-message', `Steam Field dissipated!`);
-      }
-    },
-    target: "normal",
-    type: "Water",
+  name: "Steam Burst",
+  shortDesc: "60 BP Water. 2× power if target's side has Steam Field; then clears it.",
+  accuracy: 100,
+  basePower: 60,
+  pp: 10,
+  priority: 0,
+  category: "Special",
+  flags: {protect: 1, mirror: 1},
+
+  onBasePower(basePower, user, target, move) {
+    const side = target?.side;
+    if (side?.sideConditions['steamfield']) {
+      return this.chainModify(2);
+    }
   },
+
+  onAfterHit(target, source) {
+    const side = target?.side;
+    if (!side) return;
+    if (side.sideConditions['steamfield']) {
+      side.removeSideCondition('steamfield'); // will also emit -sideend
+      this.add('-message', `Steam Field dissipated!`);
+
+      // Tell Magma Vein not to re-apply this move
+      (source as any).skipMagmaVeinSteamApply = true;
+    }
+  },
+
+  target: "normal",
+  type: "Water",
+},
+
 frozenbarrier: {
   num: 30002, // pick any free ID
   accuracy: true,

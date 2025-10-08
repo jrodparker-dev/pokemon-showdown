@@ -9326,19 +9326,20 @@ crystaltiara: {
   },
 
   mindwaveorb: {
-    name: "Mindwave Orb",
-    shortDesc: "Psychic moves 1.3x power but lowers Def by 1 on use.",
-    onBasePower(basePower, user, target, move) {
-      if (move.type === 'Psychic') {
-        return this.chainModify(1.3);
-      }
-    },
-    onAfterMove(source, target, move) {
-      if (move.type === 'Psychic') {
-        this.boost({def: -1}, source);
-      }
-    },
+  name: "Mindwave Orb",
+  shortDesc: "Psychic moves 1.3x power; after using a non-Status Psychic move, user -1 Def.",
+  onBasePower(basePower, user, target, move) {
+    if (move?.type === 'Psychic' && move.category !== 'Status') {
+      return this.chainModify(1.3);
+    }
   },
+  onAfterMove(source, target, move) {
+    if (!move) return;
+    if (move.type === 'Psychic' && move.category !== 'Status') {
+      this.boost({def: -1}, source);
+    }
+  },
+},
 
   petalbrandgauntlet: {
     name: "Petalbrand Gauntlet",
