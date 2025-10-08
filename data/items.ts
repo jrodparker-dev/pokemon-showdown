@@ -9402,23 +9402,57 @@ crystaltiara: {
 },
 
   cursedlantern: {
-    name: "Cursed Lantern",
-    shortDesc: "Fire moves make target Ghost-type in addition to current types for 2 turns.",
-    onAfterMoveSecondary(target, source, move) {
-      if (move.type === 'Fire' && target.hp) {
-        target.addType('Ghost');
-        this.add('-message', `${target.name} is haunted by Cursed Lantern!`);
-        target.addVolatile('cursedlantern');
+  name: "Cursed Lantern",
+  shortDesc: "When holder hits with a Fire move: target gains Ghost type for 3 turns.",
+  onSourceHit(target, source, move) {
+    if (!target || !target.hp) return;
+    if (!move || move.category === 'Status') return;
+    if (move.type !== 'Fire') return;
+
+    // only apply once and skip if Ghost already present
+    if (target.hasType('Ghost') || target.volatiles['cursedlantern']) return;
+
+    // snapshot BEFORE changing types
+    const prevTypes = target.getTypes();
+
+    // add Ghost (like Trick-or-Treat)
+    const added = target.addType('Ghost');
+    if (!added) return;
+
+    // show banner immediately
+    this.add('-start', target, 'typeadd', 'Ghost', '[from] item: Cursed Lantern');
+
+    // attach volatile and store snapshot (cast silences TS)
+    target.addVolatile('cursedlantern');
+    (target.volatiles['cursedlantern'] as any).prevTypes = prevTypes;
+
+    this.add('-message', `${target.name} is haunted by Cursed Lantern!`);
+  },
+
+  condition: {
+    // activation turn counts
+    duration: 3,
+
+    onEnd(pokemon) {
+      const prev: string[] | undefined =
+        (this.effectState as any)?.prevTypes;
+
+      if (prev && prev.length) {
+        pokemon.setType(prev);
+        // refresh banner to exact previous typing
+        this.add('-start', pokemon, 'typechange', prev.join('/'), '[silent]');
+      } else {
+        const base = pokemon.baseSpecies.types;
+        pokemon.setType(base);
+        this.add('-start', pokemon, 'typechange', base.join('/'), '[silent]');
       }
-    },
-    condition: {
-      duration: 2,
-      onEnd(pokemon) {
-        pokemon.setType(pokemon.baseSpecies.types); // reset
-        this.add('-message', `${pokemon.name} is no longer haunted.`);
-      },
+
+      this.add('-message', `${pokemon.name} is no longer haunted.`);
     },
   },
+},
+
+
 
   carapacegauntlet: {
     name: "Carapace Gauntlet",
