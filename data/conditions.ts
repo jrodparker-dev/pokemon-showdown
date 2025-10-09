@@ -1560,7 +1560,7 @@ steamfield: {
     name: "Steam Field",
     // This is a SIDE condition: it sits on one team’s side and affects moves used by that side.
     duration: 3,
-    onStart(side) {
+    onSideStart(side) {
       this.add('-sidestart', side, 'Steam Field');
     },
     onAnyModifyAccuracy(accuracy, target, source, move) {
@@ -1570,7 +1570,7 @@ steamfield: {
         return this.chainModify(0.9);
       }
     },
-    onEnd(side) {
+    onSideEnd(side) {
       this.add('-sideend', side, 'Steam Field');
     },
   },

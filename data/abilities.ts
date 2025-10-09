@@ -9207,7 +9207,7 @@ magmavein: {
     const foeSide = source.side;
     foeSide.addSideCondition('steamfield', target);
     const sc = foeSide.sideConditions['steamfield'];
-    if (sc) sc.duration = 3; // refresh to 3
+    if (sc) sc.duration = 4; // refresh to 3
     this.add('-message', `${target.name}'s Magma Vein filled the foe’s side with steam!`);
   },
 
@@ -9226,7 +9226,7 @@ magmavein: {
     if (!foeSide) return;
     foeSide.addSideCondition('steamfield', pokemon);
     const sc = foeSide.sideConditions['steamfield'];
-    if (sc) sc.duration = 3;
+    if (sc) sc.duration = 4;
     this.add('-message', `${pokemon.name}'s Magma Vein shrouded the opposing side in steam!`);
   },
 
