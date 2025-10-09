@@ -24856,21 +24856,31 @@ soulrend: {
 
   // ===== Team A – Glaciarch
   auroraray: {
-    name: "Aurora Ray",
-    shortDesc: "100 BP Ice; 10% freeze; always hits in Snow.",
-    accuracy: 90,
-    basePower: 100,
-	priority: 0,
-    pp: 10,
-    category: "Special",
-    flags: {protect: 1, mirror: 1},
-    onModifyMove(move, source, target) {
-      if (this.field.isWeather(['snow'])) move.accuracy = true;
-    },
-    secondary: {chance: 10, status: 'frz'},
-    target: "normal",
-    type: "Ice",
+  name: "Aurora Ray",
+  shortDesc: "100 BP Ice; 10% freeze (30% in Snow); always hits in Snow.",
+  accuracy: 90,
+  basePower: 100,
+  priority: 0,
+  pp: 10,
+  category: "Special",
+  flags: {protect: 1, mirror: 1},
+  onModifyMove(move) {
+    // Support both 'snow' (Gen 9) and 'hail' just in case
+    const snowy = this.field.isWeather('snow') || this.field.isWeather('hail');
+    if (snowy) {
+      move.accuracy = true;
+      // raise any freeze secondary on this move to 30%
+      if (move.secondaries) {
+        for (const sec of move.secondaries) {
+          if (sec.status === 'frz') sec.chance = 30;
+        }
+      }
+    }
   },
+  secondary: {chance: 10, status: 'frz'},
+  target: "normal",
+  type: "Ice",
+},
   moonblossom: {
     name: "Moonblossom",
     shortDesc: "75 BP Fairy; heals user for 50% of damage dealt.",
