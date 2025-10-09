@@ -25290,18 +25290,23 @@ soulrend: {
 
   // ===== Team B – Embergeist
   wraithflame: {
-    name: "Wraithflame",
-    shortDesc: "95 BP Ghost (Special); 20% -1 SpD.",
-    accuracy: 100,
-    basePower: 95,
-	priority: 0,
-	pp: 10,
-    category: "Special",
-    flags: {protect: 1, mirror: 1},
-    secondary: {chance: 20, boosts: {spd: -1}},
-    target: "normal",
-    type: "Ghost",
+  name: "Wraithflame",
+  shortDesc: "95 BP Ghost (Special); 20% chance to -1 SpD.",
+  accuracy: 100,
+  basePower: 95,
+  priority: 0,
+  pp: 10,
+  category: "Special",
+  flags: {protect: 1, mirror: 1},
+  secondary: {chance: 20, boosts: {spd: -1}},
+  target: "normal",
+  type: "Ghost",
+
+  // Play Fire Blast's client animation
+  onPrepareHit(target, source, move) {
+    this.add('-anim', source, 'Fire Blast', target);
   },
+},
   spectralblaze: {
     name: "Spectral Blaze",
     shortDesc: "90 BP Fire; 30% burn.",
@@ -25312,6 +25317,9 @@ soulrend: {
     category: "Special",
     flags: {protect: 1, mirror: 1},
     secondary: {chance: 30, status: 'brn'},
+	onPrepareHit(target, source, move) {
+    this.add('-anim', source, 'Shadow Ball', target);
+  },
     target: "normal",
     type: "Fire",
   },
