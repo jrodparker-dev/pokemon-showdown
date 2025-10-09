@@ -2087,6 +2087,24 @@ export class Battle {
 					this.lastDamage = targetDamage;
 				}
 			}
+			// --- Type-based Focus Band (once per battle) ---
+{
+  const PROTECTED_TYPES = new Set(['Gamma']); // add more if needed: ['Light', 'Gamma']
+
+  if (
+    targetDamage >= target.hp &&                      // would faint
+    !target.volatiles['dynamax'] &&                   // can't trigger while Dynamaxed
+    [...PROTECTED_TYPES].some(t => target.hasType(t)) &&
+    !target.volatiles['typefocusbandused']            // only trigger once
+  ) {
+    this.add('-message', `${target.name}'s typing kept it hanging on!`);
+    targetDamage = target.hp - 1;
+    target.addVolatile('typefocusbandused');          // mark as used
+  }
+}
+// --- End Type-based Focus Band ---
+
+
 
 			retVals[i] = targetDamage = target.damage(targetDamage, source, effect);
 			if (targetDamage !== 0) target.hurtThisTurn = target.hp;
@@ -2211,6 +2229,24 @@ export class Battle {
 				}
 			}
 		}
+		// --- Type-based Focus Band (once per battle, direct damage version) ---
+{
+  const PROTECTED_TYPES = new Set(['Gamma']); // add 'Gamma' if desired
+
+  if (
+    damage >= target.hp &&
+    !target.volatiles['dynamax'] &&
+    [...PROTECTED_TYPES].some(t => target.hasType(t)) &&
+    !target.volatiles['typefocusbandused']
+  ) {
+    this.add('-message', `${target.name}'s typing kept it hanging on!`);
+    damage = target.hp - 1;
+    target.addVolatile('typefocusbandused');          // prevent repeat
+  }
+}
+// --- End Type-based Focus Band ---
+
+
 
 		damage = target.damage(damage, source, effect);
 		switch (effect.id) {
