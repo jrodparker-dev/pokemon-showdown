@@ -6136,4 +6136,137 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 	tier: "OU",
     isNonstandard: null,
   },
+  klumph: {
+	tier: "OU",
+	isNonstandard: null,
+},
+grawshawg: {
+	tier: "OU",
+	isNonstandard: null,
+},
+nucleode: {
+	tier: "OU",
+	isNonstandard: null,
+},
+cloudstrike: {
+	tier: "OU",
+	isNonstandard: null,
+},
+frostallion: {
+	tier: "OU",
+	isNonstandard: null,
+},
+arachniss: {
+	tier: "OU",
+	isNonstandard: null,
+},
+hexameleon: {
+	tier: "OU",
+	isNonstandard: null,
+},
+glimming: {
+	tier: "OU",
+	isNonstandard: null,
+},
+mutador: {
+	tier: "OU",
+	isNonstandard: null,
+},
+venom: {
+	tier: "OU",
+	isNonstandard: null,
+},
+maha: {
+	tier: "OU",
+	isNonstandard: null,
+},
+spiderman: {
+	tier: "OU",
+	isNonstandard: null,
+},
+spidergwen: {
+	tier: "OU",
+	isNonstandard: null,
+},
+docock: {
+	tier: "OU",
+	isNonstandard: null,
+},
+nivmizzet: {
+	tier: "OU",
+	isNonstandard: null,
+},
+liliana: {
+	tier: "OU",
+	isNonstandard: null,
+},
+moxxi: {
+	tier: "OU",
+	isNonstandard: null,
+},
+mjolnislash: {
+	tier: "OU",
+	isNonstandard: null,
+},
+majesting: {
+	tier: "OU",
+	isNonstandard: null,
+},
+obscuring: {
+	tier: "OU",
+	isNonstandard: null,
+},
+trolossus: {
+	tier: "OU",
+	isNonstandard: null,
+},
+valkirien: {
+	tier: "OU",
+	isNonstandard: null,
+},
+dragrism: {
+	tier: "OU",
+	isNonstandard: null,
+},
+jormora: {
+	tier: "OU",
+	isNonstandard: null,
+},
+jarnoxe: {
+	tier: "OU",
+	isNonstandard: null,
+},
+gjallarhorn: {
+	tier: "OU",
+	isNonstandard: null,
+},
+valdrion: {
+	tier: "OU",
+	isNonstandard: null,
+},
+ignityr: {
+	tier: "OU",
+	isNonstandard: null,
+},
+skarnash: {
+	tier: "OU",
+	isNonstandard: null,
+},
+freylune: {
+	tier: "OU",
+	isNonstandard: null,
+},
+hafgrout: {
+	tier: "OU",
+	isNonstandard: null,
+},
+draughollow: {
+	tier: "OU",
+	isNonstandard: null,
+},
+mindhoggr: {
+	tier: "OU",
+	isNonstandard: null,
+},
+
 };
