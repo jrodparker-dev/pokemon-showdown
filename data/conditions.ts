@@ -1729,5 +1729,26 @@ sting: {
       this.add('-message', `${pokemon.name} is no longer actively stung...`);
     },
   },
+  attractionvolatile: {
+  // Uncopyable (no Baton Pass)
+  noCopy: true,
+
+  // No gender check, no immunity checks, does not fall off when source leaves
+  onBeforeMovePriority: 2,
+  onBeforeMove(pokemon) {
+    // Mirror standard Attract 50% fail chance; tweak if you want different odds
+    this.add('-activate', pokemon, 'move: Attract');
+    if (this.randomChance(1, 2)) {
+      this.add('cant', pokemon, 'Attract');
+      return false;
+    }
+  },
+  onEnd(pokemon) {
+    // Silent end message, mirrors standard volatile end
+    this.add('-end', pokemon, 'Attract', '[silent]');
+  },
+},
+
+
 
 };

@@ -8992,29 +8992,24 @@ flags: {},
 		num: -12,
 	},
 	attraction: {
-		onStart(pokemon) {
-			const cur = pokemon.getTypes(true).join('/'); // runtime types 
-			const base = pokemon.species.types.join('/'); // species types 
-			this.add('-start', pokemon, 'typechange', cur);
-			let activated = false;
-			for (const target of pokemon.adjacentFoes()) {
-				if (!activated) {
-					this.add('-ability', pokemon, 'Attraction', 'boost');
-					activated = true;
-				}
-				if (target.volatiles['substitute']) {
-					this.add('-immune', target);
-				} else {
-					this.boost({ accuracy: -1 }, target, pokemon, null, true);
-				}
-			}
-		},
-		
-		flags: {},
-		name: "Attraction",
-		rating: 3.5,
-		num: -13,
-	},
+  onStart(pokemon) {
+    this.add('-ability', pokemon, 'Attraction');
+    for (const target of pokemon.adjacentFoes()) {
+      if (!target || target.fainted || !target.isActive) continue;
+      // Force infatuation-like effect regardless of gender, Sub, Safeguard, etc.
+      if (!target.volatiles['attractionvolatile']) {
+        this.add('-start', target, 'Attract', '[from] ability: Attraction', `[of] ${pokemon.name}`);
+        target.addVolatile('attractionvolatile', pokemon);
+      }
+    }
+  },
+  flags: {},
+  name: "Attraction",
+  rating: 3.5,
+  num: -13,
+},
+
+
 	twisteddimensions: {
   name: "Twisted Dimensions",
   shortDesc: "While active, reverses type effectiveness; immunities become weaknesses.",
