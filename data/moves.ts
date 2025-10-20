@@ -26439,13 +26439,13 @@ eyecontact: {
 
 chaosburst: {
   name: "Chaos Burst",
-  type: "Fairy",
-  shortDesc: "Randomized every use: type, cat, BP/Acc, flags, effects.",
-  accuracy: 100,           // avoid 'true%'; we overwrite each use
+  shortDesc: "Randomized every use: type, category, BP/Acc, flags, secondaries, and status effects.",
+  accuracy: 100,
   basePower: 0,
   pp: 5,
   priority: 0,
   category: "Special",
+  type: "Fairy",
   flags: {},
 
   onPrepareHit(target, source, move) {
@@ -26458,6 +26458,7 @@ chaosburst: {
       for (const c of choices) { if ((r -= c.w) < 0) return c.id; }
       return choices[choices.length - 1].id;
     };
+    const tuplePct = (t: [number, number]) => Math.round((t[0] / t[1]) * 100);
 
     // Pools
     const CHAOS_VOLATILES_FOE = ['bleeding','sting','twinvines','attractionvolatile'] as const;
@@ -26473,57 +26474,43 @@ chaosburst: {
     chaos.basePower = chaos.category === 'Status' ? 0 : this.random(60, 151);
     chaos.type = sample([
       'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
-      'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'
+      'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
     ] as const);
     chaos.accuracy = this.random(70, 101);
 
     // flags
     const flagPool = ['contact','sound','punch','slicing','bite','wind','pulse','recharge'] as const;
-    chaos.flags = {};
+    chaos.flags = {} as AnyObject;
     for (const f of flagPool) if (chance(1, 3)) chaos.flags[f] = 1;
 
-    // dmg extras
+    // damaging move extras
     if (chaos.category !== 'Status') {
       chaos.willCrit = chance(1, 10);
       chaos.multihit = chance(1, 10) ? sample([2,3,4,5] as const) : undefined;
 
-      // secondary status
       if (chance(1, 2)) {
         const pool = ['brn','par','frz','psn','slp','confusion','flinch'] as const;
         chaos.secondary = { kind: sample(pool), chance: this.random(10, 51) };
       }
 
-      if (chance(1, 6)) chaos.drain = [this.random(1, 3), 4];   // 25–50%
-      if (chance(1, 6)) chaos.recoil = [this.random(1, 3), 4];  // 25–50%
+      if (chance(1, 6)) chaos.drain = [this.random(1, 3), 4] as [number, number];
+      if (chance(1, 6)) chaos.recoil = [this.random(1, 3), 4] as [number, number];
     }
 
-    // Status branch: plan effects; we’ll apply in onHit using this plan
+    // status branch planning
     if (chaos.category === 'Status') {
       chaos.targetMode = sample(['normal','self','allAdjacent','allySide','foeSide'] as const);
 
-      // strong fits
       if (chance(7, 10)) {
-        const who = sampleWeighted([{id:'foe',w:3},{id:'self',w:2}]);
+        const who = sampleWeighted([{id:'foe' as const, w:3},{id:'self' as const, w:2}]);
         chaos.coreVolatile = { who, id: who === 'foe' ? sample(CHAOS_VOLATILES_FOE) : sample(CHAOS_VOLATILES_SELF) };
       }
-
-      // good fits: side
       if (chance(3, 10)) {
-        const sideWho = sampleWeighted([{id:'foe',w:3},{id:'ally',w:2}]);
+        const sideWho = sampleWeighted([{id:'foe' as const, w:3},{id:'ally' as const, w:2}]);
         chaos.side = { who: sideWho, id: sample(CHAOS_SIDE_CONDITIONS) };
       }
-
-      // good fits: field
-      if (chance(1, 5)) {
-        chaos.field = sample(CHAOS_FIELD_EFFECTS);
-      }
-
-      // rare spice
-      if (chance(1, 10)) {
-        chaos.rare = sample(CHAOS_RARE_MISC);
-      }
-
-      // optional stat swing
+      if (chance(1, 5)) chaos.field = sample(CHAOS_FIELD_EFFECTS);
+      if (chance(1, 10)) chaos.rare = sample(CHAOS_RARE_MISC);
       if (chance(1, 5)) {
         const stat = sample(['atk','def','spa','spd','spe','accuracy','evasion'] as const);
         const amount = sample([-2,-1,1,2] as const);
@@ -26532,7 +26519,6 @@ chaosburst: {
       }
     }
 
-    // Rare apocalyptic (damaging only), still within your caps
     if (chaos.category !== 'Status' && chance(1, 30)) {
       chaos.apocalypse = true;
       chaos.basePower = 150;
@@ -26540,10 +26526,10 @@ chaosburst: {
       chaos.type = sample(['Electric','Dragon','Dark'] as const);
       chaos.category = sample(['Special','Physical'] as const);
       chaos.willCrit = true;
-      chaos.recoil = [1, 2];
+      chaos.recoil = [1, 2] as [number, number];
     }
 
-    // Apply the rolls to the live move
+    // ---------- apply rolls ----------
     move.category = chaos.category;
     move.basePower = chaos.basePower;
     move.type = chaos.type;
@@ -26551,120 +26537,139 @@ chaosburst: {
     move.flags = chaos.flags;
     if (chaos.willCrit) move.willCrit = true;
     if (chaos.multihit) move.multihit = chaos.multihit;
+
     if (chaos.secondary && move.category !== 'Status') {
-      const picked = chaos.secondary.kind as typeof chaos.secondary.kind;
-      move.secondary = {
-        chance: chaos.secondary.chance,
-        onHit(t, s, m) {
+      const picked = chaos.secondary.kind;
+      const pickedChance = chaos.secondary.chance;
+      const sec: AnyObject = {
+        chance: pickedChance,
+        onHit: (t: Pokemon, s: Pokemon, m: ActiveMove) => {
+          let ok = false;
           switch (picked) {
-            case 'brn': t.trySetStatus('brn', s, m); break;
-            case 'par': t.trySetStatus('par', s, m); break;
-            case 'frz': t.trySetStatus('frz', s, m); break;
-            case 'psn': t.trySetStatus('psn', s, m); break;
-            case 'slp': t.trySetStatus('slp', s, m); break;
-            case 'confusion': t.addVolatile('confusion'); break;
-            case 'flinch': t.addVolatile('flinch'); break;
+            case 'brn': ok = !!t.trySetStatus('brn', s, m); break;
+            case 'par': ok = !!t.trySetStatus('par', s, m); break;
+            case 'frz': ok = !!t.trySetStatus('frz', s, m); break;
+            case 'psn': ok = !!t.trySetStatus('psn', s, m); break;
+            case 'slp': ok = !!t.trySetStatus('slp', s, m); break;
+            case 'confusion': ok = !!t.addVolatile('confusion'); break;
+            case 'flinch': ok = !!t.addVolatile('flinch'); break;
           }
+          this.add('-message', `Chaos Burst secondary ${ok ? 'APPLIED' : 'did not apply'}: ${picked}`);
         },
       };
+      move.secondary = sec;
+      (move as AnyObject).secondaries = [sec];
     } else {
       move.secondary = undefined;
+      (move as AnyObject).secondaries = undefined;
     }
+
     if (chaos.drain) move.drain = chaos.drain;
     if (chaos.recoil) move.recoil = chaos.recoil;
 
-    // Save plan for onHit
     (move as any)._chaos = chaos;
 
-    // Build & print a human-readable summary of choices
-    const parts: string[] = [];
-    parts.push(`rolled ${chaos.type}-type ${chaos.category}`);
+    // ---------- summary ----------
+    const flagsList = Object.keys(chaos.flags || {}).join(', ') || 'none';
+    let summary = `Chaos Burst rolled ${chaos.type}-type ${chaos.category}, ACC ${chaos.accuracy}%, BP ${chaos.basePower}`;
     if (chaos.category !== 'Status') {
-      parts.push(`${chaos.basePower} BP`);
-      parts.push(`${chaos.accuracy}% acc`);
-      const f = Object.keys(chaos.flags || {});
-      if (f.length) parts.push(`flags: ${f.join(', ')}`);
-      if (chaos.multihit) parts.push(`multi-hit x${chaos.multihit}`);
-      if (chaos.willCrit) parts.push(`guaranteed crit`);
-      if (chaos.secondary) parts.push(`secondary: ${chaos.secondary.kind} (${chaos.secondary.chance}%)`);
-      if (chaos.drain) parts.push(`drain ${Math.round((chaos.drain[0]/chaos.drain[1])*100)}%`);
-      if (chaos.recoil) parts.push(`recoil ${Math.round((chaos.recoil[0]/chaos.recoil[1])*100)}%`);
-      if (chaos.apocalypse) parts.push(`APOCALYPTIC SURGE`);
+      summary += `, flags [${flagsList}]`;
+      if (chaos.multihit) summary += `, multihit x${chaos.multihit}`;
+      if (chaos.willCrit) summary += `, guaranteed crit`;
+      if (chaos.secondary) summary += `, secondary ${chaos.secondary.kind} (${chaos.secondary.chance}%)`;
+      if (chaos.drain) summary += `, drain ${tuplePct(chaos.drain)}%`;
+      if (chaos.recoil) summary += `, recoil ${tuplePct(chaos.recoil)}%`;
+      if (chaos.apocalypse) summary += `, APOCALYPTIC SURGE`;
     } else {
-      parts.push(`${chaos.accuracy}% acc`);
-      if (chaos.coreVolatile) parts.push(`volatile: ${chaos.coreVolatile.id} (${chaos.coreVolatile.who})`);
-      if (chaos.side) parts.push(`side: ${chaos.side.id} (${chaos.side.who})`);
-      if (chaos.field) parts.push(`field: ${chaos.field}`);
-      if (chaos.rare) parts.push(`rare: ${chaos.rare}`);
+      const bits: string[] = [];
+      if (chaos.coreVolatile) bits.push(`volatile ${chaos.coreVolatile.id} (${chaos.coreVolatile.who})`);
+      if (chaos.side) bits.push(`side ${chaos.side.id} (${chaos.side.who})`);
+      if (chaos.field) bits.push(`field ${chaos.field}`);
+      if (chaos.rare) bits.push(`rare ${chaos.rare}`);
       if (chaos.statSwing) {
         const ss = chaos.statSwing;
-        parts.push(`stat: ${ss.who} ${ss.stat} ${ss.amount > 0 ? '+' : ''}${ss.amount}`);
+        bits.push(`stat ${ss.who} ${ss.stat} ${ss.amount > 0 ? '+' : ''}${ss.amount}`);
       }
+      if (bits.length) summary += `, ${bits.join(', ')}`;
     }
-    this.add('-message', `Chaos Burst ${parts.join(' | ')}`);
+    this.add('-message', summary);
   },
 
-  // Apply status-branch planned effects here so summary and effects match
   onHit(target, source, move) {
     const chaos = (move as any)._chaos || {};
-    if (chaos.category !== 'Status') return;
+    if (!chaos) return;
 
-    // target mode for log clarity only
-    if (chaos.targetMode) move.target = chaos.targetMode;
+    if (chaos.category === 'Status') {
+      if (chaos.targetMode) move.target = chaos.targetMode;
 
-    // core volatile
-    if (chaos.coreVolatile) {
-      if (chaos.coreVolatile.who === 'foe') {
+      // Core volatile
+      if (chaos.coreVolatile) {
+        const id = chaos.coreVolatile.id as ID;
+        const t = chaos.coreVolatile.who === 'foe'
+          ? (target || source.side.foe.active.find(x => x && !x.fainted))
+          : source;
+        if (t) {
+          const ok = t.addVolatile(id, source);
+          this.add('-message', `Chaos Burst ${ok ? 'applied' : 'failed to apply'} volatile: ${this.dex.conditions.get(id).name} to ${t.name}`);
+        }
+      }
+
+      // Side
+      if (chaos.side) {
+        const id = chaos.side.id as ID;
+        const side = chaos.side.who === 'foe' ? source.side.foe : source.side;
+        if (!side.getSideCondition(id)) {
+          side.addSideCondition(id, source);
+          this.add('-message', `Chaos Burst started side condition on ${side.name}: ${this.dex.conditions.get(id).name}`);
+        } else {
+          this.add('-message', `Chaos Burst side condition already active on ${side.name}: ${this.dex.conditions.get(id).name}`);
+        }
+      }
+
+      // Field
+      if (chaos.field) {
+        const id = chaos.field as ID;
+        const started = this.field.addPseudoWeather(id, source);
+        this.add('-message', `Chaos Burst ${started ? 'started' : 'failed to start'} field effect: ${this.dex.conditions.get(id).name}`);
+      }
+
+      // Rare
+      if (chaos.rare === 'torrentialblizzardfield') {
+        if (!this.field.isWeather('snowscape') && this.randomChance(1, 2)) {
+          this.field.setWeather('snowscape');
+          this.add('-weather', 'Snowscape', '[from] move: Chaos Burst');
+        }
+        const ok = this.field.addPseudoWeather('torrentialblizzardfield' as ID, source);
+        this.add('-message', `Chaos Burst ${ok ? 'started' : 'failed to start'} field effect: Torrential Blizzard (Field)`);
+      } else if (chaos.rare === 'eyecontactban') {
         const t = target || source.side.foe.active.find(x => x && !x.fainted);
         if (t) {
-          // twinvines needs source for KO credit
-          t.addVolatile(chaos.coreVolatile.id as ID, source);
+          const ok = t.addVolatile('eyecontactban' as ID, source);
+          this.add('-message', `Chaos Burst ${ok ? 'applied' : 'failed to apply'} Eye Contact to ${t.name}`);
         }
-      } else {
-        source.addVolatile(chaos.coreVolatile.id as ID, source);
+      } else if (chaos.rare === 'antiswitchertrap') {
+        const foeSide = source.side.foe;
+        if (!foeSide.getSideCondition('antiswitchertrap' as ID)) {
+          foeSide.addSideCondition('antiswitchertrap' as ID, source);
+          this.add('-message', `Chaos Burst started Anti-switcher on ${foeSide.name}`);
+        } else {
+          this.add('-message', `Chaos Burst: Anti-switcher already active on ${foeSide.name}`);
+        }
+      } else if (chaos.rare === 'bfp') {
+        const ok = source.addVolatile('bfp' as ID, source);
+        this.add('-message', `Chaos Burst ${ok ? 'granted' : 'failed to grant'} next-move priority (+1) to ${source.name}`);
       }
-    }
 
-    // side condition
-    if (chaos.side) {
-      const side = chaos.side.who === 'foe' ? source.side.foe : source.side;
-      if (!side.getSideCondition(chaos.side.id as ID)) {
-        side.addSideCondition(chaos.side.id as ID, source);
+      // Stat swing
+      if (chaos.statSwing) {
+        const who = chaos.statSwing.who === 'foe'
+          ? (target || source.side.foe.active.find(x => x && !x.fainted) || target || source)
+          : source;
+        const boost: AnyObject = {};
+        boost[chaos.statSwing.stat] = chaos.statSwing.amount;
+        this.boost(boost, who, source, move);
+        this.add('-message', `Chaos Burst modified ${who.name}'s ${chaos.statSwing.stat} by ${chaos.statSwing.amount > 0 ? '+' : ''}${chaos.statSwing.amount}`);
       }
-    }
-
-    // field effect
-    if (chaos.field) {
-      this.field.addPseudoWeather(chaos.field as ID, source);
-    }
-
-    // rare picks
-    if (chaos.rare === 'torrentialblizzardfield') {
-      if (!this.field.isWeather('snowscape') && this.randomChance(1, 2)) {
-        this.field.setWeather('snowscape');
-        this.add('-weather', 'Snowscape', '[from] move: Chaos Burst');
-      }
-      this.field.addPseudoWeather('torrentialblizzardfield' as ID, source);
-    } else if (chaos.rare === 'eyecontactban') {
-      const t = target || source.side.foe.active.find(x => x && !x.fainted);
-      if (t) t.addVolatile('eyecontactban' as ID, source);
-    } else if (chaos.rare === 'antiswitchertrap') {
-      const foeSide = source.side.foe;
-      if (!foeSide.getSideCondition('antiswitchertrap' as ID)) {
-        foeSide.addSideCondition('antiswitchertrap' as ID, source);
-      }
-    } else if (chaos.rare === 'bfp') {
-      source.addVolatile('bfp' as ID, source);
-    }
-
-    // stat swing
-    if (chaos.statSwing) {
-      const who = chaos.statSwing.who === 'foe'
-        ? (target || source.side.foe.active.find(x => x && !x.fainted) || target || source)
-        : source;
-      const boost: AnyObject = {};
-      boost[chaos.statSwing.stat] = chaos.statSwing.amount;
-      this.boost(boost, who, source, move);
     }
   },
 
