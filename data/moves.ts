@@ -26437,4 +26437,212 @@ eyecontact: {
   },
 },
 
+chaosburst: {
+  name: "Chaos Burst",
+  type: "Fairy",
+  shortDesc: "Randomized every use: type, cat, BP/Acc, flags, effects.",
+  accuracy: true,
+  basePower: 0,
+  pp: 5,
+  priority: 0,
+  category: "Special",
+  flags: {},
+
+  onPrepareHit(target, source, move) {
+    // ---------- helpers (replace your existing ones) ----------
+const sample = <T>(arr: readonly T[]): T =>
+  arr[this.random(arr.length)];
+
+const chance = (num: number, den: number) =>
+  this.randomChance(num, den);
+
+const sampleWeighted = <T>(choices: ReadonlyArray<{id: T; w: number}>): T => {
+  const total = choices.reduce((s, c) => s + c.w, 0);
+  let r = this.random(total);
+  for (const c of choices) { if ((r -= c.w) < 0) return c.id; }
+  return choices[choices.length - 1].id;
+};
+
+
+    // ---------- pools from your conditions.ts ----------
+    // Strong fits
+    const CHAOS_VOLATILES_FOE: ID[] = ['bleeding','sting','twinvines','attractionvolatile'] as ID[];
+    const CHAOS_VOLATILES_SELF: ID[] = ['revving','shapeshiftermovecat'] as ID[];
+
+    // Good fits (side + field)
+    const CHAOS_SIDE_CONDITIONS: ID[] = ['steamfield','burningfield','sporeguard'] as ID[];
+    const CHAOS_FIELD_EFFECTS: ID[] = ['darkterrain','allterrain','twisteddimensions'] as ID[];
+
+    // Niche but usable (rare)
+    const CHAOS_RARE_MISC: ID[] = ['eyecontactban','antiswitchertrap','torrentialblizzardfield','bfp'] as ID[];
+
+    // ---------- core randomization ----------
+    // ~20% chance to be a Status move
+    move.category = chance(1, 5) ? 'Status' : sample(['Physical', 'Special']);
+
+    // BP 60–150 if damaging; 0 if Status
+    move.basePower = move.category === 'Status' ? 0 : this.random(60, 151);
+
+    // Random type (adjust if you want to include customs)
+    move.type = sample([
+      'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
+      'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
+    ]);
+
+    // Accuracy 70–100
+    move.accuracy = this.random(70, 101);
+
+    // Flags
+    const flagPool = ['contact','sound','punch','slicing','bite','wind','pulse','recharge'] as const;
+    move.flags = {};
+    for (const f of flagPool) if (chance(1, 3)) (move.flags as AnyObject)[f] = 1;
+
+    // Crit / Multihit (only for damaging)
+    if (move.category !== 'Status' && chance(1, 10)) move.willCrit = true;
+    if (move.category !== 'Status' && chance(1, 10)) move.multihit = sample([2,3,4,5]);
+
+    // Offensive secondaries (only for damaging)
+    if (move.category !== 'Status' && chance(1, 2)) {
+      const statusPool = ['brn','par','frz','psn','slp','confusion','flinch'] as const;
+      const picked = sample(statusPool);
+      move.secondary = {
+        chance: this.random(10, 51),
+        onHit(t, s, m) {
+          switch (picked) {
+            case 'brn': t.trySetStatus('brn', s, m); break;
+            case 'par': t.trySetStatus('par', s, m); break;
+            case 'frz': t.trySetStatus('frz', s, m); break;
+            case 'psn': t.trySetStatus('psn', s, m); break;
+            case 'slp': t.trySetStatus('slp', s, m); break;
+            case 'confusion': t.addVolatile('confusion'); break;
+            case 'flinch': t.addVolatile('flinch'); break;
+          }
+        },
+      };
+    }
+
+    // Drain / Recoil (mutually independent; damaging only)
+    if (move.category !== 'Status' && chance(1, 6)) move.drain = [this.random(1, 3), 4]; // 25–50%
+    if (move.category !== 'Status' && chance(1, 6)) move.recoil = [this.random(1, 3), 4]; // 25–50%
+
+    // ---------- STATUS branch: apply chaotic utility ----------
+    if (move.category === 'Status') {
+      // Random targeting style for status effects
+      move.target = sample(['normal','self','allAdjacent','allySide','foeSide'] as MoveTarget[]);
+
+      // We’ll assemble effects in onHit so they’re all applied once
+      move.onHit = function (t, s) {
+        // 1) Strong fits — foe/self volatiles
+        // 70% chance to do ONE core volatile effect:
+        if (chance(7, 10)) {
+          const foeOrSelf = sampleWeighted([
+            {id: 'foe' as const, w: 3},
+            {id: 'self' as const, w: 2},
+          ]);
+          if (foeOrSelf === 'foe') {
+            const v = sample(CHAOS_VOLATILES_FOE);
+            const target = t || s.side.foe.active.find(x => x && !x.fainted) || t;
+            if (target && !target.fainted) {
+              target.addVolatile(v as ID, s);
+              this.add('-message', `${target.name} was afflicted by ${this.dex.conditions.get(v).name}!`);
+            }
+          } else {
+            const v = sample(CHAOS_VOLATILES_SELF);
+            s.addVolatile(v as ID, s);
+            this.add('-message', `${s.name} gained ${this.dex.conditions.get(v).name}!`);
+          }
+        }
+
+        // 2) Good fits — side conditions (30% chance)
+        if (chance(3, 10)) {
+          const whichSide = sampleWeighted([
+            {id: 'foe' as const, w: 3},
+            {id: 'ally' as const, w: 2},
+          ]);
+          const sc = sample(CHAOS_SIDE_CONDITIONS);
+          const side = whichSide === 'foe' ? s.side.foe : s.side;
+          if (!side.getSideCondition(sc)) {
+            side.addSideCondition(sc as ID, s);
+            this.add('-message', `${side.name} gained ${this.dex.conditions.get(sc).name}!`);
+          }
+        }
+
+        // 3) Good fits — field/pseudo-field effects (20% chance)
+        if (chance(1, 5)) {
+          const fe = sample(CHAOS_FIELD_EFFECTS);
+          // These are implemented as field pseudoWeather in your conditions.ts
+          this.field.addPseudoWeather(fe as ID, s);
+          this.add('-message', `The field is affected by ${this.dex.conditions.get(fe).name}!`);
+        }
+
+        // 4) Niche but usable — rare spice (10% chance; ONE pick)
+        if (chance(1, 10)) {
+          const rare = sample(CHAOS_RARE_MISC);
+          if (rare === 'torrentialblizzardfield') {
+            // Ensure it can actually persist sometimes
+            if (!this.field.isWeather('snowscape') && chance(1, 2)) {
+              this.field.setWeather('snowscape');
+              this.add('-weather', 'Snowscape', '[from] move: Chaos Burst');
+            }
+            this.field.addPseudoWeather('torrentialblizzardfield' as ID, s);
+            this.add('-message', `A ${this.dex.conditions.get('torrentialblizzardfield').name} envelopes the field!`);
+          } else if (rare === 'eyecontactban') {
+            const target = t || s.side.foe.active.find(x => x && !x.fainted);
+            if (target) {
+              target.addVolatile('eyecontactban' as ID, s);
+              this.add('-message', `${target.name} is under Eye Contact!`);
+            }
+          } else if (rare === 'antiswitchertrap') {
+            // This is coded as a side watcher/punisher; apply to the FOE side
+            const foeSide = s.side.foe;
+            if (!foeSide.getSideCondition('antiswitchertrap' as ID)) {
+              foeSide.addSideCondition('antiswitchertrap' as ID, s);
+              this.add('-message', `${foeSide.name} is trapped by Anti-switcher!`);
+            }
+          } else if (rare === 'bfp') {
+            // Next-action +1 priority (user)
+            s.addVolatile('bfp' as ID, s);
+            this.add('-message', `${s.name} is braced to move first!`);
+          }
+        }
+
+        // 5) Optional: random stat swing on target (20% chance)
+        if (chance(1, 5)) {
+          const statTable = ['atk','def','spa','spd','spe','accuracy','evasion'] as const;
+          const stat = sample(statTable);
+          const amount = sample([-2,-1,1,2]);
+          const boost: AnyObject = {}; boost[stat] = amount;
+          const victim = t || s.side.foe.active.find(x => x && !x.fainted) || t || s;
+          this.boost(boost, victim, s, move);
+          this.add('-message', `${victim.name}'s ${stat} ${amount > 0 ? 'rose' : 'fell'} by ${Math.abs(amount)}!`);
+        }
+      };
+    }
+
+    // Rare "apocalyptic" burst for damaging variant only (and keep inside your BP/Acc bounds)
+    if (move.category !== 'Status' && chance(1, 30)) {
+      this.add('-message', `${source.name} unleashed an apocalyptic storm of chaos!`);
+      move.basePower = 150;
+      move.accuracy = Math.max(Number(move.accuracy) || 100, 95);
+      move.type = sample(['Electric','Dragon','Dark']);
+      move.category = sample(['Special','Physical']);
+      move.willCrit = true;
+      move.recoil = [1, 2];
+    }
+  },
+
+  onModifyMove(move) {
+    // user-facing summary line
+    if (move.category !== 'Status') {
+      this.add('-message', `Chaos Burst became a ${move.type}-type ${move.category} move with ${move.basePower} BP (${move.accuracy}% acc)!`);
+    } else {
+      this.add('-message', `Chaos Burst became a ${move.type}-type Status move (${move.accuracy}% acc)!`);
+    }
+  },
+
+  target: "normal",
+},
+
+
+
 };
