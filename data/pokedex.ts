@@ -20466,6 +20466,17 @@ oinkolognemega: {
 		weightkg: 50,
 		eggGroups: ["Undiscovered"],
 	},
+	narcissa: {
+  num: -1034, // custom ID; keep negative or any unused number in your mod
+  name: "Narcissa",
+  types: ["Fairy", "Ice"],
+  abilities: {0: "Cold Heart"}, // make sure abilities.ts defines coldheart
+  baseStats: {hp: 75, atk: 115, def: 56, spa: 60, spd: 142, spe: 112},
+  heightm: 1.6,          // flavor; safe defaults
+  weightkg: 38,          // flavor
+  color: "Pink",         // shows on /dexsearch color filters
+  eggGroups: ["Fairy"],  // flavor; adjust if you care about breeding in your mod
+},
 
 
 

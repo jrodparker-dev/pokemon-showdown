@@ -6268,5 +6268,9 @@ mindhoggr: {
 	tier: "OU",
 	isNonstandard: null,
 },
+narcissa: {
+	tier: "OU",
+	isNonstandard: null,
+},
 
 };

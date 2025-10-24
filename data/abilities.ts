@@ -9466,7 +9466,57 @@ magmavein: {
     },
   },
 
+  coldheart: {
+  name: "Cold Heart",
+  shortDesc: "When dealing or taking damage: ignores stat changes, Abilities, and Items.",
+  rating: 5,
+  num: -1001,
 
+  // Attacking with this Pokémon
+  onModifyMove(move, attacker, defender) {
+    move.ignoreDefensive = true;   // ignore target's Def/SpD boosts
+    move.ignoreEvasion = true;
+    move.ignoreAbility = true;     // Mold Breaker effect vs target
+  },
+
+  // Being attacked (opponent's move targeting this Pokémon)
+  onSourceModifyMove(move, attacker, defender) {
+    if (defender === this.effectState.target) {
+      move.ignoreOffensive = true; // ignore attacker's Atk/SpA boosts
+      move.ignoreAbility = true;   // suppress attacker's Ability for this move
+    }
+  },
+
+  // --- Item suppression for the hit (there is no move.ignoreItem) ---
+
+  // When this Pokémon hits someone, suppress the target's item for this action
+  onTryHit(target, source, move) {
+    if (source === this.effectState.target && move.category !== 'Status') {
+      target.addVolatile('coldheart_itemnull');
+    }
+  },
+  // When someone hits this Pokémon, suppress the attacker's item for this action
+  onSourceTryHit(target, source, move) {
+    if (target === this.effectState.target && move.category !== 'Status') {
+      source.addVolatile('coldheart_itemnull');
+    }
+  },
+
+  // Local 1-tick volatile that applies Embargo only for this action
+  condition: {
+    // This volatile is applied to the Pokémon whose item should be ignored
+    noCopy: true,
+    duration: 1, // lasts through the current action
+    onStart(pokemon) {
+      // Embargo suppresses held-item effects (berries, Focus Sash, Choice, etc.)
+      pokemon.addVolatile('embargo');
+    },
+    onEnd(pokemon) {
+      // Ensure we clean up immediately after the action
+      pokemon.removeVolatile('embargo');
+    },
+  },
+}
 
 
 
