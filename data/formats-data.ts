@@ -6051,226 +6051,62 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 		isNonstandard: "Custom",
 		tier: "Illegal",
 	},
-	orthwormmega: {
-		tier: "OU",
-		isNonstandard: null,
-	},
-	relicanthmega: {
-		tier: "OU",
-		isNonstandard: null,
-	},
-	castformmega: {
-		isNonstandard: "Past",
-		tier: "Illegal",
-		natDexTier: "RU",
-	},
-	castformsunnymega: {
-		isNonstandard: "Past",
-	},
-	castformrainymega: {
-		isNonstandard: "Past",
-	},
-	castformsnowymega: {
-		isNonstandard: "Past",
-	},
-	castformrockymega: {
-		isNonstandard: "Past",
-	},
-	sandiron: {
-		tier: "OU",
-		isNonstandard: null,
-	},
-	oinkolognemega: {
-		tier: "OU",
-		isNonstandard: null,
-	},
-	pyrelith: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  glaciarch: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  terrabite: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  zephyren: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  aqualume: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  floracern: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  umbraquill: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  venomire: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  oblivara: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  ferraclaw: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  embergeist: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  thornox: {
-    tier: "OU",
-    isNonstandard: null,
-  },
-  fearmongrodon: {
-	tier: "OU",
-    isNonstandard: null,
-  },
-  klumph: {
-	tier: "OU",
-	isNonstandard: null,
-},
-grawshawg: {
-	tier: "OU",
-	isNonstandard: null,
-},
-nucleode: {
-	tier: "OU",
-	isNonstandard: null,
-},
-cloudstrike: {
-	tier: "OU",
-	isNonstandard: null,
-},
-frostallion: {
-	tier: "OU",
-	isNonstandard: null,
-},
-arachniss: {
-	tier: "OU",
-	isNonstandard: null,
-},
-hexameleon: {
-	tier: "OU",
-	isNonstandard: null,
-},
-glimming: {
-	tier: "OU",
-	isNonstandard: null,
-},
-mutador: {
-	tier: "OU",
-	isNonstandard: null,
-},
-venom: {
-	tier: "OU",
-	isNonstandard: null,
-},
-maha: {
-	tier: "OU",
-	isNonstandard: null,
-},
-spiderman: {
-	tier: "OU",
-	isNonstandard: null,
-},
-spidergwen: {
-	tier: "OU",
-	isNonstandard: null,
-},
-docock: {
-	tier: "OU",
-	isNonstandard: null,
-},
-nivmizzet: {
-	tier: "OU",
-	isNonstandard: null,
-},
-liliana: {
-	tier: "OU",
-	isNonstandard: null,
-},
-moxxi: {
-	tier: "OU",
-	isNonstandard: null,
-},
-mjolnislash: {
-	tier: "OU",
-	isNonstandard: null,
-},
-majesting: {
-	tier: "OU",
-	isNonstandard: null,
-},
-obscuring: {
-	tier: "OU",
-	isNonstandard: null,
-},
-trolossus: {
-	tier: "OU",
-	isNonstandard: null,
-},
-valkirien: {
-	tier: "OU",
-	isNonstandard: null,
-},
-dragrism: {
-	tier: "OU",
-	isNonstandard: null,
-},
-jormora: {
-	tier: "OU",
-	isNonstandard: null,
-},
-jarnoxe: {
-	tier: "OU",
-	isNonstandard: null,
-},
-gjallarhorn: {
-	tier: "OU",
-	isNonstandard: null,
-},
-valdrion: {
-	tier: "OU",
-	isNonstandard: null,
-},
-ignityr: {
-	tier: "OU",
-	isNonstandard: null,
-},
-skarnash: {
-	tier: "OU",
-	isNonstandard: null,
-},
-freylune: {
-	tier: "OU",
-	isNonstandard: null,
-},
-hafgrout: {
-	tier: "OU",
-	isNonstandard: null,
-},
-draughollow: {
-	tier: "OU",
-	isNonstandard: null,
-},
-mindhoggr: {
-	tier: "OU",
-	isNonstandard: null,
-},
-narcissa: {
-	tier: "OU",
-	isNonstandard: null,
-},
+	orthwormmega: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+relicanthmega: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+castformmega: { isNonstandard: "Past", tier: "Illegal", natDexTier: "AG" },
+castformsunnymega: { isNonstandard: "Past", natDexTier: "AG" },
+castformrainymega: { isNonstandard: "Past", natDexTier: "AG" },
+castformsnowymega: { isNonstandard: "Past", natDexTier: "AG" },
+castformrockymega: { isNonstandard: "Past", natDexTier: "AG" },
+sandiron: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+oinkolognemega: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+pyrelith: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+glaciarch: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+terrabite: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+zephyren: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+aqualume: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+floracern: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+umbraquill: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+venomire: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+oblivara: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+ferraclaw: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+embergeist: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+thornox: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+fearmongrodon: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+klumph: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+grawshawg: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+nucleode: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+cloudstrike: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+frostallion: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+arachniss: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+hexameleon: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+glimming: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+mutador: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+venom: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+maha: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+spiderman: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+spidergwen: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+docock: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+nivmizzet: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+liliana: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+moxxi: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+mjolnislash: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+majesting: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+obscuring: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+trolossus: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+valkirien: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+dragrism: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+jormora: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+jarnoxe: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+gjallarhorn: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+valdrion: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+ignityr: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+skarnash: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+freylune: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+hafgrout: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+draughollow: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+mindhoggr: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+narcissa: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+
 
 };
