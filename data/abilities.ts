@@ -9516,10 +9516,333 @@ magmavein: {
       pokemon.removeVolatile('embargo');
     },
   },
-}
+},
+	/** STATSTEALER
+	 * Upon entry, scale each of the user's non-HP stats by (foeBase/selfBase),
+	 * so the effective stat behaves as if you had the foe's base stats.
+	 */
+	statstealer: {
+  name: "Statstealer",
+  shortDesc: "On switch-in, mirrors foe's base Atk/Def/SpA/SpD/Spe (HP unchanged).",
+  rating: 4,
+  onStart(pokemon) {
+    const foe = pokemon.side.foe.active[0];
+    if (!foe) return;
+    const foeSpecies = foe.species;
+    const selfSpecies = pokemon.species;
+    if (!foeSpecies?.baseStats || !selfSpecies?.baseStats) return;
+
+    const sBase = selfSpecies.baseStats;
+    const fBase = foeSpecies.baseStats;
+
+    // store multipliers on pokemon.m (persist for this mon only)
+    pokemon.m.statstealer = {
+      scale: {
+        atk: sBase.atk ? fBase.atk / sBase.atk : 1,
+        def: sBase.def ? fBase.def / sBase.def : 1,
+        spa: sBase.spa ? fBase.spa / sBase.spa : 1,
+        spd: sBase.spd ? fBase.spd / sBase.spd : 1,
+        spe: sBase.spe ? fBase.spe / sBase.spe : 1,
+      },
+    };
+    this.add('-ability', pokemon, 'Statstealer');
+    this.add('-message', `${pokemon.name} mirrored ${foe.name}'s core stats!`);
+  },
+  onModifyAtk(atk, pokemon) {
+    const s = pokemon.m.statstealer?.scale; return s ? this.modify(atk, s.atk) : atk;
+  },
+  onModifyDef(def, pokemon) {
+    const s = pokemon.m.statstealer?.scale; return s ? this.modify(def, s.def) : def;
+  },
+  onModifySpA(spa, pokemon) {
+    const s = pokemon.m.statstealer?.scale; return s ? this.modify(spa, s.spa) : spa;
+  },
+  onModifySpD(spd, pokemon) {
+    const s = pokemon.m.statstealer?.scale; return s ? this.modify(spd, s.spd) : spd;
+  },
+  onModifySpe(spe, pokemon) {
+    const s = pokemon.m.statstealer?.scale; return s ? this.modify(spe, s.spe) : spe;
+  },
+},
+
+
+	/** BLOODHOUND
+	 * On entry: force-switch the opposing active if possible.
+	 * Bonus damage vs targets with your existing 'bleeding' volatile/status.
+	 */
+	bloodhound: {
+  name: "Bloodhound",
+  shortDesc: "On switch-in, phazes foe. 1.3× damage vs targets with [bleeding].",
+  rating: 4,
+  onStart(pokemon) {
+    const foe = pokemon.side.foe.active[0];
+    if (!foe) return;
+
+    // can they be forced out?
+    const anchored = foe.hasAbility?.('suctioncups') || foe.volatiles['ingrain'];
+    if (!anchored && this.canSwitch(foe.side)) {
+      this.add('-ability', pokemon, 'Bloodhound');
+      this.add('-message', `${pokemon.name} flushed out ${foe.name}!`);
+      // Red Card–style phaze: flag the switch and let Actions process it
+      foe.forceSwitchFlag = true;
+    }
+  },
+  onBasePower(basePower, attacker, defender) {
+    if (!defender) return;
+    if (defender.volatiles['bleeding'] || defender.status === 'bleeding') {
+      return this.chainModify(1.3);
+    }
+  },
+},
+
+
+	/** RADIOACTIVE
+	 * Each time this Pokémon uses a damaging move, roll base power uniformly 50–150.
+	 */
+	radioactive: {
+		name: "Radioactive",
+		shortDesc: "When using a damaging move, its base power is rolled 50–150.",
+		rating: 3.5,
+		onModifyMove(move) {
+			if (!move || move.category === 'Status') return;
+			// Integer in [50, 150]
+			const rolled = this.random(50, 151);
+			move.basePower = rolled;
+			// Optional flavor log
+			this.add('-message', `Radioactive power set ${move.name} to ${rolled} BP!`);
+		},
+	},
+
+	/** POROUS WALL
+	 * First time this Pokémon is hit by a given type, halve that damage. Track per-type once.
+	 * Persist across switches for this mon using pokemon.m.
+	 */
+	porouswall: {
+		name: "Porous Wall",
+		shortDesc: "Halves damage the first time it's hit by any given type.",
+		rating: 3.5,
+		onStart(pokemon) {
+			if (!pokemon.m.porousSeenTypes) pokemon.m.porousSeenTypes = Object.create(null) as Record<string, 1>;
+		},
+		onSourceModifyDamage(damage, source, target, move) {
+			if (!move?.type) return;
+			const seen = (target.m.porousSeenTypes ?? (target.m.porousSeenTypes = Object.create(null)));
+			const key = this.toID(move.type); // e.g., 'fire', 'water'
+			if (!seen[key]) {
+				seen[key] = 1;
+				this.add('-ability', target, 'Porous Wall');
+				this.add('-message', `${target.name} buffered the ${move.type}-type hit!`);
+				return this.chainModify(0.5);
+			}
+		},
+	},
+
+	/** WINTER'S BITE
+	 * Boosts Ice moves (1.5×).
+	 * End of each turn: non-Ice foes take 1/16; Water or Ice-weak foes take 1/8.
+	 */
+	wintersbite: {
+		name: "Winter's Bite",
+		shortDesc: "Ice moves 1.5×. EOT chip: non-Ice foes 1/16; Water or Ice-weak 1/8.",
+		rating: 4,
+		onBasePower(basePower, attacker, defender, move) {
+			if (move.type === 'Ice') return this.chainModify(1.5);
+		},
+		onResidual(pokemon) {
+			if (!pokemon.isActive || pokemon.fainted) return;
+			for (const foe of pokemon.side.foe.active) {
+				if (!foe || foe.fainted) continue;
+				if (foe.hasType('Ice')) continue;
+				const iceVsFoe = this.dex.getEffectiveness('Ice', foe);
+				const frac = (foe.hasType('Water') || iceVsFoe > 0) ? 1 / 8 : 1 / 16;
+				this.damage(this.clampIntRange(Math.floor(foe.baseMaxhp * frac), 1), foe, pokemon, this.effect);
+				this.add('-message', `${foe.name} is chilled by Winter's Bite!`);
+			}
+		},
+	},
+
+	/** CHAMELEON
+	 * End of turn: change to up to two types:
+	 *  - one that resists the foe's primary type
+	 *  - one that hits the foe's primary type super-effectively
+	 * If only one bucket available, go mono-type from that.
+	 */
+	chameleon: {
+  name: "Chameleon",
+  shortDesc: "EOT: Type becomes one resist + one SE vs foe's primary type (if possible).",
+  rating: 4,
+  onResidual(pokemon) {
+    const foe = pokemon.side.foe.active[0];
+    if (!foe) return;
+
+    const foePrimary = foe.getTypes()[0];
+    if (!foePrimary) return;
+
+    // normalize to ids for getEffectiveness
+    const foeId = this.toID(foePrimary);
+
+    const allTypes = this.dex.types.all()
+      .map(t => t.name)
+      .filter(t => t !== '???');
+
+    const resists: string[] = [];
+    const supers: string[] = [];
+
+    for (const t of allTypes) {
+      const tid = this.toID(t);
+      // foePrimary (attacking) into defender type t
+      if (this.dex.getEffectiveness(foeId as ID, tid as ID) < 0) resists.push(t);
+      // attacker type t into defender foePrimary
+      if (this.dex.getEffectiveness(tid as ID, foeId as ID) > 0) supers.push(t);
+    }
+    if (!resists.length && !supers.length) return;
+
+    const pick = <T>(arr: T[]) => arr[this.random(arr.length)];
+    const t1 = resists.length ? pick(resists) : undefined;
+    let t2 = supers.length ? pick(supers) : undefined;
+    if (t1 && t2 && t1 === t2) t2 = undefined;
+
+    // Build a clean string[] (no undefineds, no duplicates)
+    const newTypes: string[] = [];
+    if (t1) newTypes.push(t1);
+    if (t2 && (!t1 || t2 !== t1)) newTypes.push(t2);
+
+    if (!newTypes.length) return;
+
+    // Avoid noisy log if nothing actually changes
+    const cur = pokemon.getTypes();
+    if (cur.length === newTypes.length && cur.every((c, i) => c === newTypes[i])) return;
+
+    if (pokemon.setType(newTypes)) {
+      this.add('-ability', pokemon, 'Chameleon');
+      this.add('-start', pokemon, 'typechange', newTypes.join('/'), '[from] ability: Chameleon');
+    }
+  },
+},
+
+
+	/** DEADLY WEB
+	 * When hit by any move: trap the attacker and apply your existing 'sting' volatile.
+	 */
+	deadlyweb: {
+  name: "Deadly Web",
+  shortDesc: "When hit, traps the attacker and inflicts [sting].",
+  rating: 3.5,
+  onDamagingHit(_damage, target, source, move) {
+    if (!source || !move) return;
+
+    this.add('-ability', target, 'Deadly Web', '[of] ' + target);
+
+    // Trap the attacker (true flag = permanent until switch)
+    source.tryTrap(true);
+
+    // Apply your existing 'sting' volatile
+    source.addVolatile('sting');
+
+    this.add('-message', `${source.name} is ensnared in deadly threads!`);
+  },
+},
 
 
 
+	/** CLOUD BODY
+	 * Immune to weather damage and to a curated set of "weather-interacting" moves.
+	 */
+	cloudbody: {
+		name: "Cloud Body",
+		shortDesc: "Immune to weather damage and weather-affected moves (Blizzard, Thunder, etc.).",
+		rating: 3.5,
+		// Weather chip immunity
+		onDamage(damage, target, _source, effect) {
+			if (effect?.effectType === 'Weather') return false;
+		},
+		onImmunity(type) {
+			// Handles internal weather tags like 'sandstorm'/'snow'
+			if (type === 'sandstorm' || type === 'hail' || type === 'snow') return false;
+		},
+		// Hard block certain weather-affected moves
+		onTryHit(target, _source, move) {
+			const weatherMoves = new Set([
+				'blizzard', 'thunder', 'hurricane', 'weatherball', 'solarbeam', 'solarblade', 'hydrosteam',
+			]);
+			if (weatherMoves.has(this.toID(move.name))) {
+				this.add('-immune', target, '[from] ability: Cloud Body');
+				return null;
+			}
+		},
+	},
 
+	/** CRYSTALLIZATION
+	 * Secondary type = held Gem's type. At end of turn, if still holding the Gem, consume it and +1 all stats.
+	 */
+	crystallization: {
+  name: "Crystallization",
+  shortDesc: "Gains a 2nd type from held Gem; EOT consumes unused Gem for +1 all stats.",
+  rating: 4,
+  onStart(pokemon) {
+    const item = pokemon.getItem();
+    if (!item?.isGem) return;
+
+    // Infer gem type from item.id like "firegem", "flyinggem", etc.
+    let secondary: string | null = null;
+    if (item.id && item.id.endsWith('gem')) {
+      const typeId = item.id.slice(0, -3) as ID; // strip "gem"
+      const t = this.dex.types.get(typeId);
+      if (t?.exists) secondary = t.name; // proper cased name
+    }
+    if (!secondary) return;
+
+    const primary = pokemon.getTypes()[0];
+    const newTypes: string[] = [];
+    if (primary) newTypes.push(primary);
+    if (secondary !== primary) newTypes.push(secondary);
+
+    if (!newTypes.length) return;
+
+    if (pokemon.setType(newTypes)) {
+      this.add('-ability', pokemon, 'Crystallization');
+      this.add('-start', pokemon, 'typechange', newTypes.join('/'), '[from] item: ' + item.name);
+    }
+  },
+  onResidual(pokemon) {
+    const item = pokemon.getItem();
+    if (!item?.isGem) return;
+
+    if (pokemon.useItem()) {
+      this.add('-ability', pokemon, 'Crystallization');
+      this.add('-message', `${pokemon.name}'s ${item.name} shattered into power!`);
+      this.boost({atk: 1, def: 1, spa: 1, spd: 1, spe: 1}, pokemon, pokemon, this.effect);
+    }
+  },
+},
+
+
+
+	/** GLITTER SCALES
+	 * On switch-in: foes -1 Acc. Reflect 10% of direct move damage taken back at the source.
+	 */
+	glitterscales: {
+  name: "Glitter Scales",
+  shortDesc: "On switch-in: foes -1 Acc. Reflects 10% of direct damage back to the attacker.",
+  rating: 3.5,
+  onStart(pokemon) {
+    for (const foe of pokemon.side.foe.active) {
+      if (!foe || foe.fainted) continue;
+      this.boost({accuracy: -1}, foe, pokemon, null, true);
+    }
+  },
+  // Use this hook in your older typings (v13–v14 era)
+  onAfterSubDamage(damage, target, source, move) {
+    if (!source || !damage || damage <= 0) return;
+    if (source.side === target.side) return;
+    // only reflect from actual moves, not weather/status/etc.
+    if (!move || move.effectType !== 'Move') return;
+
+    const reflect = Math.max(1, Math.floor(damage * 0.10));
+    this.damage(reflect, source, target, this.effect);
+    this.add('-message', `${target.name}'s Glitter Scales reflected damage!`);
+  },
+},
 
 };
+
