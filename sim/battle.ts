@@ -2091,18 +2091,26 @@ export class Battle {
 {
   const PROTECTED_TYPES = new Set(['Gamma']); // add more if needed: ['Light', 'Gamma']
 
+  // persistent once-per-battle guard
+  // @ts-ignore - `m` is a custom per-Pokémon scratch space that persists through switches
+  const used = (target as any).m?.typeFocusBandUsed === true;
+
   if (
     targetDamage >= target.hp &&                      // would faint
     !target.volatiles['dynamax'] &&                   // can't trigger while Dynamaxed
     [...PROTECTED_TYPES].some(t => target.hasType(t)) &&
-    !target.volatiles['typefocusbandused']            // only trigger once
+    !used                                             // only trigger once per battle
   ) {
     this.add('-message', `${target.name}'s typing kept it hanging on!`);
     targetDamage = target.hp - 1;
-    target.addVolatile('typefocusbandused');          // mark as used
+
+    // mark as used (persists even after switching)
+    // @ts-ignore
+    ((target as any).m ??= {}).typeFocusBandUsed = true;
   }
 }
 // --- End Type-based Focus Band ---
+
 
 
 
@@ -2233,18 +2241,26 @@ export class Battle {
 {
   const PROTECTED_TYPES = new Set(['Gamma']); // add 'Gamma' if desired
 
+  // persistent once-per-battle guard
+  // @ts-ignore
+  const used = (target as any).m?.typeFocusBandUsed === true;
+
   if (
     damage >= target.hp &&
     !target.volatiles['dynamax'] &&
     [...PROTECTED_TYPES].some(t => target.hasType(t)) &&
-    !target.volatiles['typefocusbandused']
+    !used
   ) {
     this.add('-message', `${target.name}'s typing kept it hanging on!`);
     damage = target.hp - 1;
-    target.addVolatile('typefocusbandused');          // prevent repeat
+
+    // mark as used (persists even after switching)
+    // @ts-ignore
+    ((target as any).m ??= {}).typeFocusBandUsed = true;
   }
 }
 // --- End Type-based Focus Band ---
+
 
 
 

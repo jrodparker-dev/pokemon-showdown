@@ -9523,47 +9523,53 @@ magmavein: {
 	 */
 	statstealer: {
   name: "Statstealer",
-  shortDesc: "On switch-in, mirrors foe's base Atk/Def/SpA/SpD/Spe (HP unchanged).",
-  rating: 4,
+  shortDesc: "On switch-in, forme-changes to itself with the foe's base stats (HP unchanged).",
+  rating: 5,
+
   onStart(pokemon) {
+    // Prevent recursive onStart → formeChange → onStart loops
+    if ((pokemon.m as any).statstealerApplied) return;
+
     const foe = pokemon.side.foe.active[0];
     if (!foe) return;
+
     const foeSpecies = foe.species;
     const selfSpecies = pokemon.species;
     if (!foeSpecies?.baseStats || !selfSpecies?.baseStats) return;
 
-    const sBase = selfSpecies.baseStats;
-    const fBase = foeSpecies.baseStats;
+    // Mark as applied *before* formeChange so re-entrant onStart immediately returns
+    (pokemon.m as any).statstealerApplied = true;
 
-    // store multipliers on pokemon.m (persist for this mon only)
-    pokemon.m.statstealer = {
-      scale: {
-        atk: sBase.atk ? fBase.atk / sBase.atk : 1,
-        def: sBase.def ? fBase.def / sBase.def : 1,
-        spa: sBase.spa ? fBase.spa / sBase.spa : 1,
-        spd: sBase.spd ? fBase.spd / sBase.spd : 1,
-        spe: sBase.spe ? fBase.spe / sBase.spe : 1,
-      },
+    // Clone current species (keeps name, types, sprites, ability slots, etc.)
+    const newSpecies: any = this.dex.deepClone(selfSpecies);
+
+    // Replace only non-HP base stats with foe's; keep HP so your HP stays constant
+    newSpecies.baseStats = {
+      hp: selfSpecies.baseStats.hp,
+      atk: foeSpecies.baseStats.atk,
+      def: foeSpecies.baseStats.def,
+      spa: foeSpecies.baseStats.spa,
+      spd: foeSpecies.baseStats.spd,
+      spe: foeSpecies.baseStats.spe,
     };
-    this.add('-ability', pokemon, 'Statstealer');
-    this.add('-message', `${pokemon.name} mirrored ${foe.name}'s core stats!`);
+
+    // Apply the dynamic forme; ability/moves/item/IVs/EVs/nature are unchanged
+    const ok = pokemon.formeChange(newSpecies, this.effect, true);
+    if (ok) {
+      this.add('-ability', pokemon, 'Statstealer');
+      this.add('-message', `${pokemon.name} mirrored ${foe.name}'s core stats!`);
+    }
   },
-  onModifyAtk(atk, pokemon) {
-    const s = pokemon.m.statstealer?.scale; return s ? this.modify(atk, s.atk) : atk;
-  },
-  onModifyDef(def, pokemon) {
-    const s = pokemon.m.statstealer?.scale; return s ? this.modify(def, s.def) : def;
-  },
-  onModifySpA(spa, pokemon) {
-    const s = pokemon.m.statstealer?.scale; return s ? this.modify(spa, s.spa) : spa;
-  },
-  onModifySpD(spd, pokemon) {
-    const s = pokemon.m.statstealer?.scale; return s ? this.modify(spd, s.spd) : spd;
-  },
-  onModifySpe(spe, pokemon) {
-    const s = pokemon.m.statstealer?.scale; return s ? this.modify(spe, s.spe) : spe;
+
+  // Clear the guard when you leave the field so it can reapply next time you come in
+  onSwitchOut(pokemon) {
+    if ((pokemon.m as any).statstealerApplied) {
+      delete (pokemon.m as any).statstealerApplied;
+    }
   },
 },
+
+
 
 
 	/** BLOODHOUND
@@ -9669,56 +9675,102 @@ magmavein: {
 	 */
 	chameleon: {
   name: "Chameleon",
-  shortDesc: "EOT: Type becomes one resist + one SE vs foe's primary type (if possible).",
+  shortDesc: "EOT: Becomes one type that resists the foe's primary and one that hits it super-effectively.",
   rating: 4,
-  onResidual(pokemon) {
-    const foe = pokemon.side.foe.active[0];
-    if (!foe) return;
 
-    const foePrimary = foe.getTypes()[0];
-    if (!foePrimary) return;
-
-    // normalize to ids for getEffectiveness
-    const foeId = this.toID(foePrimary);
-
-    const allTypes = this.dex.types.all()
-      .map(t => t.name)
-      .filter(t => t !== '???');
-
-    const resists: string[] = [];
-    const supers: string[] = [];
-
-    for (const t of allTypes) {
-      const tid = this.toID(t);
-      // foePrimary (attacking) into defender type t
-      if (this.dex.getEffectiveness(foeId as ID, tid as ID) < 0) resists.push(t);
-      // attacker type t into defender foePrimary
-      if (this.dex.getEffectiveness(tid as ID, foeId as ID) > 0) supers.push(t);
+  // Cache foe's primary on entry (fallback if live read fails)
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+    const foe = pokemon.side.foe.active.find(p => p && !p.fainted);
+    if (foe) {
+      const fp = foe.getTypes(true)[0];
+      if (fp) (this.effectState as any).cachedFoePrimary = this.toID(fp);
     }
-    if (!resists.length && !supers.length) return;
+  },
 
-    const pick = <T>(arr: T[]) => arr[this.random(arr.length)];
-    const t1 = resists.length ? pick(resists) : undefined;
-    let t2 = supers.length ? pick(supers) : undefined;
-    if (t1 && t2 && t1 === t2) t2 = undefined;
+  onResidualOrder: 28,
+  onResidualSubOrder: 1,
+  onResidual(pokemon) {
+    if (pokemon.terastallized) return;
+    if (pokemon.hasAbility('multitype') || pokemon.hasAbility('rkssystem')) return;
 
-    // Build a clean string[] (no undefineds, no duplicates)
-    const newTypes: string[] = [];
-    if (t1) newTypes.push(t1);
-    if (t2 && (!t1 || t2 !== t1)) newTypes.push(t2);
+    // Foe primary (prefer live, else cached)
+    let foeId: ID | undefined;
+    const foe = pokemon.side.foe.active.find(p => p && !p.fainted);
+    if (foe) {
+      const fp = foe.getTypes(true)[0];
+      if (fp) foeId = this.toID(fp) as ID;
+      (this.effectState as any).cachedFoePrimary = foeId;
+    } else {
+      foeId = (this.effectState as any).cachedFoePrimary as ID | undefined;
+    }
+    if (!foeId) return;
 
-    if (!newTypes.length) return;
+    // Build usable types (fork-compatible)
+    let typeNames: string[] = [];
+    const tnames = (this.dex.types as any).names as string[] | undefined;
+    if (Array.isArray(tnames) && tnames.length) typeNames = tnames.slice();
+    else {
+      const chart = (this.dex.data as any).TypeChart || (this.dex as any).data?.TypeChart || {};
+      typeNames = Object.keys(chart);
+    }
 
-    // Avoid noisy log if nothing actually changes
-    const cur = pokemon.getTypes();
-    if (cur.length === newTypes.length && cur.every((c, i) => c === newTypes[i])) return;
+    const usable: string[] = [];
+    for (const t of typeNames) {
+      const info = this.dex.types.get(this.toID(t) as ID);
+      if (!info?.exists) continue;
+      if (info.name === '???' || info.name === 'Stellar') continue;
+      usable.push(info.name);
+    }
+    if (!usable.length) return;
 
-    if (pokemon.setType(newTypes)) {
-      this.add('-ability', pokemon, 'Chameleon');
-      this.add('-start', pokemon, 'typechange', newTypes.join('/'), '[from] ability: Chameleon');
+    // === Use TypeChart.damageTaken codes ===
+    const chart = (this.dex.data as any).TypeChart || (this.dex as any).data?.TypeChart || {};
+    const dmg = (defId: ID, atkId: ID): number => {
+      const entry = chart[defId];
+      const v = entry && entry.damageTaken ? entry.damageTaken[atkId] : undefined;
+      return typeof v === 'number' ? v : 0; // default neutral
+    };
+
+    // Build buckets
+    const resists: string[] = []; // types where foe -> this is RESIST (2) or IMMUNE (3)
+    const supers: string[] = [];  // types where this -> foe is WEAK (1)
+    for (const name of usable) {
+      const id = this.toID(name) as ID;
+      const defCode = dmg(id, foeId);   // foe attacks this type
+      const atkCode = dmg(foeId, id);   // this type attacks foe
+
+      if (defCode === 2 || defCode === 3) resists.push(name); // resist or immune
+      if (atkCode === 1) supers.push(name);                   // super-effective
+    }
+
+    // Pick t1 from resists, t2 from supers (fallbacks remain random)
+    const rand = () => usable[this.random(usable.length)];
+    const t1Resist = resists.length ? resists[this.random(resists.length)] : rand();
+    let t2Super   = supers.length  ? supers[this.random(supers.length)]   : rand();
+
+    if (usable.length > 1) {
+      let safety = 8;
+      while (t2Super === t1Resist && safety--) {
+        t2Super = supers.length ? supers[this.random(supers.length)] : rand();
+      }
+    }
+
+    const next: string[] = usable.length > 1 ? [t1Resist, t2Super] : [t1Resist];
+
+    // Avoid no-op
+    const cur = pokemon.getTypes(true);
+    if (cur.length === next.length && cur.every((c, i) => c === next[i])) return;
+
+    if (pokemon.setType(next)) {
+      this.add('-start', pokemon, 'typechange', next.join('/'), '[from] ability: Chameleon');
+      // Optional: quick debug
+       this.add('-hint', `[Chameleon] foe=${foeId} resist=${t1Resist} super=${t2Super}`);
     }
   },
 },
+
 
 
 	/** DEADLY WEB
@@ -9733,15 +9785,16 @@ magmavein: {
 
     this.add('-ability', target, 'Deadly Web', '[of] ' + target);
 
-    // Trap the attacker (true flag = permanent until switch)
-    source.tryTrap(true);
+    // Hard trap (guaranteed)
+    source.addVolatile('trapped', target, this.effect);
+    // Optional legacy helper in your fork:
+    // source.tryTrap(true);
 
-    // Apply your existing 'sting' volatile
     source.addVolatile('sting');
-
     this.add('-message', `${source.name} is ensnared in deadly threads!`);
   },
 },
+
 
 
 
@@ -9783,12 +9836,11 @@ magmavein: {
     const item = pokemon.getItem();
     if (!item?.isGem) return;
 
-    // Infer gem type from item.id like "firegem", "flyinggem", etc.
     let secondary: string | null = null;
     if (item.id && item.id.endsWith('gem')) {
-      const typeId = item.id.slice(0, -3) as ID; // strip "gem"
+      const typeId = item.id.slice(0, -3) as ID;
       const t = this.dex.types.get(typeId);
-      if (t?.exists) secondary = t.name; // proper cased name
+      if (t?.exists) secondary = t.name;
     }
     if (!secondary) return;
 
@@ -9797,14 +9849,17 @@ magmavein: {
     if (primary) newTypes.push(primary);
     if (secondary !== primary) newTypes.push(secondary);
 
-    if (!newTypes.length) return;
-
-    if (pokemon.setType(newTypes)) {
+    if (newTypes.length && pokemon.setType(newTypes)) {
       this.add('-ability', pokemon, 'Crystallization');
       this.add('-start', pokemon, 'typechange', newTypes.join('/'), '[from] item: ' + item.name);
     }
   },
+  onResidualOrder: 28,
+  onResidualSubOrder: 2,
   onResidual(pokemon) {
+    // Don't trigger the omniboost on the same turn you switched in
+    if (pokemon.activeTurns === 0) return;
+
     const item = pokemon.getItem();
     if (!item?.isGem) return;
 
@@ -9817,7 +9872,6 @@ magmavein: {
 },
 
 
-
 	/** GLITTER SCALES
 	 * On switch-in: foes -1 Acc. Reflect 10% of direct move damage taken back at the source.
 	 */
@@ -9825,24 +9879,31 @@ magmavein: {
   name: "Glitter Scales",
   shortDesc: "On switch-in: foes -1 Acc. Reflects 10% of direct damage back to the attacker.",
   rating: 3.5,
+
   onStart(pokemon) {
     for (const foe of pokemon.side.foe.active) {
       if (!foe || foe.fainted) continue;
       this.boost({accuracy: -1}, foe, pokemon, null, true);
     }
   },
-  // Use this hook in your older typings (v13–v14 era)
-  onAfterSubDamage(damage, target, source, move) {
-    if (!source || !damage || damage <= 0) return;
+
+  // Hook should match Iron Barbs / Aftermath
+  onDamagingHitOrder: 1,
+  onDamagingHit(damage, target, source, move) {
+    if (!source || !move || !damage || damage <= 0) return;
     if (source.side === target.side) return;
-    // only reflect from actual moves, not weather/status/etc.
-    if (!move || move.effectType !== 'Move') return;
+
+    // Only reflect for moves that actually deal damage
+    if (move.category === 'Status') return;
 
     const reflect = Math.max(1, Math.floor(damage * 0.10));
     this.damage(reflect, source, target, this.effect);
     this.add('-message', `${target.name}'s Glitter Scales reflected damage!`);
   },
 },
+
+
+
 
 };
 
