@@ -8062,34 +8062,51 @@ corrosioncore: {
 pinata: {
   name: "Pinata",
   shortDesc:
-    "When this Pokémon faints, it scatters a random assortment of hazards (Stealth Rock, Spikes, Toxic Spikes, Sticky Web) onto the opposing side.",
+    "On faint: sets 1 random hazard on the opposing side. If Spikes/Toxic Spikes are chosen, it may add multiple layers (weighted toward 1).",
   rating: 3,
+
   onStart(pokemon) {
-	const cur = pokemon.getTypes(true).join('/');
-	const base = pokemon.species.types.join('/');
+    const cur = pokemon.getTypes(true).join('/');
     this.add('-start', pokemon, 'typechange', cur);
   },
 
   onFaint(pokemon) {
     const foeSide = pokemon.side.foe;
-    const hazards = ['spikes', 'toxicspikes', 'stealthrock', 'stickyweb'];
+    /** Choose exactly one hazard */
+    const hazards = ['stealthrock', 'spikes', 'toxicspikes', 'stickyweb'] as const;
+    const chosen = this.sample(hazards) as ID;
 
-    for (const h of hazards) {
-      let max = 1;
-      if (h === 'spikes') max = 3;
-      if (h === 'toxicspikes') max = 2;
-
-      // Pick random number of layers (0..max)
-      const layers = this.random(max + 1);
-
-      for (let i = 0; i < layers; i++) {
-        foeSide.addSideCondition(h, pokemon);
-      }
+    /** Decide layers with weighting toward 1 */
+    let layers = 1;
+    if (chosen === 'spikes') {
+      // 1 layer ~70%, 2 layers ~20%, 3 layers ~10%
+      const r = this.random(100);
+      layers = (r < 10) ? 3 : (r < 30) ? 2 : 1;
+    } else if (chosen === 'toxicspikes') {
+      // 1 layer ~70%, 2 layers ~30%
+      const r = this.random(100);
+      layers = (r < 30) ? 2 : 1;
+    } else {
+      // stealthrock / stickyweb are single-layer hazards
+      layers = 1;
     }
 
-    this.add('-message', `${pokemon.name}'s Piñata scattered hazards everywhere!`);
+    for (let i = 0; i < layers; i++) {
+      foeSide.addSideCondition(chosen, pokemon);
+    }
+
+    // Nice feedback message
+    const pretty: Record<string, string> = {
+      stealthrock: 'Stealth Rock',
+      spikes: 'Spikes',
+      toxicspikes: 'Toxic Spikes',
+      stickyweb: 'Sticky Web',
+    };
+    const layerText = (chosen === 'spikes' || chosen === 'toxicspikes') ? ` (${layers} layer${layers > 1 ? 's' : ''})` : '';
+    this.add('-message', `${pokemon.name}'s Piñata burst! ${pretty[chosen]} scattered onto the opposing side${layerText}.`);
   },
 },
+
 berrymaster: {
   name: "Berry Master",
   shortDesc: "Ripen + Gluttony + Cud Chew + Cheek Pouch.",
