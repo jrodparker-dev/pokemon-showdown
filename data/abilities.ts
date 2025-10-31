@@ -9692,101 +9692,96 @@ magmavein: {
 	 */
 	chameleon: {
   name: "Chameleon",
-  shortDesc: "EOT: Becomes one type that resists the foe's primary and one that hits it super-effectively.",
-  rating: 4,
-
-  // Cache foe's primary on entry (fallback if live read fails)
-  onStart(pokemon) {
-    const cur = pokemon.getTypes(true).join('/');
-    this.add('-start', pokemon, 'typechange', cur);
-    const foe = pokemon.side.foe.active.find(p => p && !p.fainted);
-    if (foe) {
-      const fp = foe.getTypes(true)[0];
-      if (fp) (this.effectState as any).cachedFoePrimary = this.toID(fp);
-    }
-  },
-
-  onResidualOrder: 28,
+  shortDesc:
+    "End of turn: becomes dual-typed. Primary resists foe’s primary type; secondary is super-effective vs foe’s full typing.",
+  onResidualOrder: 27,
   onResidualSubOrder: 1,
+
   onResidual(pokemon) {
+    // Don’t overwrite Tera
     if (pokemon.terastallized) return;
-    if (pokemon.hasAbility('multitype') || pokemon.hasAbility('rkssystem')) return;
 
-    // Foe primary (prefer live, else cached)
-    let foeId: ID | undefined;
-    const foe = pokemon.side.foe.active.find(p => p && !p.fainted);
-    if (foe) {
-      const fp = foe.getTypes(true)[0];
-      if (fp) foeId = this.toID(fp) as ID;
-      (this.effectState as any).cachedFoePrimary = foeId;
-    } else {
-      foeId = (this.effectState as any).cachedFoePrimary as ID | undefined;
+    // Active foe (Singles-first; graceful fallback)
+    const foes = pokemon.side.foe.active.filter(p => p && !p.fainted);
+    if (!foes.length) return;
+    const foe = foes[0];
+
+    const foeTypes: string[] = foe.getTypes(true);
+    const foePrimary: string | undefined = foeTypes[0];
+    if (!foePrimary) return;
+
+    // All legal types in your dex, filter out weird sentinels
+    const allTypes: string[] = this.dex.types.all()
+      .map(t => t.name)
+      .filter(t => t !== 'Stellar' && t !== '???' && t !== 'Bird');
+
+    // ---------- PRIMARY options: resist or be immune to foe's PRIMARY type ----------
+    const primaryOptions: string[] = [];
+    for (const t of allTypes) {
+      // eff < 0 => resist; immunity => getImmunity(foePrimary, t) === false
+      const eff = this.dex.getEffectiveness(foePrimary, t);
+      const hasEffect = this.dex.getImmunity(foePrimary, t as any); // older typings accept string
+      const isImmune = !hasEffect;
+      if (eff < 0 || isImmune) primaryOptions.push(t);
     }
-    if (!foeId) return;
-
-    // Build usable types (fork-compatible)
-    let typeNames: string[] = [];
-    const tnames = (this.dex.types as any).names as string[] | undefined;
-    if (Array.isArray(tnames) && tnames.length) typeNames = tnames.slice();
-    else {
-      const chart = (this.dex.data as any).TypeChart || (this.dex as any).data?.TypeChart || {};
-      typeNames = Object.keys(chart);
+    // Fallback to neutrals if somehow empty
+    if (!primaryOptions.length) {
+      for (const t of allTypes) {
+        const eff = this.dex.getEffectiveness(foePrimary, t);
+        if (eff <= 0) primaryOptions.push(t);
+      }
+      if (!primaryOptions.length) primaryOptions.push('Normal');
     }
 
-    const usable: string[] = [];
-    for (const t of typeNames) {
-      const info = this.dex.types.get(this.toID(t) as ID);
-      if (!info?.exists) continue;
-      if (info.name === '???' || info.name === 'Stellar') continue;
-      usable.push(info.name);
-    }
-    if (!usable.length) return;
-
-    // === Use TypeChart.damageTaken codes ===
-    const chart = (this.dex.data as any).TypeChart || (this.dex as any).data?.TypeChart || {};
-    const dmg = (defId: ID, atkId: ID): number => {
-      const entry = chart[defId];
-      const v = entry && entry.damageTaken ? entry.damageTaken[atkId] : undefined;
-      return typeof v === 'number' ? v : 0; // default neutral
+    // ---------- SECONDARY options: super-effective vs foe's FULL typing ----------
+    const secondaryOptions: string[] = [];
+    const isImmuneToFoe = (atkType: string): boolean => {
+      // immune if ANY target type confers immunity to this attack type
+      for (const ft of foeTypes) {
+        if (!this.dex.getImmunity(atkType, ft as any)) return true;
+      }
+      return false;
     };
 
-    // Build buckets
-    const resists: string[] = []; // types where foe -> this is RESIST (2) or IMMUNE (3)
-    const supers: string[] = [];  // types where this -> foe is WEAK (1)
-    for (const name of usable) {
-      const id = this.toID(name) as ID;
-      const defCode = dmg(id, foeId);   // foe attacks this type
-      const atkCode = dmg(foeId, id);   // this type attacks foe
-
-      if (defCode === 2 || defCode === 3) resists.push(name); // resist or immune
-      if (atkCode === 1) supers.push(name);                   // super-effective
+    for (const atkType of allTypes) {
+      if (isImmuneToFoe(atkType)) continue; // completely immune -> skip
+      let total = 0;
+      for (const ft of foeTypes) total += this.dex.getEffectiveness(atkType, ft);
+      if (total > 0) secondaryOptions.push(atkType);
     }
-
-    // Pick t1 from resists, t2 from supers (fallbacks remain random)
-    const rand = () => usable[this.random(usable.length)];
-    const t1Resist = resists.length ? resists[this.random(resists.length)] : rand();
-    let t2Super   = supers.length  ? supers[this.random(supers.length)]   : rand();
-
-    if (usable.length > 1) {
-      let safety = 8;
-      while (t2Super === t1Resist && safety--) {
-        t2Super = supers.length ? supers[this.random(supers.length)] : rand();
+    // Fallback: allow neutrals vs full typing
+    if (!secondaryOptions.length) {
+      for (const atkType of allTypes) {
+        if (isImmuneToFoe(atkType)) continue;
+        let total = 0;
+        for (const ft of foeTypes) total += this.dex.getEffectiveness(atkType, ft);
+        if (total === 0) secondaryOptions.push(atkType);
       }
+      if (!secondaryOptions.length) secondaryOptions.push('Normal');
     }
 
-    const next: string[] = usable.length > 1 ? [t1Resist, t2Super] : [t1Resist];
-
-    // Avoid no-op
-    const cur = pokemon.getTypes(true);
-    if (cur.length === next.length && cur.every((c, i) => c === next[i])) return;
-
-    if (pokemon.setType(next)) {
-      this.add('-start', pokemon, 'typechange', next.join('/'), '[from] ability: Chameleon');
-      // Optional: quick debug
-       this.add('-hint', `[Chameleon] foe=${foeId} resist=${t1Resist} super=${t2Super}`);
+    // ---------- Choose randomly (keep it non-deterministic) ----------
+    const primary = this.sample(primaryOptions);
+    let secondary = this.sample(secondaryOptions);
+    if (secondary === primary) {
+      const alt = secondaryOptions.find(t => t !== primary);
+      if (alt) secondary = alt; // prefer two distinct types if possible
     }
+
+    // ---------- Announce & apply ----------
+    const prev = pokemon.getTypes(true).join('/');
+    this.add('-message',
+      `Chameleon options — Primary (resists ${foePrimary}): ${primaryOptions.join(', ')}`);
+    this.add('-message',
+      `Chameleon options — Secondary (SE vs ${foeTypes.join('/')}: ${secondaryOptions.join(', ')})`);
+    this.add('-message', `Chosen types: ${primary} / ${secondary}`);
+
+    pokemon.setType([primary, secondary]);
+    this.add('-start', pokemon, 'typechange', `${primary}/${secondary}`);
+    this.add('-message', `${pokemon.name} adapted into ${primary}/${secondary}! (was ${prev})`);
   },
 },
+
 
 
 
