@@ -1748,6 +1748,48 @@ sting: {
     this.add('-end', pokemon, 'Attract', '[silent]');
   },
 },
+// ========= New non-volatile status: FROSTBITE =========
+// ID: 'frb'
+frb: {
+  name: 'Frostbite',
+  effectType: 'Status',
+  // Same tick as Burn (1/16), but halves Special Attack instead of Attack
+  onStart(target, source, effect) {
+    this.add('-status', target, 'frb');
+    this.add('-message', `${target.name} was afflicted with Frostbite!`);
+  },
+  onResidualOrder: 9,
+  onResidual(pokemon) {
+    if (pokemon.hp) {
+      this.damage(pokemon.baseMaxhp / 16, pokemon);
+    }
+  },
+  // Halve Special Attack (like Burn halves Attack)
+  onModifySpA(spa, pokemon) {
+    return this.chainModify(0.5);
+  },
+  // Interactions: thawing, curing, etc., can be customized further if desired
+},
+
+// ========= Volatile for ABYSSAL MAW ticking & trapping =========
+abyssalmawtrap: {
+  name: 'Abyssal Maw (Trap)',
+  duration: 5,
+  onStart(target, source) {
+    // Trap immediately
+    target.tryTrap(true);
+    this.add('-message', `${target.name} is gripped by the Abyssal Maw!`);
+  },
+  onResidualOrder: 10,
+  onResidual(target) {
+    if (!target.isGrounded()) return; // stops if they become ungrounded
+    this.damage(target.baseMaxhp / 16, target);
+    target.tryTrap(true);
+  },
+  onEnd(target) {
+    this.add('-message', `${target.name} escaped the Abyssal Maw!`);
+  },
+},
 
 
 

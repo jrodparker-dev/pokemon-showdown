@@ -9914,7 +9914,260 @@ magmavein: {
   },
 },
 
+cerebralblaze: {
+  name: "Cerebral Blaze",
+  shortDesc: "At <50% HP: +1 Spe & +1 SpA (once on drop). Fire moves deal 1.25× while <50%.",
+  // Track whether we've already given the stat boosts
+  onStart(p) { this.effectState.boosted = false; },
+  onUpdate(pokemon) {
+    if (pokemon.hp > 0 && pokemon.hp * 2 <= pokemon.baseMaxhp && !this.effectState.boosted) {
+      this.effectState.boosted = true;
+      this.boost({spa: 1, spe: 1}, pokemon, pokemon);
+      this.add('-message', `${pokemon.name}'s Cerebral Blaze ignites!`);
+    }
+  },
+  onBasePower(basePower, attacker, defender, move) {
+    if (move?.type === 'Fire' && attacker.hp * 2 <= attacker.baseMaxhp) {
+      return this.chainModify([5, 4]); // 1.25x
+    }
+  },
+},
 
+torrentialhowl: {
+  name: "Torrential Howl",
+  shortDesc: "When this Pokémon uses a Dark-type move, 30% chance to summon Rain.",
+  onAfterMove(source, target, move) {
+    if (!move || move.type !== 'Dark') return;
+    if (this.randomChance(3, 10)) {
+      if (!this.field.isWeather('raindance')) {
+        this.field.setWeather('raindance');
+        this.add('-message', `Rain began to fall from Torrential Howl!`);
+      }
+    }
+  },
+},
+
+fatefulstrike: {
+  name: "Fateful Strike",
+  shortDesc: "When this Pokémon hits super-effectively: 30% to inflict brn/par/frz/frostbite.",
+  onAfterMoveSecondarySelf(source, target, move) {
+    // handled elsewhere
+  },
+  onAfterMove(attacker, defender, move) {
+    // Only trigger on damaging moves that connected
+    if (!move || move.category === 'Status' || !defender || defender.fainted) return;
+    // Calculate total effectiveness vs full typing
+    const types = defender.getTypes(true);
+    let eff = 0;
+    for (const ft of types) eff += this.dex.getEffectiveness(move.type, ft);
+    if (eff <= 0) return; // not super-effective
+    if (!this.randomChance(3, 10)) return;
+
+    // Randomly pick a status: brn, par, frz, frb (frostbite)
+    const pool = ['brn', 'par', 'frz', 'frb'];
+    const status = this.sample(pool);
+    if (defender.trySetStatus(status as any, attacker, move)) {
+      const pretty = status === 'frb' ? 'Frostbite' : this.dex.conditions.get(status).name;
+      this.add('-message', `Fateful Strike inflicted ${pretty}!`);
+    }
+  },
+},
+
+toxictides: {
+  name: "Toxic Tides",
+  shortDesc: "While this Pokémon is out: grounded non-Poison lose 1/16 HP; Poison heal 1/16 each turn.",
+  onResidualOrder: 27,
+  onResidualSubOrder: 1,
+  onResidual(pokemon) {
+    // Apply once per turn, sourced from the holder
+    for (const mon of this.getAllActive().filter(x => x && !x.fainted)) {
+      if (!mon.isGrounded()) continue;
+      const isPoison = mon.hasType('Poison');
+      if (isPoison) {
+        this.heal(mon.baseMaxhp / 16, mon, pokemon);
+      } else {
+        this.damage(mon.baseMaxhp / 16, mon, pokemon);
+      }
+    }
+    this.add('-message', 'Toxic tides surge across the field!');
+  },
+},
+
+runesteelhide: {
+  name: "Runesteel Hide",
+  shortDesc: "When hit by a physical move, 20% chance to drop the attacker’s Atk and Spe by 1.",
+  onDamagingHit(_damage, target, source, move) {
+    if (!move || move.category !== 'Physical') return;
+    if (this.randomChance(1, 5)) {
+      this.add('-message', 'Stats dropped by Rune Configuration!');
+      this.boost({atk: -1, spe: -1}, source, target);
+    }
+  },
+},
+
+resonantcall: {
+  name: "Resonant Call",
+  shortDesc: "Immune to sound moves; holder’s sound moves gain +1 priority and 1.2× power.",
+  // Immunity (like Soundproof)
+  onTryHit(target, source, move) {
+    if (move && move.flags && move.flags.sound) {
+      this.add('-immune', target, '[from] ability: Resonant Call');
+      return null;
+    }
+  },
+  onAllyTryHitSide(target, source, move) {
+    if (move && move.flags && move.flags.sound) {
+      this.add('-immune', target, '[from] ability: Resonant Call');
+      return null;
+    }
+  },
+  // Holder’s buffs
+  onModifyPriority(priority, pokemon, target, move) {
+    if (move && move.flags && move.flags.sound) return priority + 1;
+  },
+  onBasePower(bp, attacker, defender, move) {
+    if (move && move.flags && move.flags.sound) return this.chainModify([6, 5]); // 1.2x
+  },
+},
+
+
+valorsgrip: {
+  name: "Valor's Grip",
+  shortDesc: "Once/battle: survive a fatal hit at 1 HP. Next turn: Fire/Ground moves 1.3×.",
+  onStart(pokemon) {
+    this.effectState.used = false;
+    this.effectState.boostTurn = 0;
+  },
+
+  // Trigger only on direct damaging moves that would KO
+  onDamage(damage, target, source, effect) {
+    if (this.effectState.used) return;
+
+    const move = effect as any; // older typings: Effect | Move | Condition
+    if (!move || move.effectType !== 'Move') return;         // ignore status/indirect damage
+    if (move.category === 'Status') return;                   // explicit guard
+    if (damage < target.hp) return;                           // not lethal
+
+    // Prevent faint, set to 1 HP and prime next turn buff
+    this.effectState.used = true;
+    this.effectState.boostTurn = this.turn + 1;               // next turn only
+    this.add('-ability', target, "Valor's Grip");
+    this.add('-message', `${target.name} endured the blow with Valor's Grip!`);
+
+    return target.hp - 1;                                     // leave at 1 HP
+  },
+
+  onBasePower(basePower, attacker, defender, move) {
+    if (
+      this.effectState.boostTurn === this.turn &&
+      move && (move.type === 'Fire' || move.type === 'Ground')
+    ) {
+      return this.chainModify([13, 10]); // 1.3x
+    }
+  },
+},
+
+
+echomessenger: {
+  name: "Echo Messenger",
+  shortDesc: "The first move this Pokémon uses always goes first (+5 priority).",
+  onStart(pokemon) { this.effectState.used = false; },
+  onModifyPriority(priority, pokemon, target, move) {
+    if (!move) return;
+    if (!this.effectState.used) return priority + 5;
+  },
+  onAfterMove(pokemon, target, move) {
+    if (move && !this.effectState.used) this.effectState.used = true;
+  },
+},
+
+brisingcharm: {
+  name: "Brising Charm",
+  shortDesc: "End of turn: if this Pokémon used a Grass or Fairy move this turn, heal 1/8 max HP.",
+  onStart(pokemon) { this.effectState.flag = false; },
+  onAfterMove(source, target, move) {
+    if (source !== this.effectState.target && this.effectState.target) return;
+    if (!move) return;
+    if (move.type === 'Grass' || move.type === 'Fairy') this.effectState.flag = true;
+  },
+  onResidualOrder: 27,
+  onResidualSubOrder: 1,
+  onResidual(pokemon) {
+    if (this.effectState.flag) {
+      this.heal(pokemon.baseMaxhp / 8, pokemon, pokemon);
+      this.add('-message', `${pokemon.name} is soothed by the Brising Charm!`);
+      this.effectState.flag = false;
+    }
+  },
+},
+
+abyssalmaw: {
+  name: "Abyssal Maw",
+  shortDesc: "On entry: trap opposing grounded Pokémon; they take 1/16 each turn for 5 turns.",
+  onStart(pokemon) {
+    for (const foe of pokemon.side.foe.active) {
+      if (!foe || foe.fainted || !foe.isGrounded()) continue;
+      if (!foe.volatiles['abyssalmawtrap']) {
+        foe.addVolatile('abyssalmawtrap', pokemon);
+      }
+    }
+    this.add('-message', `The Abyssal Maw opens beneath the foe!`);
+  },
+  // Re-apply on subsequent entries (refreshes duration)
+  onSwitchIn(pokemon) {
+    for (const foe of pokemon.side.foe.active) {
+      if (!foe || foe.fainted || !foe.isGrounded()) continue;
+      if (!foe.volatiles['abyssalmawtrap']) {
+        foe.addVolatile('abyssalmawtrap', pokemon);
+      } else {
+        foe.removeVolatile('abyssalmawtrap');
+        foe.addVolatile('abyssalmawtrap', pokemon);
+      }
+    }
+  },
+},
+
+helsgrasp: {
+  name: "Hel's Grasp",
+  shortDesc: "Moxie clone (Attack +1 after knocking out a target).",
+  onSourceAfterFaint(length, target, source, effect) {
+    if (effect && effect.effectType === 'Move') {
+      this.boost({atk: 1}, source);
+    }
+  },
+},
+
+nioaura: {
+  name: "Nio Aura",
+  shortDesc: "Intimidate clone but lowers Special Attack instead.",
+  onStart(pokemon) {
+    this.add('-ability', pokemon, 'Nio Aura');
+    for (const foe of pokemon.side.foe.active) {
+      if (!foe || foe.fainted) continue;
+      if (!this.runEvent('Intimidate', foe, pokemon)) continue;
+      this.boost({spa: -1}, foe, pokemon, null, true);
+    }
+  },
+},
+
+aesirswill: {
+  name: "Aesir's Will",
+  shortDesc: "On switch-in: Light-type moves get +1 priority for 1 turn. Light moves 1.1× power.",
+  onStart(pokemon) {
+    // mark the current turn as the priority turn
+    this.effectState.priorityTurn = this.turn;
+    this.add('-message', `${pokemon.name}'s Aesir's Will quickens the Light!`);
+  },
+  onModifyPriority(priority, pokemon, target, move) {
+    if (!move) return;
+    if (move.type === 'Light' && this.turn === this.effectState.priorityTurn) {
+      return priority + 1;
+    }
+  },
+  onBasePower(bp, attacker, defender, move) {
+    if (move?.type === 'Light') return this.chainModify([11, 10]); // 1.1x
+  },
+},
 
 
 };
