@@ -1751,25 +1751,34 @@ sting: {
 // ========= New non-volatile status: FROSTBITE =========
 // ID: 'frb'
 frb: {
-  name: 'Frostbite',
+  name: 'frb',
   effectType: 'Status',
-  // Same tick as Burn (1/16), but halves Special Attack instead of Attack
-  onStart(target, source, effect) {
-    this.add('-status', target, 'frb');
-    this.add('-message', `${target.name} was afflicted with Frostbite!`);
-  },
-  onResidualOrder: 9,
-  onResidual(pokemon) {
-    if (pokemon.hp) {
-      this.damage(pokemon.baseMaxhp / 16, pokemon);
+  onStart(target, source, sourceEffect) {
+    // Mirror brn’s message variants
+    if (sourceEffect && sourceEffect.id === 'flameorb') {
+      // If you ever make an "ice orb", swap this line accordingly
+      this.add('-status', target, 'frb', '[from] item: Flame Orb');
+    } else if (sourceEffect && sourceEffect.effectType === 'Ability') {
+      this.add('-status', target, 'frb', '[from] ability: ' + sourceEffect.name, `[of] ${source}`);
+    } else {
+      this.add('-status', target, 'frb');
     }
   },
-  // Halve Special Attack (like Burn halves Attack)
+  // Residual damage: same tick as brn
+  onResidualOrder: 10,
+  onResidual(pokemon) {
+    this.damage(pokemon.baseMaxhp / 16);
+  },
+
+  // Special Attack halving (burn’s physical Atk cut is baked into core dmg;
+  // we explicitly halve SpA here for Frostbite)
   onModifySpA(spa, pokemon) {
+    // If you want certain abilities to ignore this (e.g. Guts-like for SpA),
+    // gate it here by checking pokemon.hasAbility('...') before returning.
     return this.chainModify(0.5);
   },
-  // Interactions: thawing, curing, etc., can be customized further if desired
 },
+
 
 // ========= Volatile for ABYSSAL MAW ticking & trapping =========
 abyssalmawtrap: {

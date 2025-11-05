@@ -26835,5 +26835,23 @@ chaosburst: {
   target: "normal",
 },
 
+frostbite: {
+	accuracy: 100,
+	basePower: 0,
+	category: "Status",
+	name: "Frost Bite",
+	pp: 15,
+	priority: 0,
+	flags: { protect: 1, reflectable: 1, mirror: 1, metronome: 1 },
+	status: 'frb', // your custom Frostbite status
+	secondary: null,
+	target: "normal",
+	type: "Ice",
+	zMove: { boost: { spa: 1 } },
+	contestType: "Beautiful",
+	shortDesc: "Inflicts Frostbite on the target.",
+},
+
+
 
 };

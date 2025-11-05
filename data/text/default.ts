@@ -176,6 +176,14 @@ export const DefaultText: { [id: IDEntry]: DefaultText } = {
 		endFromItem: "  [POKEMON]'s [ITEM] healed its burn!",
 		damage: "  [POKEMON] was hurt by its burn!",
 	},
+	frb: {
+	start: "  [POKEMON] was frostbitten!",
+	startFromItem: "  [POKEMON] was frostbitten by the [ITEM]!",
+	alreadyStarted: "  [POKEMON] is already frostbitten!",
+	end: "  [POKEMON]'s frostbite was healed!",
+	endFromItem: "  [POKEMON]'s [ITEM] cured its frostbite!",
+	damage: "  [POKEMON] was hurt by its frostbite!",
+},
 	frz: {
 		start: "  [POKEMON] was frozen solid!",
 		alreadyStarted: "  [POKEMON] is already frozen solid!",
