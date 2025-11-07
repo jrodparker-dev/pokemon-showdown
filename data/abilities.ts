@@ -9938,7 +9938,7 @@ torrentialhowl: {
   shortDesc: "When this Pokémon uses a Dark-type move, 30% chance to summon Rain.",
   onAfterMove(source, target, move) {
     if (!move || move.type !== 'Dark') return;
-    if (this.randomChance(3, 10)) {
+    if (this.randomChance(6, 10)) {
       if (!this.field.isWeather('raindance')) {
         this.field.setWeather('raindance');
         this.add('-message', `Rain began to fall from Torrential Howl!`);
@@ -9949,29 +9949,46 @@ torrentialhowl: {
 
 fatefulstrike: {
   name: "Fateful Strike",
-  shortDesc: "When this Pokémon hits super-effectively: 30% to inflict brn/par/frz/frostbite.",
-  onAfterMoveSecondarySelf(source, target, move) {
-    // handled elsewhere
+  shortDesc: "When this Pokémon deals super-effective damage: 30% to inflict brn/par/frz/frostbite.",
+  onStart() {
+    this.effectState.lastStatus = null as null | string;
   },
-  onAfterMove(attacker, defender, move) {
-    // Only trigger on damaging moves that connected
-    if (!move || move.category === 'Status' || !defender || defender.fainted) return;
-    // Calculate total effectiveness vs full typing
-    const types = defender.getTypes(true);
-    let eff = 0;
-    for (const ft of types) eff += this.dex.getEffectiveness(move.type, ft);
-    if (eff <= 0) return; // not super-effective
-    if (!this.randomChance(3, 10)) return;
 
-    // Randomly pick a status: brn, par, frz, frb (frostbite)
-    const pool = ['brn', 'par', 'frz', 'frb'];
-    const status = this.sample(pool);
-    if (defender.trySetStatus(status as any, attacker, move)) {
+  // Fires only when the holder hits and actually deals damage
+  onSourceDamagingHit(damage, target, source, move) {
+    if (!move || move.category === 'Status') return;
+    if (!damage || damage <= 0) return; // no proc on miss/immune/no-damage
+
+    // Use the engine helper that includes move.onEffectiveness overrides
+    let typeMod = 0;
+    if (typeof (this as any).getEffectiveness === 'function') {
+      typeMod = (this as any).getEffectiveness(move, target);
+    } else {
+      // very old forks fallback (won’t see onEffectiveness overrides)
+      for (const ft of target.getTypes(true)) {
+        typeMod += this.dex.getEffectiveness(move.type, ft);
+      }
+    }
+
+    if (typeMod <= 0) return;                 // not SE in practice
+    if (!this.randomChance(3, 10)) return;    // 30% chance
+
+    const pool = ['brn', 'par', 'frz', 'frb'] as const;
+    let status = this.sample(pool as unknown as string[]);
+    const last = this.effectState.lastStatus as string | null;
+    if (last && pool.length > 1 && status === last) {
+      status = this.sample((pool as unknown as string[]).filter(s => s !== last));
+    }
+
+    if (target.trySetStatus(status as any, source, move)) {
+      this.effectState.lastStatus = status;
       const pretty = status === 'frb' ? 'Frostbite' : this.dex.conditions.get(status).name;
       this.add('-message', `Fateful Strike inflicted ${pretty}!`);
     }
   },
 },
+
+
 
 toxictides: {
   name: "Toxic Tides",
