@@ -9814,28 +9814,55 @@ magmavein: {
 	 * Immune to weather damage and to a curated set of "weather-interacting" moves.
 	 */
 	cloudbody: {
-		name: "Cloud Body",
-		shortDesc: "Immune to weather damage and weather-affected moves (Blizzard, Thunder, etc.).",
-		rating: 3.5,
-		// Weather chip immunity
-		onDamage(damage, target, _source, effect) {
-			if (effect?.effectType === 'Weather') return false;
-		},
-		onImmunity(type) {
-			// Handles internal weather tags like 'sandstorm'/'snow'
-			if (type === 'sandstorm' || type === 'hail' || type === 'snow') return false;
-		},
-		// Hard block certain weather-affected moves
-		onTryHit(target, _source, move) {
-			const weatherMoves = new Set([
-				'blizzard', 'thunder', 'hurricane', 'weatherball', 'solarbeam', 'solarblade', 'hydrosteam',
-			]);
-			if (weatherMoves.has(this.toID(move.name))) {
-				this.add('-immune', target, '[from] ability: Cloud Body');
-				return null;
-			}
-		},
-	},
+  name: "Cloud Body",
+  shortDesc: "Immune to weather damage and weather-affected moves. While weather is active, immune to moves matching that weather’s type.",
+  rating: 3.5,
+
+  // Weather chip immunity
+  onDamage(damage, target, _source, effect) {
+    if (effect?.effectType === 'Weather') return false;
+  },
+
+  // Internal weather immunities for status-type weather effects
+  onImmunity(type) {
+    if (type === 'sandstorm' || type === 'hail' || type === 'snow') return false;
+  },
+
+  // Immunity to specific “weather-affected” moves (Blizzard, Thunder, etc.)
+  onTryHit(target, source, move) {
+    const weatherMoves = new Set([
+      'blizzard', 'thunder', 'hurricane', 'weatherball', 'solarbeam', 'solarblade',
+      'hydrosteam', 'sandsearstorm', 'springtidestorm', 'bleakwindstorm', 'wildboltstorm',
+    ]);
+    if (weatherMoves.has(this.toID(move.name))) {
+      this.add('-immune', target, '[from] ability: Cloud Body');
+      return null;
+    }
+
+    // ---------- NEW: weather-type immunity logic ----------
+    const weather = this.field.weather;
+    if (!weather) return; // no active weather, skip
+
+    // Map weather → move type to block
+    const weatherTypeMap: Record<string, string> = {
+      rain: 'Water',
+      raindance: 'Water',
+      primordialsea: 'Water',
+      sunnyday: 'Fire',
+      desolateland: 'Fire',
+      sandstorm: 'Rock',
+      snow: 'Ice',
+      hail: 'Ice',
+    };
+
+    const immuneType = weatherTypeMap[weather];
+    if (immuneType && move.type === immuneType) {
+      this.add('-immune', target, '[from] ability: Cloud Body');
+      return null;
+    }
+  },
+},
+
 
 	/** CRYSTALLIZATION
 	 * Secondary type = held Gem's type. At end of turn, if still holding the Gem, consume it and +1 all stats.
@@ -10118,31 +10145,27 @@ brisingcharm: {
   },
 },
 
-abyssalmaw: {
+abyssalmaw: { 
   name: "Abyssal Maw",
   shortDesc: "On entry: trap opposing grounded Pokémon; they take 1/16 each turn for 5 turns.",
   onStart(pokemon) {
     for (const foe of pokemon.side.foe.active) {
       if (!foe || foe.fainted || !foe.isGrounded()) continue;
-      if (!foe.volatiles['abyssalmawtrap']) {
-        foe.addVolatile('abyssalmawtrap', pokemon);
-      }
+      foe.addVolatile('abyssalmawtrap', pokemon);
     }
     this.add('-message', `The Abyssal Maw opens beneath the foe!`);
   },
-  // Re-apply on subsequent entries (refreshes duration)
   onSwitchIn(pokemon) {
+    // Refresh/apply to current foes on future entries, too
     for (const foe of pokemon.side.foe.active) {
       if (!foe || foe.fainted || !foe.isGrounded()) continue;
-      if (!foe.volatiles['abyssalmawtrap']) {
-        foe.addVolatile('abyssalmawtrap', pokemon);
-      } else {
-        foe.removeVolatile('abyssalmawtrap');
-        foe.addVolatile('abyssalmawtrap', pokemon);
-      }
+      // refresh duration if already present
+      if (foe.volatiles['abyssalmawtrap']) foe.removeVolatile('abyssalmawtrap');
+      foe.addVolatile('abyssalmawtrap', pokemon);
     }
   },
 },
+
 
 helsgrasp: {
   name: "Hel's Grasp",

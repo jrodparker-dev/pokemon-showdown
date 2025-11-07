@@ -1783,22 +1783,37 @@ frb: {
 // ========= Volatile for ABYSSAL MAW ticking & trapping =========
 abyssalmawtrap: {
   name: 'Abyssal Maw (Trap)',
+  noCopy: true,
   duration: 5,
+
   onStart(target, source) {
-    // Trap immediately
-    target.tryTrap(true);
+    this.effectState.source = source; // remember who applied it
     this.add('-message', `${target.name} is gripped by the Abyssal Maw!`);
   },
+
+  // This is the key: assert trapping whenever the engine checks switch legality
+  onTrapPokemon(pokemon) {
+    if (!pokemon.isGrounded()) return;
+    pokemon.tryTrap(true);
+  },
+
+  // Chip each turn while grounded; attribute damage to the applier
   onResidualOrder: 10,
   onResidual(target) {
-    if (!target.isGrounded()) return; // stops if they become ungrounded
-    this.damage(target.baseMaxhp / 16, target);
-    target.tryTrap(true);
+    if (!target.isGrounded()) return;
+    this.damage(
+      target.baseMaxhp / 16,
+      target,
+      this.effectState.source,
+      this.dex.conditions.get('abyssalmawtrap')
+    );
   },
+
   onEnd(target) {
     this.add('-message', `${target.name} escaped the Abyssal Maw!`);
   },
 },
+
 
 
 
