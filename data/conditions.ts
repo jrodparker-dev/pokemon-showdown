@@ -1271,7 +1271,7 @@ graspinghandsmark: {
   onStart(target, source) { this.effectState.source = source || null; },
   onSwitchOut(pokemon) {
     const src = this.effectState.source || pokemon;
-    const dmg = Math.max(1, Math.floor(pokemon.baseMaxhp / 3));
+    const dmg = Math.max(1, Math.floor(pokemon.baseMaxhp / 4));
     this.damage(dmg, pokemon, src, {id: 'graspinghands'} as any);
     this.add('-message', `${pokemon.name} took damage from ${src.name}'s Grasping Hands!`);
     pokemon.removeVolatile('graspinghandsmark');
