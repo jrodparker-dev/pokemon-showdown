@@ -9113,7 +9113,7 @@ const pool = this.dex.species.all().filter(s =>
   !(s as any).battleOnly &&
   !(s as any).isMega &&
   !(s as any).isPrimal &&
-  !(s as any).isGigantamax &&
+  !(s as any).isGigantamax /**&&
   !(s as any).isLegendary &&        // exclude legendaries
   !(s as any).isMythical &&         // exclude mythicals
   !(s as any).isSubLegendary &&     // exclude sublegendaries (if field exists)
@@ -9121,7 +9121,7 @@ const pool = this.dex.species.all().filter(s =>
     s.tags.includes('Restricted Legendary') ||
     s.tags.includes('Sub-Legendary') ||
     s.tags.includes('Mythical')
-  ))
+  )) **/
 );
 
 if (!pool.length) return;
