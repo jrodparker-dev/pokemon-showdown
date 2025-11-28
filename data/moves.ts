@@ -26884,9 +26884,8 @@ frostbite: {
 		},
 		target: "normal",
 	},
-
+/*
 	talktothehand: {
-		num: -1002,
 		accuracy: true,
 		basePower: 0,
 		category: "Status",
@@ -26959,7 +26958,7 @@ frostbite: {
 		},
 		secondary: null,
 	},
-
+*/
 	nailscratch: {
 		name: "Nail Scratch",
 		shortDesc: "30% to inflict (Bleeding OR Freeze OR Flinch) at random.",
@@ -27090,7 +27089,7 @@ frostbite: {
 			},
 		},
 	},
-*/
+
 	ragnarokcry: {
 		name: "Ragnarok Cry",
 		shortDesc: "Clears all field effects. If a terrain was removed, -1 SpD to target. Sound.",
@@ -27127,7 +27126,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-/*
+
 	dodgeball: {
 		name: "Dodgeball",
 		shortDesc: "50% OHKO. If it fails, user faints & foe learns Dodgeball in slot 4.",
@@ -27425,7 +27424,7 @@ frostbite: {
 			}
 		},
 	},
-*/
+
 	explosivesspores: {
 		name: "Explosive Spores",
 		shortDesc: "Consumes all stat boosts. BP = 40×#boosts; heal 1/16 max per boost. Combines Ground effectiveness.",
@@ -27462,7 +27461,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-
+*/
 	blindinglight: {
 		name: "Blinding Light",
 		shortDesc: "-1 foe accuracy.",
