@@ -26866,7 +26866,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-*/
+
 
 	fellswoop: {
 		name: "Fell Swoop",
@@ -27047,7 +27047,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-/*
+
 	pyrokinesis: {
 		name: "Pyrokinesis",
 		shortDesc: "5 turns: reflects Fire moves & halves Water damage to this side. (8 with Light Clay.)",
@@ -27090,7 +27090,7 @@ frostbite: {
 			},
 		},
 	},
-*/
+
 	ragnarokcry: {
 		name: "Ragnarok Cry",
 		shortDesc: "Clears all field effects. If a terrain was removed, -1 SpD to target. Sound.",
@@ -27193,7 +27193,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-/*
+
 	drako: {
 		name: "DraKO",
 		shortDesc: "50 BP. If user has +1 in all stats, becomes OHKO. Resets boosts after use.",
@@ -27219,7 +27219,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-*/
+
 	storedscales: {
 		name: "Stored Scales",
 		shortDesc: "20 BP + 20 for each positive stat stage.",
@@ -27239,7 +27239,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-/*
+
 	gammaray: {
 		name: "Gamma Ray",
 		shortDesc: "70 BP, 85% acc. Confuses. 30%: grants target the Radioactive ability.",
@@ -27289,7 +27289,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-*/
+
 	temptingoffer: {
 		name: "Tempting Offer",
 		shortDesc: "Gives the target Regenerator for 1 turn.",
@@ -27320,7 +27320,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-/*
+
 	ultimateslam: {
 		name: "Ultimate Slam",
 		shortDesc: "Random type each use. Excess damage spills to benched foes.",
@@ -27349,7 +27349,7 @@ frostbite: {
 		},
 		target: "normal",
 	},
-*/
+
 	inversepower: {
 		accuracy: 100,
 		basePower: 20,
@@ -27627,5 +27627,5 @@ frostbite: {
 		target: "self",
 	},
 
-
+*/
 };
