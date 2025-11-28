@@ -27143,7 +27143,7 @@ frozenwings: {
         target: "normal",
     },
 
-/*
+
     emberoath: {
         name: "Ember Oath",
         shortDesc: "If this move KOs, user gets +1 Def/SpD.",
@@ -27161,7 +27161,7 @@ frozenwings: {
         },
         target: "normal",
     },
-
+/*
     worthyreturn: {
         name: "Worthy Return",
         shortDesc: "Hits twice (65 each). 20% chance to paralyze per hit.",
