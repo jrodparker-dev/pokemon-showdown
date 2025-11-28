@@ -27161,9 +27161,9 @@ frozenwings: {
         },
         target: "normal",
     },
-	
-	worthyreturn: {
-	name: "Worthy Return",
+
+	smackemtwice: {
+	name: "Smack Em Twice",
     type: "Steel",
     category: "Physical",
     basePower: 65,
@@ -27180,7 +27180,7 @@ frozenwings: {
     // This is the correct way to apply a volatile status.
     // It's a method that fires after the move hits.
     onHit(target, source) {
-        target.addVolatile('worthyhit', source);
+        target.addVolatile('doublehammer', source);
     },
     
     // Use shortDesc for a description of the move.

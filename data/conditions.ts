@@ -1827,16 +1827,16 @@ divinerage: {
     },
 },
 
-worthyhit: {
+doublehammer: {
     // This is a volatile status. It should be a standalone object.
-    name: 'Worthy Hit',
+    name: 'doublehammer',
     duration: 1,
 
     onStart(pokemon, source) {
         // We capture the source here to use it later for the damage calculation.
         this.effectState.source = source;
 		this.effectState.didProc = false;
-        this.add('-start', pokemon, 'Worthy Hit', '[silent]');
+        this.add('-start', pokemon, 'doublehammer', '[silent]');
     },
     
 
@@ -1846,8 +1846,8 @@ worthyhit: {
 		this.effectState.didProc = true;
 		const source = this.effectState.source;
         if (!source || source.fainted || !pokemon.hp || pokemon.fainted) {
-            this.debug('Ending Worthy Hit effect due to fainted source or target');
-            pokemon.removeVolatile('Worthy Hit');
+            this.debug('Ending doublehammer effect due to fainted source or target');
+            pokemon.removeVolatile('doublehammer');
             return;
         }
 		const moveData = {
@@ -1872,7 +1872,7 @@ worthyhit: {
             this.damage(damage, pokemon, source, this.effect);
             this.add('-message', `${pokemon.name} was hit by the returning Hammer!`);
         }  
-		this.add('-end', pokemon, 'Worthy Hit')
+		this.add('-end', pokemon, 'doublehammer')
     },
 },
 
