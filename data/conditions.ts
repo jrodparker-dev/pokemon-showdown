@@ -1827,6 +1827,53 @@ divinerage: {
     },
 },
 
+worthyhit: {
+    // This is a volatile status. It should be a standalone object.
+    name: 'Worthy Hit',
+    duration: 1,
 
+    onStart(pokemon, source) {
+        // We capture the source here to use it later for the damage calculation.
+        this.effectState.source = source;
+		this.effectState.didProc = false;
+        this.add('-start', pokemon, 'Worthy Hit', '[silent]');
+    },
+    
+
+    onEnd(pokemon) {
+
+		if (this.effectState.didProc) return;
+		this.effectState.didProc = true;
+		const source = this.effectState.source;
+        if (!source || source.fainted || !pokemon.hp || pokemon.fainted) {
+            this.debug('Ending Worthy Hit effect due to fainted source or target');
+            pokemon.removeVolatile('Worthy Hit');
+            return;
+        }
+		const moveData = {
+			id: 'bang' as ID,
+            name: 'Bang',
+            accuracy: 100,
+            basePower: 65,
+            category: 'Physical',
+            type: 'Steel',
+            flags: {},
+            priority: 0,
+            target: 'normal',
+			secondary: {
+				chance: 20,
+				status: 'par',},
+		}
+
+
+        // This is the correct way to get damage from a basePower.
+        const damage = this.actions.getDamage(source, pokemon, moveData as any);
+        if (typeof damage === 'number' && damage > 0) {
+            this.damage(damage, pokemon, source, this.effect);
+            this.add('-message', `${pokemon.name} was hit by the returning Hammer!`);
+        }  
+		this.add('-end', pokemon, 'Worthy Hit')
+    },
+},
 
 };

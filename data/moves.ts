@@ -27161,22 +27161,32 @@ frozenwings: {
         },
         target: "normal",
     },
-/*
-    worthyreturn: {
-        name: "Worthy Return",
-        shortDesc: "Hits twice (65 each). 20% chance to paralyze per hit.",
-        type: "Steel",
-        category: "Physical",
-        accuracy: 100,
-        basePower: 65,
-        pp: 15,
-        priority: 0,
-        multihit: 2,
-        flags: {protect: 1, mirror: 1, contact: 1},
-        secondaries: [{chance: 20, status: 'par'}],
-        target: "normal",
+	
+	worthyreturn: {
+	name: "Worthy Return",
+    type: "Steel",
+    category: "Physical",
+    basePower: 65,
+    accuracy: 100,
+    pp: 10,
+    priority: 1,
+    flags: {contact: 1, protect: 1, mirror: 1},
+    target: "normal",
+	secondary: {
+			chance: 20,
+			status: 'par',
+		},
+    
+    // This is the correct way to apply a volatile status.
+    // It's a method that fires after the move hits.
+    onHit(target, source) {
+        target.addVolatile('worthyhit', source);
     },
-*/
+    
+    // Use shortDesc for a description of the move.
+    shortDesc: "A priority move that applies a negative priority end-of-turn attack.",
+},
+
 
     divinerage: {
     name: "Divine Rage",
