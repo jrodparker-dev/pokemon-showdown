@@ -27161,7 +27161,7 @@ frozenwings: {
         },
         target: "normal",
     },
-/*
+
     worthyreturn: {
         name: "Worthy Return",
         shortDesc: "Hits twice (65 each). 20% chance to paralyze per hit.",
@@ -27179,29 +27179,18 @@ frozenwings: {
 
 
     divinerage: {
-        name: "Divine Rage",
-        shortDesc: "Volatile: +1 Atk every time you're hit.",
-        type: "Light",
-        category: "Status",
-        accuracy: true,
-        basePower: 0,
-        pp: 5,
-        priority: 0,
-        flags: {snatch: 1},
-        volatileStatus: 'divinerage',
-        condition: {
-            onStart(pokemon) {
-                this.add('-start', pokemon, 'Divine Rage');
-            },
-            onDamagingHit(_damage, target) {
-                this.boost({atk: 1}, target);
-            },
-            onEnd(pokemon) {
-                this.add('-end', pokemon, 'Divine Rage');
-            },
-        },
-        target: "self",
-    },
-*/
+    name: "Divine Rage",
+    shortDesc: "Volatile: +1 Atk every time you're hit.",
+    type: "Light",
+    category: "Status",
+    accuracy: true,
+    basePower: 0,
+    pp: 5,
+    priority: 0,
+    flags: {snatch: 1},
+    volatileStatus: 'divinerage',
+    target: "self",
+},
+
 
 };

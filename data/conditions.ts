@@ -1814,6 +1814,18 @@ abyssalmawtrap: {
   },
 },
 
+divinerage: {
+    name: 'Divine Rage',
+    onStart(pokemon) {
+        this.add('-start', pokemon, 'Divine Rage');
+    },
+    onDamagingHit(_damage, target) {
+        this.boost({atk: 1}, target);
+    },
+    onEnd(pokemon) {
+        this.add('-end', pokemon, 'Divine Rage');
+    },
+},
 
 
 
