@@ -26930,5 +26930,83 @@ enchantingspin: {
         target: "normal",
     },
 
+runecleave: {
+        name: "Runecleave",
+        shortDesc: "30% Frostbite. If target already has Frostbite, 1.3× power.",
+        type: "Ice",
+        category: "Physical",
+        accuracy: 90,
+        basePower: 90,
+        pp: 15,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, contact: 1, slicing: 1},
+        onBasePower(basePower, _attacker, defender) {
+            if (defender?.status === 'frb') {
+                return this.chainModify([13, 10]);
+            }
+        },
+        secondary: {chance: 30, status: 'frb'},
+        target: "normal",
+    },
+
+
+    lunartide: {
+        name: "Lunar Tide",
+        shortDesc: "Power doubles in Rain or at Night.",
+        type: "Water",
+        category: "Special",
+        accuracy: 100,
+        basePower: 65,
+        pp: 5,
+        priority: 0,
+        flags: {protect: 1, mirror: 1},
+        onBasePower(basePower, attacker, defender, move) {
+            const rainy = this.field.isWeather('raindance') || this.field.isWeather('primordialsea');
+            const night = !!this.field.getPseudoWeather('night');
+            if (rainy || night) return this.chainModify(2);
+        },
+        target: "normal",
+    },
+storedscales: {
+        name: "Stored Scales",
+        shortDesc: "20 BP + 20 for each positive stat stage.",
+        type: "Dragon",
+        category: "Physical",
+        accuracy: 100,
+        basePower: 20,
+        pp: 12,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, contact: 1},
+        basePowerCallback(pokemon) {
+            let plus = 0;
+            for (const stat of ['atk','def','spa','spd','spe','accuracy','evasion'] as const) {
+                plus += Math.max(0, pokemon.boosts[stat] || 0);
+            }
+            return 20 + 20 * plus;
+        },
+        target: "normal",
+    },
+inversepower: {
+        accuracy: 100,
+        basePower: 20,
+        category: "Special",
+        name: "Inverse Power",
+        shortDesc: "Power increases with the target's stat boosts.",
+        pp: 10,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, metronome: 1},
+        type: "Psychic",
+        target: "normal",
+        basePowerCallback(pokemon, target) {
+            let boostTotal = 0;
+            const boosts = target.boosts;
+            for (const stat in boosts) {
+                const boost = (boosts as any)[stat] as number;
+                if (boost > 0) boostTotal += boost;
+            }
+            return 20 + 20 * boostTotal;
+        },
+    },
+
 
 };
