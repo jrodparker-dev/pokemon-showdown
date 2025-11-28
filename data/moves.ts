@@ -27162,7 +27162,7 @@ inversepower: {
     },
     target: "normal",
   },
-
+*/
   fellswoop: {
     name: "Fell Swoop",
     shortDesc: "110 BP, 70% acc. If it misses, user loses 25% max HP.",
@@ -27753,7 +27753,7 @@ inversepower: {
 
 	target: "normal",
 },
-*/
+
 
 
 };
