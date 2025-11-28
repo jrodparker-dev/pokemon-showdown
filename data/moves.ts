@@ -27007,6 +27007,72 @@ inversepower: {
             return 20 + 20 * boostTotal;
         },
     },
+sylvanlament: {
+        name: "Sylvan Lament",
+        shortDesc: "If super effective, applies Leech Seed.",
+        type: "Grass",
+        category: "Special",
+        accuracy: 100,
+        basePower: 75,
+        pp: 12,
+        priority: 0,
+        flags: {protect: 1, mirror: 1},
+        onAfterHit(target, pokemon, move) {
+            if (!target || target.fainted) return;
+            let eff = 0;
+            for (const t of target.getTypes()) {
+                eff += this.dex.getEffectiveness(move.type, t);
+            }
+            if (eff > 0 && !target.volatiles['leechseed']) {
+                target.addVolatile('leechseed', pokemon);
+            }
+        },
+        target: "normal",
+    },
+blindinglight: {
+        name: "Blinding Light",
+        shortDesc: "-1 foe accuracy.",
+        type: "Light",
+        category: "Special",
+        accuracy: 100,
+        basePower: 85,
+        pp: 8,
+        priority: 0,
+        flags: {protect: 1, mirror: 1},
+        secondary: {
+            chance: 100,
+            boosts: {accuracy: -1},
+        },
+        target: "normal",
+    },
+serratedspikes: {
+        name: "Serrated Spikes",
+        shortDesc: "Sets a hazard that inflicts Bleeding on switch-in.",
+        type: "Blood",
+        category: "Status",
+        accuracy: true,
+        basePower: 0,
+        pp: 8,
+        priority: 0,
+        flags: {reflectable: 1, mirror: 1},
+        target: "foeSide",
+        sideCondition: 'serratedspikes',
+        condition: {
+            onStart(side) {
+                this.add('-sidestart', side, 'Serrated Spikes');
+            },
+            onSwitchIn(pokemon) {
+                if (!pokemon.isGrounded() || pokemon.hasItem('heavydutyboots')) return;
+                if (!pokemon.volatiles['bleeding']) {
+                    pokemon.addVolatile('bleeding');
+                    this.add('-message', `${pokemon.name} started bleeding due to Serrated Spikes!`);
+                }
+            },
+            onEnd(side) {
+                this.add('-sideend', side, 'Serrated Spikes');
+            },
+        },
+    },
 
 
 };
