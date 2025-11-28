@@ -26825,6 +26825,110 @@ frostbite: {
 	contestType: "Beautiful",
 	shortDesc: "Inflicts Frostbite on the target.",
 },
+fellswoop: {
+        name: "Fell Swoop",
+        shortDesc: "110 BP, 70% acc. If it misses, user loses 25% max HP.",
+        type: "Dark",
+        category: "Physical",
+        accuracy: 70,
+        basePower: 110,
+        pp: 5,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, contact: 1},
+        onMoveFail(_target, source, move) {
+            if (!source || source.fainted) return;
+            this.damage(Math.floor(source.baseMaxhp / 4), source, source, move);
+        },
+        target: "normal",
+    },
+nailscratch: {
+        name: "Nail Scratch",
+        shortDesc: "30% to inflict (Bleeding OR Freeze OR Flinch) at random.",
+        type: "Ice",
+        category: "Physical",
+        accuracy: 100,
+        basePower: 85,
+        pp: 16,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, contact: 1, slicing: 1},
+        onAfterHit(target, source) {
+            if (!target || target.fainted) return;
+            if (!this.randomChance(3, 10)) return;
+            const roll = this.random(3);
+            if (roll === 0 && !target.volatiles['bleeding']) {
+                target.addVolatile('bleeding', source);
+                this.add('-message', `${target.name} started bleeding!`);
+            } else if (roll === 1) {
+                target.trySetStatus('frz', source);
+            } else {
+                target.addVolatile('flinch', source);
+            }
+        },
+        target: "normal",
+    },
+enchantingspin: {
+        name: "Enchanting Spin",
+        shortDesc: "Hits 3–5 times. Clears hazards on user's side.",
+        type: "Fairy",
+        category: "Physical",
+        accuracy: 100,
+        basePower: 20,
+        pp: 16,
+        priority: 0,
+        multihit: [3, 5],
+        flags: {protect: 1, mirror: 1, contact: 1},
+        onAfterMoveSecondarySelf(pokemon) {
+            const side = pokemon.side;
+            for (const cond of [
+                'spikes', 'toxicspikes', 'stealthrock', 'stickyweb',
+                'serratedspikes', 'gmaxsteelsurge', 'gasoline', 'twinvines',
+            ] as ID[]) {
+                if (side.removeSideCondition(cond)) {
+                    this.add('-sideend', side, this.dex.conditions.get(cond).name,
+                        '[from] move: Enchanting Spin', '[of] ' + pokemon.name);
+                }
+            }
+        },
+        target: "normal",
+    },
+
+
+    blownkiss: {
+        name: "Blown Kiss",
+        shortDesc: "Inflicts paralysis and confusion (100% if it hits).",
+        type: "Fairy",
+        category: "Status",
+        accuracy: 80,
+        basePower: 0,
+        pp: 5,
+        priority: 0,
+        flags: {protect: 1, mirror: 1},
+        onHit(target, source) {
+            target.trySetStatus('par', source);
+            if (!target.volatiles['confusion']) target.addVolatile('confusion', source);
+        },
+        target: "normal",
+    },
+
+
+    voidclaw: {
+        name: "Voidclaw",
+        shortDesc: "If user has no item, hits Fairy neutrally.",
+        type: "Dragon",
+        category: "Physical",
+        accuracy: 100,
+        basePower: 85,
+        pp: 8,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, contact: 1, slicing: 1},
+        onEffectiveness(typeMod, target, type) {
+            if (!target) return;
+            const user = this.activePokemon;
+            if (type === 'Fairy' && user && !user.item) return 0;
+            return typeMod;
+        },
+        target: "normal",
+    },
 
 
 };
