@@ -27161,7 +27161,7 @@ frozenwings: {
         },
         target: "normal",
     },
-
+/*
     worthyreturn: {
         name: "Worthy Return",
         shortDesc: "Hits twice (65 each). 20% chance to paralyze per hit.",
@@ -27176,7 +27176,7 @@ frozenwings: {
         secondaries: [{chance: 20, status: 'par'}],
         target: "normal",
     },
-
+*/
 
     divinerage: {
     name: "Divine Rage",
