@@ -27073,6 +27073,134 @@ serratedspikes: {
             },
         },
     },
+frozenwings: {
+        name: "Frozen Wings",
+        shortDesc: "Combines Flying effectiveness. 10% freeze, 10% confuse.",
+        type: "Ice",
+        category: "Special",
+        accuracy: 90,
+        basePower: 95,
+        pp: 10,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, wind: 1},
+        onEffectiveness(typeMod, target, type) {
+            if (!target) return;
+            return typeMod + this.dex.getEffectiveness('Flying', type);
+        },
+        secondaries: [
+            {chance: 10, status: 'frz'},
+            {chance: 10, volatileStatus: 'confusion'},
+        ],
+        target: "normal",
+    },
+
+
+    venomquake: {
+        name: "Venomquake",
+        shortDesc: "Hits all adjacent Pokémon.",
+        type: "Poison",
+        category: "Physical",
+        accuracy: 100,
+        basePower: 100,
+        pp: 18,
+        priority: 0,
+        flags: {protect: 1, mirror: 1},
+        target: "allAdjacent",
+    },
+
+
+    radiantspear: {
+        name: "Radiant Spear",
+        shortDesc: "Always super effective vs Dark (ignores their second type).",
+        type: "Light",
+        category: "Physical",
+        accuracy: 100,
+        basePower: 80,
+        pp: 15,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, contact: 1},
+        onEffectiveness(typeMod, target, type) {
+            if (!target) return;
+            if (type === 'Dark') return 1;
+            return typeMod;
+        },
+        target: "normal",
+    },
+
+
+    barkbite: {
+        name: "Bark Bite",
+        shortDesc: "30% chance to -1 Spe.",
+        type: "Normal",
+        category: "Physical",
+        accuracy: 100,
+        basePower: 80,
+        pp: 15,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, contact: 1, bite: 1},
+        secondary: {chance: 30, boosts: {spe: -1}},
+        target: "normal",
+    },
+
+
+    emberoath: {
+        name: "Ember Oath",
+        shortDesc: "If this move KOs, user gets +1 Def/SpD.",
+        type: "Fire",
+        category: "Physical",
+        accuracy: 100,
+        basePower: 90,
+        pp: 15,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, contact: 1},
+        onAfterMoveSecondarySelf(pokemon, target) {
+            if (target && target.fainted) {
+                this.boost({def: 1, spd: 1}, pokemon);
+            }
+        },
+        target: "normal",
+    },
+
+    worthyreturn: {
+        name: "Worthy Return",
+        shortDesc: "Hits twice (65 each). 20% chance to paralyze per hit.",
+        type: "Steel",
+        category: "Physical",
+        accuracy: 100,
+        basePower: 65,
+        pp: 15,
+        priority: 0,
+        multihit: 2,
+        flags: {protect: 1, mirror: 1, contact: 1},
+        secondaries: [{chance: 20, status: 'par'}],
+        target: "normal",
+    },
+
+
+    divinerage: {
+        name: "Divine Rage",
+        shortDesc: "Volatile: +1 Atk every time you're hit.",
+        type: "Light",
+        category: "Status",
+        accuracy: true,
+        basePower: 0,
+        pp: 5,
+        priority: 0,
+        flags: {snatch: 1},
+        volatileStatus: 'divinerage',
+        condition: {
+            onStart(pokemon) {
+                this.add('-start', pokemon, 'Divine Rage');
+            },
+            onDamagingHit(_damage, target) {
+                this.boost({atk: 1}, target);
+            },
+            onEnd(pokemon) {
+                this.add('-end', pokemon, 'Divine Rage');
+            },
+        },
+        target: "self",
+    },
 
 
 };
