@@ -27073,6 +27073,7 @@ serratedspikes: {
             },
         },
     },
+	/*
 frozenwings: {
         name: "Frozen Wings",
         shortDesc: "Combines Flying effectiveness. 10% freeze, 10% confuse.",
@@ -27142,7 +27143,7 @@ frozenwings: {
         target: "normal",
     },
 
-
+*/
     emberoath: {
         name: "Ember Oath",
         shortDesc: "If this move KOs, user gets +1 Def/SpD.",
