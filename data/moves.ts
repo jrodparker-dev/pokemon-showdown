@@ -27422,33 +27422,59 @@ bloodoath: {
 
 
     dodgeball: {
-        name: "Dodgeball",
-        shortDesc: "50% OHKO. If it fails, user faints & foe learns Dodgeball in slot 4.",
-        type: "Fighting",
-        category: "Physical",
-        accuracy: 50,
-        basePower: 1,
-        pp: 5,
-        priority: 0,
-        ohko: false,
-        flags: {protect: 1, mirror: 1, contact: 1, metronome: 1},
-        target: "normal",
-        onTryHit(target, source, move) {
-            if (this.randomChance(1, 2)) {
-                move.ohko = true;
-                return;
-            }
-            this.add('-message', `${target.name} caught the dodgeball!`);
-            source.faint();
-            const slot = 3;
-            const learned = (source.battle as any).actions?.haveMove('dodgeball', target) ?
-                null : (target as any).setMove?.('dodgeball', slot);
-            if (learned) {
-                this.add('-message', `${target.name} learned Dodgeball in slot 4!`);
-            }
-            return null;
-        },
-    },
+	name: "Dodgeball",
+	shortDesc: "50% OHKO. If it fails, user faints & foe learns Dodgeball.",
+	type: "Fighting",
+	category: "Physical",
+	accuracy: true,          // 50% is handled manually
+	basePower: 1,
+	pp: 5,
+	priority: 0,
+	flags: {protect: 1, mirror: 1, contact: 1, metronome: 1},
+	target: "normal",
+
+	onTryMove(source, target, move) {
+		// 50%: becomes an OHKO move
+		if (this.randomChance(1, 2)) {
+			move.ohko = true;
+			return; // proceed as OHKO
+		}
+
+		// ---- FAIL CASE ----
+		this.add('-message', `${target.name} caught the dodgeball!`);
+
+		// User faints on a fail
+		source.faint();
+
+		// Give Dodgeball to the target, overwriting a random move
+		if (target && !target.fainted) {
+			// If it already knows Dodgeball, don't bother
+			if (!target.hasMove('dodgeball')) {
+				// Collect all slots that actually have a move
+				const slots: number[] = [];
+				for (let i = 0; i < target.moveSlots.length; i++) {
+					const slot = target.moveSlots[i];
+					if (slot && slot.id) slots.push(i);
+				}
+
+				if (slots.length) {
+					const slotIndex = this.sample(slots);
+					const success = (target as any).setMove
+						? (target as any).setMove('dodgeball', slotIndex)
+						: false;
+
+					if (success) {
+						this.add('-message', `${target.name} learned Dodgeball!`);
+					}
+				}
+			}
+		}
+
+		// Cancel the actual attack (no damage, no normal miss)
+		return null;
+	},
+},
+
 
     
    drako: {
@@ -27563,7 +27589,7 @@ bloodoath: {
             this.add('-message', `${target.name} was tempted with Regenerator!`);
         },
         condition: {
-            duration: 1,
+            duration: 2,
             onEnd(pokemon) {
                 const orig = this.effectState.origAbility as ID | undefined;
                 if (orig) {
@@ -27575,75 +27601,126 @@ bloodoath: {
         target: "normal",
     },
 
-
-    ultimateslam: {
-        name: "Ultimate Slam",
-        shortDesc: "Random type each use. Excess damage spills to benched foes.",
-        type: "Normal",
-        category: "Physical",
-        accuracy: 65,
-        basePower: 150,
-        pp: 5,
-        priority: 0,
-        flags: {protect: 1, mirror: 1},
-        // your random-type logic would go elsewhere
-
-
-        onAfterSubDamage(damage, target, source, move) {
-            if (!damage || !target || target.fainted) return;
-            let spill = 0;
-            if (target.hp <= 0) {
-                const pre = target.lastDamage || damage;
-                spill = Math.max(0, pre - target.hp * -1);
-            }
-            const amount = Math.max(0, spill);
-            if (!amount) return;
-            const bench = target.side.pokemon.filter(p => p !== target && !p.fainted && !p.isActive);
-            if (!bench.length) return;
-            const each = Math.max(1, Math.floor(amount / bench.length));
-            for (const b of bench) this.damage(each, b, source, move);
-        },
-        target: "normal",
-    },
-
-    
-    
-
-    nuclearexplosion: {
-	name: "Nuclear Explosion",
-	shortDesc: "150 BP to all actives. Benched mons lose random ≤50% max HP. User faints.",
-	type: "Gamma",
-	category: "Special",
-	accuracy: true,
+ultimateslam: {
+	name: "Ultimate Slam",
+	shortDesc: "Random type each use. If it KOs, extra damage hits one benched foe.",
+	type: "Normal",
+	category: "Physical",
+	accuracy: 65,
 	basePower: 150,
 	pp: 5,
 	priority: 0,
-	target: "all",              // all active mons
 	flags: {protect: 1, mirror: 1},
-	selfdestruct: "always",     // user faints from the main hit
+	target: "normal",
 
-	onAfterMove(source, _target, move) {
-		// Fallout damage to *benched* mons on both sides
+	// Random type each time it's used
+	onModifyType(move, pokemon) {
+		const pool = [
+			'Normal','Fire','Water','Electric','Grass','Ice',
+			'Fighting','Poison','Ground','Flying','Psychic','Bug',
+			'Rock','Ghost','Dragon','Dark','Steel','Fairy',
+			'Light','Blood','Gamma',
+		] as ID[];
+		const chosen = this.sample(pool);
+		move.type = chosen;
+		this.add('-message', `${pokemon.name}'s Ultimate Slam became ${chosen}-type!`);
+	},
+
+	// After the hit: if we KO'd the target, spill damage to 1 random benched foe
+	onAfterHit(target, source, move) {
+		if (!target || !source) return;
+
+		// Only spill if this move actually knocked out the target
+		if (!target.fainted) return;
+
+		const spill = target.lastDamage || 0;
+		if (!spill) return;
+
+		// Collect benched, non-fainted mons on the same side as the target
+		const bench = target.side.pokemon.filter(
+			p => p && !p.fainted && !p.isActive && p !== target
+		);
+		if (!bench.length) return;
+
+		// Pick one random benched mon
+		const victim = this.sample(bench);
+		if (!victim) return;
+
+		// Apply spill directly to its HP
+		const newHP = Math.max(0, victim.hp - spill);
+		const actuallyDid = victim.hp - newHP;
+		victim.hp = newHP;
+
+		if (actuallyDid > 0) {
+			this.add('-message', `Ultimate Slam's shockwave hit benched ${victim.name} for ${actuallyDid} damage!`);
+		}
+		if (victim.hp <= 0 && !victim.fainted) {
+			victim.faint(source, move as unknown as Effect);
+		}
+	},
+},
+
+    
+nuclearexplosion: {
+	name: "Nuclear Explosion",
+	shortDesc: "150 BP to all actives; benched mons lose random ≤50% max HP; user faints.",
+	type: "Gamma",
+	category: "Status",      // all real damage is handled manually
+	basePower: 0,
+	accuracy: true,
+	pp: 5,
+	priority: 0,
+	target: "all",           // lets us use onHitField
+	flags: {protect: 1, mirror: 1},
+	// no selfdestruct: we faint the user manually
+
+	onHitField(_target, source, move) {
+		// Build a 'real' damaging move object for the 150 BP nuke
+		const nukeMove = this.dex.getActiveMove(move.id);
+		nukeMove.basePower = 150;
+		nukeMove.category = 'Special';
+		nukeMove.type = 'Gamma';
+
 		const sides = [source.side, source.side.foe];
 
+		// 1) 150 BP hit to all *active* Pokémon (both sides)
 		for (const side of sides) {
-			for (const mon of side.pokemon) {
+			for (const mon of side.active) {
 				if (!mon || mon.fainted) continue;
 
-				// Skip all actives; they already took the 150 BP hit
-				if (mon.isActive) continue;
+				const dmg = this.actions.getDamage(source, mon, nukeMove);
+				if (typeof dmg === 'number' && dmg > 0) {
+					this.damage(dmg, mon, source, nukeMove);
+				}
+			}
+		}
 
-				// Use maxhp (what the game actually uses), fall back to baseMaxhp if needed
+		// 2) Fallout: random 1–50% max HP to all *benched* mons (both sides)
+		for (const side of sides) {
+			for (const mon of side.pokemon) {
+				if (!mon || mon.fainted || mon.isActive) continue;
+
 				const maxhp = mon.maxhp || mon.baseMaxhp;
 				if (!maxhp) continue;
 
 				// Random 1–50% of max HP
-				const fraction = this.random(1, 51) / 100;  // [0.01, 0.50]
+				const fraction = this.random(1, 51) / 100; // 0.01–0.50
 				const dmg = Math.floor(maxhp * fraction);
 				if (dmg <= 0) continue;
 
-				this.damage(dmg, mon, source, move);
+				// Debug so you can *see* it’s hitting the bench
+				this.add(
+					'-message',
+					`Nuclear fallout hit benched ${mon.name} for ${dmg} damage!`
+				);
+
+				this.damage(dmg, mon, source, nukeMove);
 			}
+		}
+
+		// 3) User always faints at the end
+		if (source?.hp) {
+			source.faint(source, nukeMove as unknown as Effect);
 		}
 	},
 },
