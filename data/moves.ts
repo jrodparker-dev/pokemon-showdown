@@ -27349,15 +27349,27 @@ bloodoath: {
 			this.add('-sideend', side, 'move: Pyrokinesis');
 		},
 		onTryHit(target, source, move) {
+			// Only care about damaging Fire moves
 			if (!move || move.category === 'Status') return;
 			if (move.type !== 'Fire') return;
 			if (!source || source === target) return;
-			if (!target.side.getSideCondition('pyrokinesis')) return;
+
+			// If it's already a bounced instance, don't reflect again
 			if ((move as any).hasBounced) return;
 
-			(move as any).hasBounced = true;
+			// Only reflect if THIS side has Pyrokinesis active
+			if (!target.side.getSideCondition('pyrokinesis')) return;
+
+			// Create a new ActiveMove that's marked as bounced
+			const newMove = this.dex.getActiveMove(move.id);
+			(newMove as any).hasBounced = true;
+
 			this.add('-activate', target, 'move: Pyrokinesis');
-			this.actions.useMove(move.id, source, {target});
+
+			// Reflect: new source = target, new target = original source
+			this.actions.useMove(newMove, target, {target: source});
+
+			// Cancel the original hit
 			return null;
 		},
 		onAnyModifyDamage(damage, source, target, move) {
@@ -27439,18 +27451,19 @@ bloodoath: {
     },
 
     
-    drako: {
+   drako: {
 	name: "DraKO",
-	shortDesc: "50 BP. If user has +1 in all stats (Atk/Def/SpA/SpD/Spe), becomes OHKO. Resets boosts after use.",
+	shortDesc: "50 BP. If user has +1 in all stats (Atk/Def/SpA/SpD/Spe), becomes guaranteed OHKO. Resets boosts after use.",
 	type: "Dragon",
 	category: "Physical",
-	accuracy: true,
+	accuracy: true, // can't miss normally
 	basePower: 50,
 	pp: 5,
 	priority: 0,
 	flags: {protect: 1, mirror: 1, contact: 1},
-	onTryMove(attacker, _target, move) {
-		const b = attacker.boosts;
+
+	onHit(target, source, move) {
+		const b = source.boosts;
 		const stats: BoostID[] = ['atk', 'def', 'spa', 'spd', 'spe'];
 		let ok = true;
 		for (const stat of stats) {
@@ -27459,12 +27472,18 @@ bloodoath: {
 				break;
 			}
 		}
-		if (ok) move.ohko = true;
+		if (!ok) return; // just do normal 50 BP damage
+
+		// Fully boosted: make it a true OHKO (subject to Sturdy / Sash etc.)
+		this.add('-message', `${source.name}'s DraKO unleashed a one-hit KO!`);
+		this.damage(target.hp, source, target, move); // <- no return here
 	},
+
 	onAfterMove(pokemon) {
 		pokemon.clearBoosts();
 		this.add('-clearboost', pokemon);
 	},
+
 	target: "normal",
 },
 
@@ -27591,32 +27610,47 @@ bloodoath: {
     
 
     nuclearexplosion: {
-        name: "Nuclear Explosion",
-        shortDesc: "Hits everyone for random ≤50% max HP; user faints.",
-        type: "Gamma",
-        category: "Special",
-        accuracy: true,
-        basePower: 150,
-        pp: 5,
-        priority: 0,
-        target: "all",
-        flags: {protect: 1, mirror: 1},
-        selfdestruct: "always",
-        onAfterMove(pokemon, _target, move) {
-            const sides = [pokemon.side, pokemon.side.foe];
-            for (const s of sides) {
-                for (const pkm of s.pokemon) {
-                    if (!pkm || pkm.fainted || pkm === pokemon) continue;
-                    const dmg = Math.floor(pkm.baseMaxhp * (this.random(1, 51) / 100));
-                    if (dmg <= 0) continue;
-                    this.damage(dmg, pkm, pokemon, move);
-                }
-            }
-        },
-    },
+	name: "Nuclear Explosion",
+	shortDesc: "150 BP to all actives. Benched mons lose random ≤50% max HP. User faints.",
+	type: "Gamma",
+	category: "Special",
+	accuracy: true,
+	basePower: 150,
+	pp: 5,
+	priority: 0,
+	target: "all",              // all active mons
+	flags: {protect: 1, mirror: 1},
+	selfdestruct: "always",     // user faints from the main hit
+
+	onAfterMove(source, _target, move) {
+		// Fallout damage to *benched* mons on both sides
+		const sides = [source.side, source.side.foe];
+
+		for (const side of sides) {
+			for (const mon of side.pokemon) {
+				if (!mon || mon.fainted) continue;
+
+				// Skip all actives; they already took the 150 BP hit
+				if (mon.isActive) continue;
+
+				// Use maxhp (what the game actually uses), fall back to baseMaxhp if needed
+				const maxhp = mon.maxhp || mon.baseMaxhp;
+				if (!maxhp) continue;
+
+				// Random 1–50% of max HP
+				const fraction = this.random(1, 51) / 100;  // [0.01, 0.50]
+				const dmg = Math.floor(maxhp * fraction);
+				if (dmg <= 0) continue;
+
+				this.damage(dmg, mon, source, move);
+			}
+		}
+	},
+},
 
 
-    explosivesspores: {
+
+    explosivespores: {
         name: "Explosive Spores",
         shortDesc: "Consumes all stat boosts. BP = 40×#boosts; heal 1/16 max per boost. Combines Ground effectiveness.",
         type: "Grass",
