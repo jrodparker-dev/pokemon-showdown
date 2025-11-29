@@ -27201,6 +27201,457 @@ frozenwings: {
     volatileStatus: 'divinerage',
     target: "self",
 },
+/*	
+bloodoath: {
+        name: "Blood Oath",
+        shortDesc: "−4 prio. Sacrifice 50% max HP. Soul-link target (persists across switch).",
+        type: "Blood",
+        category: "Status",
+        accuracy: true,
+        basePower: 0,
+        pp: 2,
+        priority: -4,
+        flags: {mirror: 1, protect: 0},
+        onTryHit(target, pokemon) {
+            this.damage(Math.floor(pokemon.baseMaxhp / 2), pokemon, pokemon);
+            if (pokemon.fainted) return null;
+            target.side.addSlotCondition(target, 'bloodoath');
+            this.add('-message', `${pokemon.name} bound ${target.name} by a blood oath!`);
+        },
+        slotCondition: {
+            onStart(target, source) {
+                this.add('-start', target, 'Blood Oath', '[of] ' + source);
+                this.effectState.binderSid = source.side.n;
+                this.effectState.binderPos = source.position;
+            },
+            onDamage(damage, target, source, effect) {
+                if (!damage || !source || !effect || effect.id === 'recoil') return;
+                const sid = this.effectState.binderSid;
+                const pos = this.effectState.binderPos;
+                const binder = this.getAtSlot(`${sid}a${pos}` as any);
+                if (binder && !binder.fainted && damage > 0) {
+                    const spill = Math.floor(damage / 3);
+                    if (spill > 0) this.damage(spill, binder, target);
+                }
+            },
+            onEnd(target) {
+                this.add('-end', target, 'Blood Oath');
+            },
+        },
+        target: "normal",
+    },
+
+*/
+
+
+    talktothehand: {
+        accuracy: true,
+        basePower: 0,
+        category: "Status",
+        name: "Talk to the Hand",
+        shortDesc: "Protect. The move that hits into it is disabled for 3 turns.",
+        pp: 16,
+        priority: 4,
+        type: "Fairy",
+        target: "self",
+        flags: {metronome: 1, noassist: 1, failcopycat: 1},
+        stallingMove: true,
+        volatileStatus: 'talktothehand',
+        onPrepareHit(pokemon) {
+            return !!this.queue.willAct() && this.runEvent('StallMove', pokemon);
+        },
+        onHit(pokemon) {
+            pokemon.addVolatile('stall');
+        },
+        condition: {
+            duration: 1,
+            onStart(target) {
+                this.add('-singleturn', target, 'move: Protect');
+            },
+            onTryHitPriority: 3,
+            onTryHit(target, source, move) {
+                if (!move) return;
+
+
+                if (!move.flags['protect'] || move.category === 'Status') {
+                    if (['gmaxoneblow', 'gmaxrapidflow'].includes(move.id)) return;
+                    if (move.isZ || move.isMax) target.getMoveHitData(move).zBrokeProtect = true;
+                    return;
+                }
+
+
+                if (move.smartTarget) {
+                    move.smartTarget = false;
+                } else {
+                    this.add('-activate', target, 'move: Protect');
+                }
+
+
+                const locked = source.getVolatile('lockedmove');
+                if (locked && locked.duration === 2) {
+                    delete source.volatiles['lockedmove'];
+                }
+
+
+                if (move.id !== 'struggle') {
+                    if (!source.volatiles['disable']) {
+                        source.addVolatile('disable', target);
+                    }
+                    const vol = source.volatiles['disable'];
+                    if (vol) {
+                        vol.move = move.id;
+                        vol.duration = 3;
+                    }
+                    this.add('-message', `${source.name}'s ${move.name} was disabled by Talk to the Hand!`);
+                }
+                return this.NOT_FAIL;
+            },
+            onHit(target, source, move) {
+                if (!move || !move.isZOrMaxPowered || move.category === 'Status' || move.id === 'struggle') return;
+                if (!source.volatiles['disable']) {
+                    source.addVolatile('disable', target);
+                }
+                const vol = source.volatiles['disable'];
+                if (vol) {
+                    vol.move = move.id;
+                    vol.duration = 3;
+                }
+                this.add('-message', `${source.name}'s ${move.name} was disabled by Talk to the Hand!`);
+            },
+        },
+        secondary: null,
+    },
+
+    
+    pyrokinesis: {
+	name: "Pyrokinesis",
+	shortDesc: "5 turns: reflects Fire moves & halves Water damage to this side. (8 with Light Clay).",
+	type: "Fire",
+	category: "Status",
+	accuracy: true,
+	basePower: 0,
+	target: "allySide",
+	pp: 15,
+	priority: 0,
+	flags: {snatch: 1},
+	sideCondition: 'pyrokinesis',
+	condition: {
+		name: 'Pyrokinesis',
+		duration: 5,
+		durationCallback(_target, source) {
+			if (source && source.hasItem('lightclay')) return 8;
+			return 5;
+		},
+		onSideStart(side) {
+			this.add('-sidestart', side, 'move: Pyrokinesis');
+		},
+		onSideEnd(side) {
+			this.add('-sideend', side, 'move: Pyrokinesis');
+		},
+		onTryHit(target, source, move) {
+			if (!move || move.category === 'Status') return;
+			if (move.type !== 'Fire') return;
+			if (!source || source === target) return;
+			if (!target.side.getSideCondition('pyrokinesis')) return;
+			if ((move as any).hasBounced) return;
+
+			(move as any).hasBounced = true;
+			this.add('-activate', target, 'move: Pyrokinesis');
+			this.actions.useMove(move.id, source, {target});
+			return null;
+		},
+		onAnyModifyDamage(damage, source, target, move) {
+			if (!move || move.category === 'Status' || move.type !== 'Water') return;
+			if (!target || !target.side.getSideCondition('pyrokinesis')) return;
+			this.debug('Pyrokinesis water damage halved');
+			return this.chainModify(0x800); // 0.5x
+		},
+	},
+},
+
+
+
+    ragnarokcry: {
+        name: "Ragnarok Cry",
+        shortDesc: "Clears all field effects. If a terrain was removed, -1 SpD to target. Sound.",
+        type: "Flying",
+        category: "Special",
+        accuracy: 100,
+        basePower: 90,
+        pp: 15,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, sound: 1},
+        onTryMove(attacker, defender, move) {
+            let removedTerrain = false;
+            if (this.field.terrain) {
+                this.field.clearTerrain();
+                removedTerrain = true;
+            }
+            for (const weather of [
+                'raindance', 'primordialsea', 'sunnyday', 'desolateland',
+                'sandstorm', 'hail', 'snow',
+            ] as ID[]) {
+                if (this.field.isWeather(weather)) {
+                    this.field.clearWeather();
+                    break;
+                }
+            }
+            for (const pw of ['trickroom', 'magicroom', 'wonderroom', 'burningfield', 'steamfield'] as ID[]) {
+                if (this.field.getPseudoWeather(pw)) {
+                    this.field.removePseudoWeather(pw);
+                }
+            }
+            if (removedTerrain) {
+                this.boost({spd: -1}, defender, attacker, move);
+            }
+        },
+        target: "normal",
+    },
+
+
+    dodgeball: {
+        name: "Dodgeball",
+        shortDesc: "50% OHKO. If it fails, user faints & foe learns Dodgeball in slot 4.",
+        type: "Fighting",
+        category: "Physical",
+        accuracy: 50,
+        basePower: 1,
+        pp: 5,
+        priority: 0,
+        ohko: false,
+        flags: {protect: 1, mirror: 1, contact: 1, metronome: 1},
+        target: "normal",
+        onTryHit(target, source, move) {
+            if (this.randomChance(1, 2)) {
+                move.ohko = true;
+                return;
+            }
+            this.add('-message', `${target.name} caught the dodgeball!`);
+            source.faint();
+            const slot = 3;
+            const learned = (source.battle as any).actions?.haveMove('dodgeball', target) ?
+                null : (target as any).setMove?.('dodgeball', slot);
+            if (learned) {
+                this.add('-message', `${target.name} learned Dodgeball in slot 4!`);
+            }
+            return null;
+        },
+    },
+
+    
+    drako: {
+	name: "DraKO",
+	shortDesc: "50 BP. If user has +1 in all stats (Atk/Def/SpA/SpD/Spe), becomes OHKO. Resets boosts after use.",
+	type: "Dragon",
+	category: "Physical",
+	accuracy: true,
+	basePower: 50,
+	pp: 5,
+	priority: 0,
+	flags: {protect: 1, mirror: 1, contact: 1},
+	onTryMove(attacker, _target, move) {
+		const b = attacker.boosts;
+		const stats: BoostID[] = ['atk', 'def', 'spa', 'spd', 'spe'];
+		let ok = true;
+		for (const stat of stats) {
+			if ((b[stat] || 0) < 1) {
+				ok = false;
+				break;
+			}
+		}
+		if (ok) move.ohko = true;
+	},
+	onAfterMove(pokemon) {
+		pokemon.clearBoosts();
+		this.add('-clearboost', pokemon);
+	},
+	target: "normal",
+},
+
+    
+    gammaray: {
+	name: "Gamma Ray",
+	shortDesc: "70 BP, 85% acc. Confuses. 30%: grants target the Radioactive ability.",
+	type: "Gamma",
+	category: "Special",
+	accuracy: 85,
+	basePower: 70,
+	pp: 10,
+	priority: 0,
+	flags: {protect: 1, mirror: 1},
+	secondary: {chance: 100, volatileStatus: 'confusion'},
+	onAfterHit(target, source, move) {
+		if (!target || target.fainted) return;
+		if (!this.randomChance(3, 10)) return;
+
+		// If your Radioactive ability exists, overwrite the target's ability.
+		if (this.dex.abilities.get('radioactive').exists) {
+			target.setAbility('radioactive');
+			this.add('-ability', target, 'Radioactive', '[from] move: Gamma Ray');
+		} else {
+			// Fallback: Radioactive as a volatile instead of a real ability.
+			target.addVolatile('radioactive');
+			this.add('-message', `${target.name} became Radioactive!`);
+		}
+	},
+	target: "normal",
+},
+
+
+    nuclearfangs: {
+	name: "Nuclear Fangs",
+	shortDesc: "Badly poisons the target. 30% chance to give Radioactive ability.",
+	type: "Gamma",
+	category: "Physical",
+	accuracy: 90,
+	basePower: 75,
+	pp: 8,
+	priority: 0,
+	flags: {protect: 1, mirror: 1, contact: 1, bite: 1},
+	secondary: {chance: 100, status: 'tox'},
+	onAfterHit(target, source, move) {
+		if (!target || target.fainted) return;
+		if (!this.randomChance(3, 10)) return;
+
+		if (this.dex.abilities.get('radioactive').exists) {
+			target.setAbility('radioactive');
+			this.add('-ability', target, 'Radioactive', '[from] move: Nuclear Fangs');
+		} else {
+			target.addVolatile('radioactive');
+			this.add('-message', `${target.name} became Radioactive!`);
+		}
+	},
+	target: "normal",
+},
+
+
+    temptingoffer: {
+        name: "Tempting Offer",
+        shortDesc: "Gives the target Regenerator for 1 turn.",
+        type: "Dark",
+        category: "Status",
+        accuracy: true,
+        basePower: 0,
+        pp: 10,
+        priority: 0,
+        flags: {protect: 1, mirror: 1},
+        onHit(target) {
+            if (target.ability === 'regenerator') return;
+            const orig = target.ability;
+            target.setAbility('regenerator');
+            target.addVolatile('temptingoffer');
+            target.volatiles['temptingoffer'].origAbility = orig;
+            this.add('-message', `${target.name} was tempted with Regenerator!`);
+        },
+        condition: {
+            duration: 1,
+            onEnd(pokemon) {
+                const orig = this.effectState.origAbility as ID | undefined;
+                if (orig) {
+                    pokemon.setAbility(orig);
+                    this.add('-message', `${pokemon.name}'s borrowed power faded.`);
+                }
+            },
+        },
+        target: "normal",
+    },
+
+
+    ultimateslam: {
+        name: "Ultimate Slam",
+        shortDesc: "Random type each use. Excess damage spills to benched foes.",
+        type: "Normal",
+        category: "Physical",
+        accuracy: 65,
+        basePower: 150,
+        pp: 5,
+        priority: 0,
+        flags: {protect: 1, mirror: 1},
+        // your random-type logic would go elsewhere
+
+
+        onAfterSubDamage(damage, target, source, move) {
+            if (!damage || !target || target.fainted) return;
+            let spill = 0;
+            if (target.hp <= 0) {
+                const pre = target.lastDamage || damage;
+                spill = Math.max(0, pre - target.hp * -1);
+            }
+            const amount = Math.max(0, spill);
+            if (!amount) return;
+            const bench = target.side.pokemon.filter(p => p !== target && !p.fainted && !p.isActive);
+            if (!bench.length) return;
+            const each = Math.max(1, Math.floor(amount / bench.length));
+            for (const b of bench) this.damage(each, b, source, move);
+        },
+        target: "normal",
+    },
+
+    
+    
+
+    nuclearexplosion: {
+        name: "Nuclear Explosion",
+        shortDesc: "Hits everyone for random ≤50% max HP; user faints.",
+        type: "Gamma",
+        category: "Special",
+        accuracy: true,
+        basePower: 150,
+        pp: 5,
+        priority: 0,
+        target: "all",
+        flags: {protect: 1, mirror: 1},
+        selfdestruct: "always",
+        onAfterMove(pokemon, _target, move) {
+            const sides = [pokemon.side, pokemon.side.foe];
+            for (const s of sides) {
+                for (const pkm of s.pokemon) {
+                    if (!pkm || pkm.fainted || pkm === pokemon) continue;
+                    const dmg = Math.floor(pkm.baseMaxhp * (this.random(1, 51) / 100));
+                    if (dmg <= 0) continue;
+                    this.damage(dmg, pkm, pokemon, move);
+                }
+            }
+        },
+    },
+
+
+    explosivesspores: {
+        name: "Explosive Spores",
+        shortDesc: "Consumes all stat boosts. BP = 40×#boosts; heal 1/16 max per boost. Combines Ground effectiveness.",
+        type: "Grass",
+        category: "Special",
+        accuracy: true,
+        basePower: 0,
+        pp: 5,
+        priority: 0,
+        flags: {protect: 1, mirror: 1, bullet: 1},
+        onEffectiveness(typeMod, target, type) {
+            if (!target) return;
+            return typeMod + this.dex.getEffectiveness('Ground', type);
+        },
+        onModifyMove(move, pokemon) {
+            const boosts = pokemon.boosts;
+            let count = 0;
+            for (const stat of ['atk','def','spa','spd','spe','accuracy','evasion'] as const) {
+                if ((boosts[stat] || 0) !== 0) count += Math.abs(boosts[stat]!);
+            }
+            move.basePower = Math.max(0, 40 * count);
+        },
+        onAfterHit(_target, pokemon) {
+            const boosts = pokemon.boosts;
+            let count = 0;
+            for (const stat of ['atk','def','spa','spd','spe','accuracy','evasion'] as const) {
+                if ((boosts[stat] || 0) !== 0) count += Math.abs(boosts[stat]!);
+            }
+            if (count > 0) {
+                this.heal(Math.floor(pokemon.baseMaxhp / 16) * count, pokemon);
+            }
+            pokemon.clearBoosts();
+            this.add('-clearboost', pokemon);
+        },
+        target: "normal",
+    },
 
 
 };
