@@ -27660,7 +27660,6 @@ ultimateslam: {
 	},
 },
 
-    
 nuclearexplosion: {
 	name: "Nuclear Explosion",
 	shortDesc: "150 BP to all actives; benched mons lose random ≤50% max HP; user faints.",
@@ -27708,13 +27707,21 @@ nuclearexplosion: {
 				const dmg = Math.floor(maxhp * fraction);
 				if (dmg <= 0) continue;
 
-				// Debug so you can *see* it’s hitting the bench
+				// Bench-snipe style: directly modify HP instead of using this.damage()
 				this.add(
 					'-message',
 					`Nuclear fallout hit benched ${mon.name} for ${dmg} damage!`
 				);
 
-				this.damage(dmg, mon, source, nukeMove);
+				let newHP = mon.hp - dmg;
+				if (newHP <= 0) {
+					newHP = 0;
+					mon.hp = 0;
+					// Faint exactly like Bench Snipe does, just with prior damage
+					mon.faint(source, nukeMove as unknown as Effect);
+				} else {
+					mon.hp = newHP;
+				}
 			}
 		}
 
@@ -27724,7 +27731,6 @@ nuclearexplosion: {
 		}
 	},
 },
-
 
 
     explosivespores: {
