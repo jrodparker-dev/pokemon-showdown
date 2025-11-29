@@ -26912,23 +26912,31 @@ enchantingspin: {
 
 
     voidclaw: {
-        name: "Voidclaw",
-        shortDesc: "If user has no item, hits Fairy neutrally.",
-        type: "Dragon",
-        category: "Physical",
-        accuracy: 100,
-        basePower: 85,
-        pp: 8,
-        priority: 0,
-        flags: {protect: 1, mirror: 1, contact: 1, slicing: 1},
-        onEffectiveness(typeMod, target, type) {
-            if (!target) return;
-            const user = this.activePokemon;
-            if (type === 'Fairy' && user && !user.item) return 0;
-            return typeMod;
-        },
-        target: "normal",
-    },
+	name: "Voidclaw",
+	shortDesc: "If user has no item, hits Fairy neutrally.",
+	type: "Dragon",
+	category: "Physical",
+	accuracy: 100,
+	basePower: 85,
+	pp: 8,
+	priority: 0,
+	flags: {protect: 1, mirror: 1, contact: 1, slicing: 1},
+
+	onEffectiveness(typeMod, target, type) {
+		// Only care about Fairy and when we know who is attacking
+		const user = this.activePokemon;
+		if (type !== 'Fairy' || !user) return;
+
+		// User must have no item (Knocked Off, Trick, etc.)
+		if (user.item) return;
+
+		// Dragon vs Fairy is -2; add +2 so it becomes neutral
+		return 2;
+	},
+
+	target: "normal",
+},
+
 
 runecleave: {
         name: "Runecleave",
@@ -27421,63 +27429,63 @@ bloodoath: {
     },
 
 
-    dodgeball: {
+   dodgeball: {
 	name: "Dodgeball",
 	shortDesc: "50% OHKO. If it fails, user faints & foe learns Dodgeball.",
 	type: "Fighting",
 	category: "Physical",
-	accuracy: true,          // 50% is handled manually
+	accuracy: true, // we handle the 50% ourselves
 	basePower: 1,
 	pp: 5,
 	priority: 0,
 	flags: {protect: 1, mirror: 1, contact: 1, metronome: 1},
 	target: "normal",
 
+	// Decide which outcome happens
 	onTryMove(source, target, move) {
-		// 50%: becomes an OHKO move
+		// 50%: succeed, mark it and let the move go through
 		if (this.randomChance(1, 2)) {
-			move.ohko = true;
-			return; // proceed as OHKO
+			(move as any).dodgeballSuccess = true;
+			return; // proceed to normal hit
 		}
 
 		// ---- FAIL CASE ----
 		this.add('-message', `${target.name} caught the dodgeball!`);
 
-		// User faints on a fail
+		// User faints
 		source.faint();
 
-		// Give Dodgeball to the target, overwriting a random move
-		if (target && !target.fainted) {
-			// If it already knows Dodgeball, don't bother
-			if (!target.hasMove('dodgeball')) {
-				// Collect all slots that actually have a move
-				const slots: number[] = [];
-				for (let i = 0; i < target.moveSlots.length; i++) {
-					const slot = target.moveSlots[i];
-					if (slot && slot.id) slots.push(i);
-				}
-
-				if (slots.length) {
-					const slotIndex = this.sample(slots);
-					const success = (target as any).setMove
-						? (target as any).setMove('dodgeball', slotIndex)
-						: false;
-
-					if (success) {
-						this.add('-message', `${target.name} learned Dodgeball!`);
-					}
-				}
+		// Target learns Dodgeball, overwriting a random move slot
+		if (target && !target.fainted && !target.hasMove('dodgeball')) {
+			const slots: number[] = [];
+			for (let i = 0; i < target.moveSlots.length; i++) {
+				const slot = target.moveSlots[i];
+				if (slot && slot.id) slots.push(i);
+			}
+			if (slots.length) {
+				const slotIndex = this.sample(slots);
+				// setMove is void in your fork; just call it
+				(target as any).setMove?.('dodgeball', slotIndex);
+				this.add('-message', `${target.name} learned Dodgeball!`);
 			}
 		}
 
-		// Cancel the actual attack (no damage, no normal miss)
+		// Cancel the attack (no damage, no normal miss)
 		return null;
+	},
+
+	// If we chose the success outcome, make it a true OHKO on hit
+	onHit(target, source, move) {
+		if (!(move as any).dodgeballSuccess) return;
+		if (!target || target.fainted) return;
+
+		this.add('-message', `${source.name}'s Dodgeball scored a one-hit KO!`);
+		// Deal exactly the target's remaining HP as extra damage
+		this.damage(target.hp, target, source, move);
 	},
 },
 
-
-    
-   drako: {
+    drako: {
 	name: "DraKO",
 	shortDesc: "50 BP. If user has +1 in all stats (Atk/Def/SpA/SpD/Spe), becomes guaranteed OHKO. Resets boosts after use.",
 	type: "Dragon",
@@ -27498,11 +27506,11 @@ bloodoath: {
 				break;
 			}
 		}
-		if (!ok) return; // just do normal 50 BP damage
+		if (!ok || !target || target.fainted) return; // just do normal 50 BP damage
 
 		// Fully boosted: make it a true OHKO (subject to Sturdy / Sash etc.)
 		this.add('-message', `${source.name}'s DraKO unleashed a one-hit KO!`);
-		this.damage(target.hp, source, target, move); // <- no return here
+		this.damage(target.hp, target, source, move); // correct order: (dmg, target, source)
 	},
 
 	onAfterMove(pokemon) {
@@ -27603,7 +27611,7 @@ bloodoath: {
 
 ultimateslam: {
 	name: "Ultimate Slam",
-	shortDesc: "Random type each use. If it KOs, extra damage hits one benched foe.",
+	shortDesc: "Random type each use. If it KOs, excess damage hits one benched foe.",
 	type: "Normal",
 	category: "Physical",
 	accuracy: 65,
@@ -27626,17 +27634,28 @@ ultimateslam: {
 		this.add('-message', `${pokemon.name}'s Ultimate Slam became ${chosen}-type!`);
 	},
 
-	// After the hit: if we KO'd the target, spill damage to 1 random benched foe
-	onAfterHit(target, source, move) {
+	// Before the hit: record target HP and predicted damage
+	onTryHit(target, source, move) {
 		if (!target || !source) return;
 
-		// Only spill if this move actually knocked out the target
+		const predicted = this.actions.getDamage(source, target, move);
+		(move as any).ultimatePreHP = target.hp;
+		(move as any).ultimatePredictedDamage = (typeof predicted === 'number' ? predicted : 0);
+	},
+
+	// After the hit: if the target fainted, spill excess damage to 1 random benched foe
+	onAfterHit(target, source, move) {
+		if (!target || !source) return;
 		if (!target.fainted) return;
 
-		const spill = target.lastDamage || 0;
-		if (!spill) return;
+		const preHP = (move as any).ultimatePreHP || 0;
+		const predicted = (move as any).ultimatePredictedDamage || 0;
 
-		// Collect benched, non-fainted mons on the same side as the target
+		// Excess damage = what we would have done beyond the target's HP
+		let excess = predicted - preHP;
+		if (excess <= 0) return;
+
+		// Find benched, non-fainted mons on the same side as the target
 		const bench = target.side.pokemon.filter(
 			p => p && !p.fainted && !p.isActive && p !== target
 		);
@@ -27646,14 +27665,18 @@ ultimateslam: {
 		const victim = this.sample(bench);
 		if (!victim) return;
 
-		// Apply spill directly to its HP
-		const newHP = Math.max(0, victim.hp - spill);
-		const actuallyDid = victim.hp - newHP;
+		// Clamp excess so we don't go below 0 HP and apply it directly
+		const spill = Math.min(excess, victim.hp);
+		if (spill <= 0) return;
+
+		const newHP = victim.hp - spill;
 		victim.hp = newHP;
 
-		if (actuallyDid > 0) {
-			this.add('-message', `Ultimate Slam's shockwave hit benched ${victim.name} for ${actuallyDid} damage!`);
-		}
+		this.add(
+			'-message',
+			`Ultimate Slam's shockwave hit benched ${victim.name} for ${spill} excess damage!`
+		);
+
 		if (victim.hp <= 0 && !victim.fainted) {
 			victim.faint(source, move as unknown as Effect);
 		}
