@@ -9924,26 +9924,38 @@ magmavein: {
 		const cur = pokemon.getTypes(true).join('/'); // runtime types 
 		const base = pokemon.species.types.join('/'); // species types 
 		this.add('-start', pokemon, 'typechange', cur);
-		// Show that Glitter Scales is activating, without implying a foe's ability changed
-		this.add('-activate', pokemon, 'ability: Glitter Scales');
 
-		for (const foe of pokemon.side.foe.active) {
-			if (!foe || foe.fainted) continue;
-
-			// This will show the usual accuracy drop text, sourced from this ability
-			this.boost({accuracy: -1}, foe, pokemon, this.effect);
+		let activated = false;
+		for (const target of pokemon.adjacentFoes()) {
+			if (!activated) {
+				this.add('-ability', pokemon, 'Glitter Scales', 'boost');
+				activated = true;
+			}
+			if (target.volatiles['substitute']) {
+				this.add('-immune', target);
+			} else {
+				this.boost({accuracy: -1}, target, pokemon, null, true);
+			}
 		}
 	},
 
-	onDamagingHitOrder: 1,
-	onDamagingHit(damage, target, source, move) {
-		if (!source || !move || !damage || damage <= 0) return;
-		if (source.side === target.side) return;
-		if (move.category === 'Status') return;
+	// Reflect 10% of all move damage dealt to the bearer
+	onDamage(damage, target, source, effect) {
+		// Basic sanity checks
+		if (!source || !effect || typeof damage !== 'number' || damage <= 0) return damage;
+		if (source.side === target.side) return damage;
+
+		// Only reflect damage from *moves* (not poison, weather, abilities, etc.)
+		if (effect.effectType !== 'Move') return damage;
+
+		// Don't reflect our own reflected damage (which uses this ability as the effect)
+		if (effect.id === 'glitterscales') return damage;
 
 		const reflect = Math.max(1, Math.floor(damage * 0.10));
 		this.damage(reflect, source, target, this.effect);
 		this.add('-message', `${target.name}'s Glitter Scales reflected damage!`);
+
+		return damage; // don't change the original damage value
 	},
 },
 

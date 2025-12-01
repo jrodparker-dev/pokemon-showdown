@@ -27440,9 +27440,9 @@ bloodoath: {
 	name: "Dodgeball",
 	shortDesc: "50% OHKO. If it fails, user faints & foe learns Dodgeball.",
 	type: "Fighting",
-	category: "Physical",
+	category: "Status",
 	accuracy: true, // we handle the 50% ourselves
-	basePower: 1,
+	basePower: 0,
 	pp: 5,
 	priority: 0,
 	flags: {protect: 1, mirror: 1, contact: 1, metronome: 1},
@@ -27453,7 +27453,7 @@ bloodoath: {
 		// 50%: succeed, mark it and let the move go through
 		if (this.randomChance(1, 2)) {
 			(move as any).dodgeballSuccess = true;
-			return; // proceed to normal hit
+			return; // proceed to hit
 		}
 
 		// ---- FAIL CASE ----
@@ -27471,13 +27471,39 @@ bloodoath: {
 			}
 			if (slots.length) {
 				const slotIndex = this.sample(slots);
-				// setMove is void in your fork; just call it
-				(target as any).setMove?.('dodgeball', slotIndex);
+
+				const moveData = this.dex.moves.get('dodgeball');
+
+				// Build a new MoveSlot object for Dodgeball
+				const newSlot: any = {
+					move: moveData.name,
+					id: moveData.id,
+					pp: moveData.pp,
+					maxpp: moveData.pp,
+					target: moveData.target,
+					disabled: false,
+					disabledSource: '',
+					used: false,
+				};
+
+				// Overwrite active moveslot
+				(target.moveSlots as any)[slotIndex] = newSlot;
+
+				// Also update baseMoveSlots if your fork has them (for Transform, etc.)
+				if ((target as any).baseMoveSlots) {
+					(target as any).baseMoveSlots[slotIndex] = {...newSlot};
+				}
+
+				// And the raw moves[] ID list, if present
+				if ((target as any).moves) {
+					(target as any).moves[slotIndex] = moveData.id;
+				}
+
 				this.add('-message', `${target.name} learned Dodgeball!`);
 			}
 		}
 
-		// Cancel the attack (no damage, no normal miss)
+		// Cancel the attack (no damage, no normal miss message)
 		return null;
 	},
 
@@ -27487,10 +27513,10 @@ bloodoath: {
 		if (!target || target.fainted) return;
 
 		this.add('-message', `${source.name}'s Dodgeball scored a one-hit KO!`);
-		// Deal exactly the target's remaining HP as extra damage
 		this.damage(target.hp, target, source, move);
 	},
 },
+
 
     drako: {
 	name: "DraKO",
@@ -27615,7 +27641,7 @@ bloodoath: {
         },
         target: "normal",
     },
-
+/*
 ultimateslam: {
 	name: "Ultimate Slam",
 	shortDesc: "Random type each use. If it KOs, excess damage hits one benched foe.",
@@ -27688,6 +27714,116 @@ ultimateslam: {
 			victim.faint(source, move as unknown as Effect);
 		}
 	},
+},*/
+ultimateslam: {
+  name: "Ultimate Slam",
+  shortDesc: "If this move KOs, excess damage hits the next party member.",
+  accuracy: 65,
+  basePower: 150,
+  category: "Physical",
+  priority: 0,
+  pp: 5,
+  type: "Normal",
+  target: "normal",
+  flags: {contact: 1, protect: 1, mirror: 1},
+  // Random type each time it's used
+	onModifyType(move, pokemon) {
+		const pool = [
+			'Normal','Fire','Water','Electric','Grass','Ice',
+			'Fighting','Poison','Ground','Flying','Psychic','Bug',
+			'Rock','Ghost','Dragon','Dark','Steel','Fairy',
+			'Light','Blood','Gamma',
+		] as ID[];
+		const chosen = this.sample(pool);
+		move.type = chosen;
+		this.add('-message', `${pokemon.name}'s Ultimate Slam became ${chosen}-type!`);
+	},
+
+  /**
+   * Capture the pre-clamp damage this move is about to deal.
+   * This runs inside Battle#damage before damage is clamped to target.hp.
+   */
+  onDamage(damage, target, source, effect) {
+    if (!effect || effect.id !== 'ultimateslam' || typeof damage !== 'number') {
+      return damage;
+    }
+
+    // Effect here is the move. Extend its type locally with our custom field.
+    type UltimateSlamMove = ActiveMove & { ultimateSlamRawDamage?: number };
+    const moveWithRaw = effect as UltimateSlamMove;
+
+    moveWithRaw.ultimateSlamRawDamage = damage;
+    return damage; // don’t modify the actual damage
+  },
+
+  /**
+   * After landing the hit, see if we KO'd and had overkill damage.
+   * If so, spill the excess to the next Pokémon in the target's party.
+   */
+    onAfterHit(target, source, move) {
+  type UltimateSlamMove = ActiveMove & { ultimateSlamRawDamage?: number };
+  const moveWithRaw = move as UltimateSlamMove;
+
+  const rawDamage = moveWithRaw.ultimateSlamRawDamage;
+  delete moveWithRaw.ultimateSlamRawDamage;
+
+  if (typeof rawDamage !== 'number') return;
+
+  const applied = target.lastDamage || 0;
+  if (applied <= 0) return;
+
+  // Only spill if this actually KO'd the target
+  if (!target.fainted && target.hp > 0) return;
+
+  const overkill = rawDamage - applied;
+  if (overkill <= 0) return;
+
+  const side = target.side;
+  let nextPokemon: Pokemon | null = null;
+  const startIndex = target.position;
+
+  for (let i = startIndex + 1; i < side.pokemon.length; i++) {
+    const mon = side.pokemon[i];
+    if (!mon || mon.fainted || mon.isActive) continue;
+    nextPokemon = mon;
+    break;
+  }
+
+  if (!nextPokemon) return;
+
+  const mon = nextPokemon;
+
+  // Clamp overkill to something sensible (can't do more than their total HP)
+  let dmg = overkill;
+  const maxhp = mon.maxhp || mon.baseMaxhp || 0;
+  if (maxhp && dmg > maxhp) dmg = maxhp;
+  if (dmg <= 0) return;
+
+  this.add(
+    '-message',
+    `${source.name}'s Ultimate Slam overflows and hits benched ${mon.name} for ${dmg} damage!`
+  );
+
+  // Bench-snipe style: directly modify HP instead of using this.damage()
+  let newHP = mon.hp - dmg;
+  if (newHP <= 0) {
+    newHP = 0;
+    mon.hp = 0;
+    mon.faint(source, move as unknown as Effect);
+  } else {
+    mon.hp = newHP;
+  }
+},
+
+
+  // Optional safety cleanup if something weird happens
+  onAfterMove(source, target, move) {
+    type UltimateSlamMove = ActiveMove & { ultimateSlamRawDamage?: number };
+    const moveWithRaw = move as UltimateSlamMove;
+    if (moveWithRaw.ultimateSlamRawDamage !== undefined) {
+      delete moveWithRaw.ultimateSlamRawDamage;
+    }
+  },
 },
 
 nuclearexplosion: {
