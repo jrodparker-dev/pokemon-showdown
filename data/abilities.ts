@@ -10228,6 +10228,26 @@ aesirswill: {
   },
 },
 
+negative: {
+  name: "Negative",
+  shortDesc: "On switch-in, lowers one of the user's stats at random by 1 stage.",
+  rating: -1,
+  onStart(pokemon) {
+    // Pick one of the five main stats at random
+    const stats: BoostID[] = ['atk', 'def', 'spa', 'spd', 'spe'];
+    const chosen = this.sample(stats);
+
+    // Apply the debuff
+    const boost: Partial<Record<BoostID, number>> = {};
+    boost[chosen] = -1;
+
+    this.add('-ability', pokemon, 'Negative');
+    this.add('-message', `${pokemon.name}'s ${chosen.toUpperCase()} dropped due to its Negative ability!`);
+    this.boost(boost, pokemon, pokemon, this.effect);
+  },
+},
+
+
 
 };
 
