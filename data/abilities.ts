@@ -9914,32 +9914,39 @@ magmavein: {
 	/** GLITTER SCALES
 	 * On switch-in: foes -1 Acc. Reflect 10% of direct move damage taken back at the source.
 	 */
+
 	glitterscales: {
-  name: "Glitter Scales",
-  shortDesc: "On switch-in: foes -1 Acc. Reflects 10% of direct damage back to the attacker.",
-  rating: 3.5,
+	name: "Glitter Scales",
+	shortDesc: "On switch-in: foes -1 Acc. Reflects 10% of direct damage back to the attacker.",
+	rating: 3.5,
 
-  onStart(pokemon) {
-    for (const foe of pokemon.side.foe.active) {
-      if (!foe || foe.fainted) continue;
-      this.boost({accuracy: -1}, foe, pokemon, null, true);
-    }
-  },
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+		// Show that Glitter Scales is activating, without implying a foe's ability changed
+		this.add('-activate', pokemon, 'ability: Glitter Scales');
 
-  // Hook should match Iron Barbs / Aftermath
-  onDamagingHitOrder: 1,
-  onDamagingHit(damage, target, source, move) {
-    if (!source || !move || !damage || damage <= 0) return;
-    if (source.side === target.side) return;
+		for (const foe of pokemon.side.foe.active) {
+			if (!foe || foe.fainted) continue;
 
-    // Only reflect for moves that actually deal damage
-    if (move.category === 'Status') return;
+			// This will show the usual accuracy drop text, sourced from this ability
+			this.boost({accuracy: -1}, foe, pokemon, this.effect);
+		}
+	},
 
-    const reflect = Math.max(1, Math.floor(damage * 0.10));
-    this.damage(reflect, source, target, this.effect);
-    this.add('-message', `${target.name}'s Glitter Scales reflected damage!`);
-  },
+	onDamagingHitOrder: 1,
+	onDamagingHit(damage, target, source, move) {
+		if (!source || !move || !damage || damage <= 0) return;
+		if (source.side === target.side) return;
+		if (move.category === 'Status') return;
+
+		const reflect = Math.max(1, Math.floor(damage * 0.10));
+		this.damage(reflect, source, target, this.effect);
+		this.add('-message', `${target.name}'s Glitter Scales reflected damage!`);
+	},
 },
+
 
 cerebralblaze: {
   name: "Cerebral Blaze",

@@ -26910,10 +26910,9 @@ enchantingspin: {
         target: "normal",
     },
 
-
-    voidclaw: {
+voidclaw: {
 	name: "Voidclaw",
-	shortDesc: "If user has no item, hits Fairy neutrally.",
+	shortDesc: "If user has no item, Dragon hits Fairy neutrally.",
 	type: "Dragon",
 	category: "Physical",
 	accuracy: 100,
@@ -26921,21 +26920,29 @@ enchantingspin: {
 	pp: 8,
 	priority: 0,
 	flags: {protect: 1, mirror: 1, contact: 1, slicing: 1},
-
-	onEffectiveness(typeMod, target, type) {
-		// Only care about Fairy and when we know who is attacking
-		const user = this.activePokemon;
-		if (type !== 'Fairy' || !user) return;
-
-		// User must have no item (Knocked Off, Trick, etc.)
-		if (user.item) return;
-
-		// Dragon vs Fairy is -2; add +2 so it becomes neutral
-		return 2;
-	},
-
 	target: "normal",
+
+	// If the *user* has no item, ignore Dragon immunities (so Fairy is no longer immune)
+	onModifyMove(move, pokemon, target) {
+		// If the user still has an item, do nothing
+		if (pokemon.item) return;
+
+		// Only bother if there's a target and it has Fairy typing
+		if (!target || !target.hasType('Fairy')) return;
+
+		// Ensure we don't clobber any existing ignoreImmunity settings
+		if (!move.ignoreImmunity) {
+			move.ignoreImmunity = {};
+		} else if (move.ignoreImmunity === true) {
+			// already ignoring all immunities; nothing to do
+			return;
+		}
+
+		(move.ignoreImmunity as AnyObject)['Dragon'] = true;
+		this.debug('Voidclaw: user has no item, ignoring Dragon immunities vs Fairy');
+	},
 },
+
 
 
 runecleave: {
@@ -27177,7 +27184,7 @@ frozenwings: {
     basePower: 65,
     accuracy: 100,
     pp: 10,
-    priority: 1,
+    priority: 0,
     flags: {contact: 1, protect: 1, mirror: 1},
     target: "normal",
 	secondary: {
