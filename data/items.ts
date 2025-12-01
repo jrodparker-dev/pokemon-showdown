@@ -9659,6 +9659,16 @@ onDisableMove(pokemon) {
   },
 },
 
+torkoalite: {
+	name: "Torkoalite",
+	spritenum: 0,
+	megaStone: "Torkoal-Mega",
+	megaEvolves: "Torkoal",
+	itemUser: ["Torkoal"],
+	onTakeItem: false,
+	gen: 9
+},
+
 
 }
 const MYSTERY_BOX_POOL: string[] = [
