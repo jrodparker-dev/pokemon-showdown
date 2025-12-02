@@ -9668,6 +9668,15 @@ torkoalite: {
 	onTakeItem: false,
 	gen: 9
 },
+brutebonnetite: {
+	name: "Brutebonnetite",
+	spritenum: 0,
+	megaStone: "Brute Bonnet-Mega",
+	megaEvolves: "Brute Bonnet",
+	itemUser: ["Brute Bonnet"],
+	onTakeItem: false,
+	gen: 9
+},
 
 
 }

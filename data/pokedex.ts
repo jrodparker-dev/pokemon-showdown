@@ -17813,7 +17813,7 @@ castformmega: {
 	brutebonnet: {
 		num: 986,
 		name: "Brute Bonnet",
-		types: ["Grass", "Dark"],
+		types: ["Flying", "Steel"],
 		gender: "N",
 		baseStats: { hp: 111, atk: 127, def: 99, spa: 79, spd: 99, spe: 55 },
 		abilities: { 0: "Protosynthesis" },
@@ -17822,6 +17822,23 @@ castformmega: {
 		color: "White",
 		tags: ["Paradox"],
 		eggGroups: ["Undiscovered"],
+		otherFormes: ["Brute Bonnet-Mega"],
+		formeOrder: ["Brute Bonnet", "Brute Bonnet-Mega"],
+	},
+	brutebonnetmega: {
+		num: 986,
+		name: "Brute Bonnet-Mega",
+		baseSpecies: "Brute Bonnet",
+		forme: "Mega",
+		types: ["Flying", "Steel"],
+		gender: "N",
+		baseStats: { hp: 111, atk: 147, def: 149, spa: 89, spd: 99, spe: 55 },
+		abilities: { 0: "Spore Shield" },
+		heightm: 1.3,
+		weightkg: 57.5,
+		color: "White",
+		eggGroups: ["Undiscovered"],
+		requiredItem: "Brutebonnetite",
 	},
 	fluttermane: {
 		num: 987,
@@ -18082,7 +18099,7 @@ castformmega: {
 		name: "Roaring Moon",
 		types: ["Dragon", "Dark"],
 		gender: "N",
-		baseStats: { hp: 105, atk: 139, def: 71, spa: 55, spd: 101, spe: 119 },
+		baseStats: { hp: 95, atk: 164, def: 61, spa: 55, spd: 91, spe: 144 },
 		abilities: { 0: "Protosynthesis" },
 		heightm: 2,
 		weightkg: 380,
@@ -20182,6 +20199,8 @@ oinkolognemega: {
   eggGroups: ["Undiscovered"],
   tags: ["Restricted Legendary"],
   },
+// End of boss pokemon
+
   klumph: {
 		num: -1001,
 		name: "Klumph",

@@ -6054,6 +6054,7 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 	orthwormmega: { tier: "OU", natDexTier: "AG", isNonstandard: null },
 relicanthmega: { tier: "OU", natDexTier: "AG", isNonstandard: null },
 torkoalmega: { tier: "OU", natDexTier: "AG", isNonstandard: null },
+brutebonnetmega: { tier: "OU", natDexTier: "AG", isNonstandard: null },
 castformmega: { isNonstandard: "Past", tier: "Illegal", natDexTier: "AG" },
 castformsunnymega: { isNonstandard: "Past", natDexTier: "AG" },
 castformrainymega: { isNonstandard: "Past", natDexTier: "AG" },

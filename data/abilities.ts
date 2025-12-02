@@ -10247,7 +10247,101 @@ negative: {
   },
 },
 
+sporeshield: {
+		onDamagingHit(damage, target, source, move) {
+    if (!damage || damage <= 0) return;
+    if (!source || !move) return;
+    if (source.side === target.side) return;
 
+    // Trigger ONLY on physical-category moves
+    if (move.category !== 'Physical') return;
+
+    // 30%: heal 20% of the damage received
+    if (this.randomChance(3, 10)) {
+        const heal = Math.floor(damage * 0.20);
+        if (heal > 0) {
+            this.heal(heal, target, target);
+            this.add('-message', `${target.name} absorbed some of the impact!`);
+        }
+    }
+
+    // 30%: lower foe's Attack by 1
+    if (this.randomChance(3, 10)) {
+        this.boost({atk: -1}, source, target);
+        this.add('-message', `${source.name}'s Attack fell from the impact!`);
+    }
+
+    // 30%: paralyze the attacker
+    if (this.randomChance(3, 10)) {
+        if (!source.status && source.runStatusImmunity('par')) {
+            source.setStatus('par', target);
+            this.add('-message', `${source.name} was paralyzed by backlash!`);
+        }
+    }
+
+    // 10%: sleep the attacker
+    if (this.randomChance(1, 10)) {
+        if (!source.status && source.runStatusImmunity('slp')) {
+            source.setStatus('slp', target);
+            this.add('-message', `${source.name} was lulled into sleep by the hit!`);
+        }
+    }
+},
+/*
+onDamagingHit(damage, target, source, move) {
+    if (!damage || damage <= 0) return;
+    if (!source || !move) return;
+    if (source.side === target.side) return;
+
+    // Physical-only filter
+    if (move.category !== 'Physical') return;
+
+    // Choose exactly one effect by weighted chance
+    const roll = this.random(100); // 0–99
+
+    if (roll < 30) {
+        // Heal 20% of the damage received
+        const heal = Math.floor(damage * 0.20);
+        if (heal > 0) {
+            this.heal(heal, target, target);
+            this.add('-message', `${target.name} absorbed some of the impact!`);
+        }
+        return;
+    }
+
+    if (roll < 60) {
+        // Attack drop
+        this.boost({atk: -1}, source, target);
+        this.add('-message', `${source.name}'s Attack fell from the impact!`);
+        return;
+    }
+
+    if (roll < 90) {
+        // Paralyze
+        if (!source.status && source.runStatusImmunity('par')) {
+            source.setStatus('par', target);
+            this.add('-message', `${source.name} was paralyzed by backlash!`);
+        }
+        return;
+    }
+
+    // Sleep (10%)
+    if (!source.status && source.runStatusImmunity('slp')) {
+        source.setStatus('slp', target);
+        this.add('-message', `${source.name} was lulled into sleep by the hit!`);
+    }
+},
+*/
+
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
+		name: "Spore Shield",
+		rating: 2
+	},
 
 };
 
