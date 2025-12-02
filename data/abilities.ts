@@ -10304,5 +10304,29 @@ flags: {},
 		rating: 2
 	},
 
+solarcore: {
+	name: "Solar Core",
+	shortDesc: "In sun: Fire & Rock moves 1.5x power; heals 1/8 max HP each turn.",
+	rating: 3.5,
+
+	// 50% boost to Fire and Rock moves in sun / Desolate Land
+	onBasePower(basePower, attacker, defender, move) {
+		if ((move.type === 'Fire' || move.type === 'Rock') &&
+			['sunnyday', 'desolateland'].includes(this.field.effectiveWeather())) {
+			this.debug('Solar Core boost');
+			return this.chainModify(1.5);
+		}
+	},
+
+	// Heal 1/8 max HP at the end of each turn while sun is active
+	onWeather(target, source, effect) {
+		if (!target.isActive) return;
+		if (effect.id === 'sunnyday' || effect.id === 'desolateland') {
+			this.heal(target.baseMaxhp / 8, target, target);
+		}
+	},
+},
+
+
 };
 
