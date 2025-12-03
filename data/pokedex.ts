@@ -6016,6 +6016,7 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 		num: 324,
 		name: "Torkoal-Mega",
 		baseSpecies: "Torkoal",
+		forme: "Mega",
 		types: ["Fire", "Dragon"],
 		baseStats: { hp: 90, atk: 95, def: 160, spa: 120, spd: 100, spe: 45},
 		abilities: {0: "Solar Core"},
@@ -6024,6 +6025,7 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 		color: "Brown",
 		eggGroups: ["Field"],
 		requiredItem: "Torkoalite",
+		spriteid: "torkoal-mega",
 	},
 	spoink: {
 		num: 325,
