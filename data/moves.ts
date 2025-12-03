@@ -26971,7 +26971,7 @@ runecleave: {
         type: "Water",
         category: "Special",
         accuracy: 100,
-        basePower: 65,
+        basePower: 70,
         pp: 5,
         priority: 0,
         flags: {protect: 1, mirror: 1},
@@ -27958,5 +27958,54 @@ capcrush: {
 		type: "Grass",
 		contestType: "Beautiful",
 	},
+
+	toxicslash: {
+	name: "Toxic Slash",
+	shortDesc: "High critical-hit ratio.",
+	type: "Poison",
+	category: "Physical",
+	basePower: 70,
+	accuracy: 100,
+	pp: 15,
+	priority: 0,
+	flags: {
+		contact: 1,
+		slicing: 1,
+		protect: 1,
+		mirror: 1,
+		metronome: 1,
+	},
+	critRatio: 2, // high crit
+	target: "normal",
+},
+
+disorientingbite: {
+	name: "Disorienting Bite",
+	shortDesc: "Dark/Psychic coverage. 25% chance to confuse.",
+	type: "Dark",              
+	category: "Physical",
+	basePower: 80,
+	accuracy: 100,
+	pp: 10,
+	priority: 0,
+	flags: {
+		bite: 1,
+		contact: 1,
+		protect: 1,
+		mirror: 1,
+		metronome: 1,
+	},
+
+	secondary: {
+		chance: 25,
+		volatileStatus: 'confusion',
+	},
+	onEffectiveness(typeMod, target, type, move) {
+			return typeMod + this.dex.getEffectiveness('Psychic', type);
+		},
+
+	target: "normal",
+},
+
 
 };

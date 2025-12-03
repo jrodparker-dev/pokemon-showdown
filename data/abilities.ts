@@ -9010,6 +9010,10 @@ flags: {},
 	},
 	attraction: {
   onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     this.add('-ability', pokemon, 'Attraction');
     for (const target of pokemon.adjacentFoes()) {
       if (!target || target.fainted || !target.isActive) continue;
@@ -9023,7 +9027,6 @@ flags: {},
   flags: {},
   name: "Attraction",
   rating: 3.5,
-  num: -13,
 },
 
 
@@ -9205,7 +9208,11 @@ magmavein: {
   name: "Magma Vein",
   shortDesc:
     "Halves Water damage; when hit by OR when using a Water move, sets Steam Field on the opposing side (3 turns).",
-
+onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   // Halve Water damage taken
   onSourceModifyDamage(damage, source, target, move) {
     if (move.type === 'Water') {
@@ -9243,13 +9250,17 @@ magmavein: {
   },
 
   rating: 4,
-  num: -3001,
 },
 
   // Team A Abilities
   snowveil: {
   name: "Snowveil",
   shortDesc: "Immune to Rock and heals 25% on Rock hit. Fire/Steel damage is halved; being hit by Fire/Steel summons Snow (once per switch-in).",
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   // Full immunity to Rock + heal (like your original intent, but explicit)
   onTryHit(target, source, move) {
     if (move.type === 'Rock') {
@@ -9286,6 +9297,11 @@ magmavein: {
   coredriller: {
     name: "Core Driller",
     shortDesc: "Contact: Attacker loses item. Takes 50% dmg from Ground.",
+	onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
     onDamagingHit(damage, target, source, move) {
       if (move.flags['contact'] && source?.isActive) {
         if (source.hp && source.item) {
@@ -9305,6 +9321,11 @@ magmavein: {
   tempestsurge: {
     name: "Tempest Surge",
     shortDesc: "Flying moves 1.3x power; removes hazards on user’s side after use.",
+	onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
     onBasePowerPriority: 19,
     onBasePower(basePower, attacker, defender, move) {
       if (move.type === 'Flying') {
@@ -9326,6 +9347,11 @@ magmavein: {
   name: "Luminous Flow",
   shortDesc: "Heals the user and all allies (active and benched) by 1/16 max HP at the end of each turn.",
   // Keep your end-of-turn timing
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   onResidualOrder: 29,
   onResidualSubOrder: 3,
   onResidual(pokemon) {
@@ -9360,6 +9386,11 @@ magmavein: {
   battlebloom: {
     name: "Battle Bloom",
     shortDesc: "First time user clicks a Grass move: +1 Atk.",
+	onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
     onPrepareHit(source, target, move) {
       if (move.type === 'Grass' && !source.volatiles['battlebloomused']) {
         source.addVolatile('battlebloomused');
@@ -9375,6 +9406,11 @@ magmavein: {
   shadowglide: {
     name: "Shadow Glide",
     shortDesc: "Dark moves +1 priority if user has >75% HP.",
+	onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
     onModifyPriority(priority, attacker, defender, move) {
       if (move?.type === 'Dark' && attacker.hp > attacker.maxhp * 0.75) {
         return priority + 1;
@@ -9385,6 +9421,11 @@ magmavein: {
   corrosionscales: {
     name: "Corrosion Scales",
     shortDesc: "Immune to status; Poison moves hit Steel.",
+	onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
     onSetStatus(status, target, source, effect) {
       if (status.id) {
         this.add('-immune', target, '[from] ability: Corrosion Scales');
@@ -9400,6 +9441,10 @@ magmavein: {
     name: "Grave Bloom",
     shortDesc: "On switch-in: +1 SpA and SpD for each fainted ally.",
     onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
       let fainted = 0;
       for (const ally of pokemon.side.pokemon) {
         if (ally.fainted) fainted++;
@@ -9411,6 +9456,11 @@ magmavein: {
   ruthlessedge: {
     name: "Ruthless Edge",
     shortDesc: "Dark moves deal 1.3x damage vs foes under 50% HP.",
+	onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
     onBasePower(basePower, attacker, defender, move) {
       if (move.type === 'Dark' && defender.hp < defender.maxhp / 2) {
         return this.chainModify([5325, 4096]);
@@ -9421,7 +9471,11 @@ magmavein: {
   burningspirit: {
   name: "Burning Spirit",
   shortDesc: "Ghost moves hit again at 25% power as Fire; Fire moves hit again at 25% power as Ghost.",
-
+onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   // Runs once after the user’s move resolves (only if it actually connected/hit something)
   onAfterMoveSecondarySelf(source, target, move) {
     // ignore Status and our own echo
@@ -9476,6 +9530,11 @@ magmavein: {
   hiveguard: {
     name: "Hiveguard",
     shortDesc: "At <50% HP, Bug/Fighting moves gain +1 priority.",
+	onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
     onModifyPriority(priority, source, target, move) {
       if (source.hp < source.maxhp / 2 && ['Bug', 'Fighting'].includes(move.type)) {
         return priority + 1;
@@ -9487,7 +9546,11 @@ magmavein: {
   name: "Cold Heart",
   shortDesc: "When dealing or taking damage: ignores stat changes, Abilities, and Items.",
   rating: 5,
-  num: -1001,
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
 
   // Attacking with this Pokémon
   onModifyMove(move, attacker, defender) {
@@ -9544,6 +9607,10 @@ magmavein: {
   rating: 5,
 
   onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     // Prevent recursive onStart → formeChange → onStart loops
     if ((pokemon.m as any).statstealerApplied) return;
 
@@ -9597,7 +9664,11 @@ magmavein: {
   name: "Bloodhound",
   shortDesc: "On switch-in, phazes foe. 1.3× damage vs targets with [bleeding].",
   rating: 4,
-  onStart(pokemon) {
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     const foe = pokemon.side.foe.active[0];
     if (!foe) return;
 
@@ -9626,6 +9697,11 @@ magmavein: {
 		name: "Radioactive",
 		shortDesc: "When using a damaging move, its base power is rolled 50–150.",
 		rating: 3.5,
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
 		onModifyMove(move) {
 			if (!move || move.category === 'Status') return;
 			// Integer in [50, 150]
@@ -9645,6 +9721,10 @@ magmavein: {
 		shortDesc: "Halves damage the first time it's hit by any given type.",
 		rating: 3.5,
 		onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
 			if (!pokemon.m.porousSeenTypes) pokemon.m.porousSeenTypes = Object.create(null) as Record<string, 1>;
 		},
 		onSourceModifyDamage(damage, source, target, move) {
@@ -9668,6 +9748,11 @@ magmavein: {
 		name: "Winter's Bite",
 		shortDesc: "Ice moves 1.5×. EOT chip: non-Ice foes 1/16; Water or Ice-weak 1/8.",
 		rating: 4,
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
 		onBasePower(basePower, attacker, defender, move) {
 			if (move.type === 'Ice') return this.chainModify(1.5);
 		},
@@ -9696,6 +9781,11 @@ magmavein: {
     "End of turn: becomes dual-typed. Primary resists foe’s primary type; secondary is super-effective vs foe’s full typing.",
   onResidualOrder: 27,
   onResidualSubOrder: 1,
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
 
   onResidual(pokemon) {
     // Don’t overwrite Tera
@@ -9792,6 +9882,11 @@ magmavein: {
   name: "Deadly Web",
   shortDesc: "When hit, traps the attacker and inflicts [sting].",
   rating: 3.5,
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   onDamagingHit(_damage, target, source, move) {
     if (!source || !move) return;
 
@@ -9817,6 +9912,11 @@ magmavein: {
   name: "Cloud Body",
   shortDesc: "Immune to weather damage and weather-affected moves. While weather is active, immune to moves matching that weather’s type.",
   rating: 3.5,
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
 
   // Weather chip immunity
   onDamage(damage, target, _source, effect) {
@@ -9872,6 +9972,10 @@ magmavein: {
   shortDesc: "Gains a 2nd type from held Gem; EOT consumes unused Gem for +1 all stats.",
   rating: 4,
   onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     const item = pokemon.getItem();
     if (!item?.isGem) return;
 
@@ -9964,7 +10068,12 @@ cerebralblaze: {
   name: "Cerebral Blaze",
   shortDesc: "At <50% HP: +1 Spe & +1 SpA (once on drop). Fire moves deal 1.25× while <50%.",
   // Track whether we've already given the stat boosts
-  onStart(p) { this.effectState.boosted = false; },
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
+this.effectState.boosted = false; },
   onUpdate(pokemon) {
     if (pokemon.hp > 0 && pokemon.hp * 2 <= pokemon.baseMaxhp && !this.effectState.boosted) {
       this.effectState.boosted = true;
@@ -9982,6 +10091,11 @@ cerebralblaze: {
 torrentialhowl: {
   name: "Torrential Howl",
   shortDesc: "When this Pokémon uses a Dark-type move, 30% chance to summon Rain.",
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   onAfterMove(source, target, move) {
     if (!move || move.type !== 'Dark') return;
     if (this.randomChance(6, 10)) {
@@ -9996,7 +10110,11 @@ torrentialhowl: {
 fatefulstrike: {
   name: "Fateful Strike",
   shortDesc: "When this Pokémon deals super-effective damage: 30% to inflict brn/par/frz/frostbite.",
-  onStart() {
+  onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     this.effectState.lastStatus = null as null | string;
   },
 
@@ -10041,6 +10159,11 @@ toxictides: {
   shortDesc: "While this Pokémon is out: grounded non-Poison lose 1/16 HP; Poison heal 1/16 each turn.",
   onResidualOrder: 27,
   onResidualSubOrder: 1,
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   onResidual(pokemon) {
     // Apply once per turn, sourced from the holder
     for (const mon of this.getAllActive().filter(x => x && !x.fainted)) {
@@ -10059,6 +10182,11 @@ toxictides: {
 runesteelhide: {
   name: "Runesteel Hide",
   shortDesc: "When hit by a physical move, 20% chance to drop the attacker’s Atk and Spe by 1.",
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   onDamagingHit(_damage, target, source, move) {
     if (!move || move.category !== 'Physical') return;
     if (this.randomChance(1, 5)) {
@@ -10071,6 +10199,11 @@ runesteelhide: {
 resonantcall: {
   name: "Resonant Call",
   shortDesc: "Immune to sound moves; holder’s sound moves gain +1 priority and 1.2× power.",
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   // Immunity (like Soundproof)
   onTryHit(target, source, move) {
     if (move && move.flags && move.flags.sound) {
@@ -10098,6 +10231,10 @@ valorsgrip: {
   name: "Valor's Grip",
   shortDesc: "Once/battle: survive a fatal hit at 1 HP. Next turn: Fire/Ground moves 1.3×.",
   onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     this.effectState.used = false;
     this.effectState.boostTurn = 0;
   },
@@ -10134,7 +10271,12 @@ valorsgrip: {
 echomessenger: {
   name: "Echo Messenger",
   shortDesc: "The first move this Pokémon uses always goes first (+5 priority).",
-  onStart(pokemon) { this.effectState.used = false; },
+  onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
+ this.effectState.used = false; },
   onModifyPriority(priority, pokemon, target, move) {
     if (!move) return;
     if (!this.effectState.used) return priority + 5;
@@ -10147,7 +10289,12 @@ echomessenger: {
 brisingcharm: {
   name: "Brising Charm",
   shortDesc: "End of turn: if this Pokémon used a Grass or Fairy move this turn, heal 1/8 max HP.",
-  onStart(pokemon) { this.effectState.flag = false; },
+  onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
+ this.effectState.flag = false; },
   onAfterMove(source, target, move) {
     if (source !== this.effectState.target && this.effectState.target) return;
     if (!move) return;
@@ -10168,6 +10315,10 @@ abyssalmaw: {
   name: "Abyssal Maw",
   shortDesc: "On entry: trap opposing grounded Pokémon; they take 1/16 each turn for 5 turns.",
   onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     for (const foe of pokemon.side.foe.active) {
       if (!foe || foe.fainted || !foe.isGrounded()) continue;
       foe.addVolatile('abyssalmawtrap', pokemon);
@@ -10189,6 +10340,11 @@ abyssalmaw: {
 helsgrasp: {
   name: "Hel's Grasp",
   shortDesc: "Moxie clone (Attack +1 after knocking out a target).",
+  onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
   onSourceAfterFaint(length, target, source, effect) {
     if (effect && effect.effectType === 'Move') {
       this.boost({atk: 1}, source);
@@ -10200,6 +10356,10 @@ nioaura: {
   name: "Nio Aura",
   shortDesc: "Intimidate clone but lowers Special Attack instead.",
   onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     this.add('-ability', pokemon, 'Nio Aura');
     for (const foe of pokemon.side.foe.active) {
       if (!foe || foe.fainted) continue;
@@ -10213,6 +10373,10 @@ aesirswill: {
   name: "Aesir's Will",
   shortDesc: "On switch-in: Light-type moves get +1 priority for 1 turn. Light moves 1.1× power.",
   onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     // mark the current turn as the priority turn
     this.effectState.priorityTurn = this.turn;
     this.add('-message', `${pokemon.name}'s Aesir's Will quickens the Light!`);
@@ -10233,6 +10397,10 @@ negative: {
   shortDesc: "On switch-in, lowers one of the user's stats at random by 1 stage.",
   rating: -1,
   onStart(pokemon) {
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
     // Pick one of the five main stats at random
     const stats: BoostID[] = ['atk', 'def', 'spa', 'spd', 'spe'];
     const chosen = this.sample(stats);
@@ -10308,6 +10476,11 @@ solarcore: {
 	name: "Solar Core",
 	shortDesc: "In sun: Fire & Rock moves 1.5x power; heals 1/8 max HP each turn.",
 	rating: 3.5,
+	onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
 
 	// 50% boost to Fire and Rock moves in sun / Desolate Land
 	onBasePower(basePower, attacker, defender, move) {
