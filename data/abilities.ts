@@ -9702,6 +9702,18 @@ const cur = pokemon.getTypes(true).join('/'); // runtime types
 const base = pokemon.species.types.join('/'); // species types 
 this.add('-start', pokemon, 'typechange', cur);
 },
+		onDamagingHit(damage, target, source, move) {
+			const sourceAbility = source.getAbility();
+			if (sourceAbility.flags['cantsuppress'] || sourceAbility.id === 'radioactive') {
+				return;
+			}
+			if (this.checkMoveMakesContact(move, source, target, !source.isAlly(target))) {
+				const oldAbility = source.setAbility('radioactive', target);
+				if (oldAbility) {
+					this.add('-activate', target, 'ability: Radioactive', this.dex.abilities.get(oldAbility).name, `[of] ${source}`);
+				}
+			}
+		},
 		onModifyMove(move) {
 			if (!move || move.category === 'Status') return;
 			// Integer in [50, 150]
