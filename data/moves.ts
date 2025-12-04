@@ -28006,6 +28006,23 @@ disorientingbite: {
 
 	target: "normal",
 },
+serenefocus: {
+	name: "Serene Focus",
+	type: "Psychic", // change if you want another type
+	category: "Status",
+	basePower: 0,
+	accuracy: true,
+	pp: 15,
+	priority: 0,
+	flags: {
+	},
+	shortDesc: "Next move's chance-based secondary effects always trigger.",
+	desc: "The user enters a serene state. The next move it uses that has a chance-based secondary effect will have all such effects activated with 100% probability. The effect is consumed after that move.",
+	target: "self",
+	self: {
+		volatileStatus: 'serenefocus',
+	},
+},
 
 
 };

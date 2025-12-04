@@ -1888,5 +1888,44 @@ doublehammer: {
 		this.add('-end', pokemon, 'doublehammer')
     },
 },
+serenefocus: {
+	name: "Serene Focus",
+	noCopy: true,
+	onStart(pokemon) {
+		this.add('-start', pokemon, 'move: Serene Focus');
+	},
+	onModifyMove(move, pokemon) {
+		// Don't affect Z-Moves or Max Moves, and don't crash on weird cases
+		if (!move || move.isZ || move.isMax) return;
+
+		let changed = false;
+
+		// Single secondary
+		if (move.secondary && typeof move.secondary.chance === 'number' && move.secondary.chance < 100) {
+			move.secondary = {
+				...move.secondary,
+				chance: 100,
+			};
+			changed = true;
+		}
+
+		// Multiple secondaries
+		if (move.secondaries) {
+			for (const sec of move.secondaries) {
+				if (typeof sec.chance === 'number' && sec.chance < 100) {
+					sec.chance = 100;
+					changed = true;
+				}
+			}
+		}
+
+		// Only consume Serene Focus once we've actually modified a chance
+		if (changed) {
+			this.add('-end', pokemon, 'move: Serene Focus', '[silent]');
+			pokemon.removeVolatile('serenefocus');
+		}
+	},
+},
+
 
 };
