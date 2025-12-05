@@ -9603,19 +9603,19 @@ this.add('-start', pokemon, 'typechange', cur);
 	 */
 	statstealer: {
   name: "Statstealer",
-  shortDesc: "On switch-in, forme-changes to itself with the foe's base stats (HP unchanged).",
+  shortDesc: "On switch-in, forme-changes; copies foe's base stats (HP unchanged).",
   rating: 5,
 
   onStart(pokemon) {
-const cur = pokemon.getTypes(true).join('/'); // runtime types 
-const base = pokemon.species.types.join('/'); // species types 
-this.add('-start', pokemon, 'typechange', cur);
+    const cur = pokemon.getTypes(true).join('/'); // runtime types 
+    const base = pokemon.species.types.join('/'); // species types 
+    this.add('-start', pokemon, 'typechange', cur);
 
     // Prevent recursive onStart → formeChange → onStart loops
     if ((pokemon.m as any).statstealerApplied) return;
 
     const foe = pokemon.side.foe.active[0];
-    if (!foe) return;
+    if (!foe || foe.fainted) return;
 
     const foeSpecies = foe.species;
     const selfSpecies = pokemon.species;
@@ -9624,8 +9624,21 @@ this.add('-start', pokemon, 'typechange', cur);
     // Mark as applied *before* formeChange so re-entrant onStart immediately returns
     (pokemon.m as any).statstealerApplied = true;
 
-    // Clone current species (keeps name, types, sprites, ability slots, etc.)
-    const newSpecies: any = this.dex.deepClone(selfSpecies);
+    // ==== NEW: special handling for Klumph ====
+    let newSpecies: any;
+    if (selfSpecies.id === 'klumph') {
+      // Use the dedicated stolen form if it exists
+      const stolenTemplate = this.dex.species.get('klumphstolen');
+      if (stolenTemplate?.exists) {
+        newSpecies = this.dex.deepClone(stolenTemplate);
+      } else {
+        // Fallback: just clone current species if the form is missing
+        newSpecies = this.dex.deepClone(selfSpecies);
+      }
+    } else {
+      // Default behavior for everyone else: clone current species
+      newSpecies = this.dex.deepClone(selfSpecies);
+    }
 
     // Replace only non-HP base stats with foe's; keep HP so your HP stays constant
     newSpecies.baseStats = {
@@ -9652,8 +9665,6 @@ this.add('-start', pokemon, 'typechange', cur);
     }
   },
 },
-
-
 
 
 	/** BLOODHOUND

@@ -20212,6 +20212,24 @@ oinkolognemega: {
 		weightkg: 50,
 		eggGroups: ["Undiscovered"],
 	},
+	klumphstolen: {
+  num: -1001, // or same num as base Klumph, depending on how you're organizing
+  name: "Klumph-Stolen",
+  baseSpecies: "Klumph",
+  forme: "Stolen",
+  types: ["Light", "Flying"], // or whatever you want this form to show as
+  // stats here are just defaults; they'll get overridden by Statstealer anyway
+  baseStats: {hp: 90, atk: 90, def: 90, spa: 90, spd: 90, spe: 90},
+  abilities: {0: "Statstealer"},
+  heightm: 1.6,
+  weightkg: 40,
+  color: "Yellow",
+  eggGroups: ["Undiscovered"],
+// 🔹 Key lines to make it "battle-only" / not normally selectable:
+  battleOnly: "Klumph",
+  changesFrom: "Klumph",
+},
+
 	grawshawg: {
 		num: -1002,
 		name: "Grawshawg",
