@@ -10067,23 +10067,25 @@ this.add('-start', pokemon, 'typechange', cur);
 	},
 
 	// Reflect 10% of all move damage dealt to the bearer
-	onDamage(damage, target, source, effect) {
-		// Basic sanity checks
-		if (!source || !effect || typeof damage !== 'number' || damage <= 0) return damage;
-		if (source.side === target.side) return damage;
+	onDamagingHitOrder: 2,
+onDamagingHit(damage, target, source, move) {
+	if (!source || !move || typeof damage !== 'number' || damage <= 0) return;
 
-		// Only reflect damage from *moves* (not poison, weather, abilities, etc.)
-		if (effect.effectType !== 'Move') return damage;
+	// No self-damage reflection
+	if (source.side === target.side) return;
 
-		// Don't reflect our own reflected damage (which uses this ability as the effect)
-		if (effect.id === 'glitterscales') return damage;
+	// If you want contact-only reflection, uncomment this:
+	// if (!this.checkMoveMakesContact(move, source, target)) return;
 
-		const reflect = Math.max(1, Math.floor(damage * 0.10));
-		this.damage(reflect, source, target, this.effect);
-		this.add('-message', `${target.name}'s Glitter Scales reflected damage!`);
+	// Reflect 10% of the damage dealt
+	const reflect = Math.max(1, Math.floor(damage * 0.10));
 
-		return damage; // don't change the original damage value
-	},
+	// Use this.effect so TS is happy and it’s correctly tagged as the ability
+	this.damage(reflect, source, target, this.effect);
+	this.add('-message', `${target.name}'s Glitter Scales reflected damage!`);
+},
+
+
 },
 
 
