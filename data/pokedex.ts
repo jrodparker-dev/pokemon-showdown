@@ -5548,7 +5548,7 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 	hariyama: {
 		num: 297,
 		name: "Hariyama",
-		types: ["Fighting"],
+		types: ["Fighting", "Normal"],
 		genderRatio: { M: 0.75, F: 0.25 },
 		baseStats: { hp: 144, atk: 120, def: 70, spa: 40, spd: 70, spe: 50 },
 		abilities: { 0: "Thick Fat", 1: "Guts", H: "Sheer Force" },
@@ -18099,7 +18099,7 @@ castformmega: {
 	roaringmoon: {
 		num: 1005,
 		name: "Roaring Moon",
-		types: ["Dragon", "Dark"],
+		types: ["Dark"],
 		gender: "N",
 		baseStats: { hp: 95, atk: 164, def: 61, spa: 55, spd: 91, spe: 144 },
 		abilities: { 0: "Protosynthesis" },
