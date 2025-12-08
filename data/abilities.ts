@@ -10499,7 +10499,7 @@ flags: {},
 
 solarcore: {
 	name: "Solar Core",
-	shortDesc: "In sun: Fire & Rock moves 1.5x power; heals 1/8 max HP each turn.",
+	shortDesc: "In sun: Fire & Rock moves 1.2x power; heals 1/16 max HP each turn.",
 	rating: 3.5,
 	onStart(pokemon) { 
 const cur = pokemon.getTypes(true).join('/'); // runtime types 
@@ -10512,7 +10512,7 @@ this.add('-start', pokemon, 'typechange', cur);
 		if ((move.type === 'Fire' || move.type === 'Rock') &&
 			['sunnyday', 'desolateland'].includes(this.field.effectiveWeather())) {
 			this.debug('Solar Core boost');
-			return this.chainModify(1.5);
+			return this.chainModify(1.2);
 		}
 	},
 
@@ -10520,9 +10520,43 @@ this.add('-start', pokemon, 'typechange', cur);
 	onWeather(target, source, effect) {
 		if (!target.isActive) return;
 		if (effect.id === 'sunnyday' || effect.id === 'desolateland') {
-			this.heal(target.baseMaxhp / 8, target, target);
+			this.heal(target.baseMaxhp / 16, target, target);
 		}
 	},
+},
+
+scalesofruin: {
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
+
+		if (this.suppressingAbility(pokemon)) return;
+		this.add('-ability', pokemon, 'Scales of Ruin');
+	},
+
+	// Reduce accuracy of all non-user moves
+	onAnyAccuracy(accuracy, source, target, move) {
+		// In case your fork ever passes non-numeric accuracy (like "always hits")
+		if (typeof accuracy !== 'number') return;
+
+		const abilityHolder = this.effectState.target;
+
+		// Do not reduce accuracy of moves used by the ability holder
+		if (source && source.hasAbility('Scales of Ruin')) return;
+
+		// Use `any` so TS doesn't complain about our custom field
+		const m: any = move;
+		if (!m.ruinedAccHolder) m.ruinedAccHolder = abilityHolder;
+		if (m.ruinedAccHolder !== abilityHolder) return;
+
+		this.debug('Scales of Ruin Accuracy drop');
+		return this.chainModify(0.85); // 85% accuracy multiplier
+	},
+
+	flags: {},
+	name: "Scales of Ruin",
+	rating: 4.5,
 },
 
 
