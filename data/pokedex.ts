@@ -6002,7 +6002,7 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 	torkoal: {
 		num: 324,
 		name: "Torkoal",
-		types: ["Fire"],
+		types: ["Fire", "Dragon"],
 		baseStats: { hp: 70, atk: 85, def: 140, spa: 85, spd: 70, spe: 20 },
 		abilities: { 0: "White Smoke", 1: "Drought", H: "Shell Armor" },
 		heightm: 0.5,
@@ -8107,7 +8107,7 @@ castformmega: {
 	drapion: {
 		num: 452,
 		name: "Drapion",
-		types: ["Poison", "Dark"],
+		types: ["Ghost", "Dark"],
 		baseStats: { hp: 70, atk: 90, def: 110, spa: 60, spd: 75, spe: 95 },
 		abilities: { 0: "Battle Armor", 1: "Sniper", H: "Keen Eye" },
 		heightm: 1.3,
@@ -17815,7 +17815,7 @@ castformmega: {
 	brutebonnet: {
 		num: 986,
 		name: "Brute Bonnet",
-		types: ["Grass", "Dark"],
+		types: ["Steel", "Flying"],
 		gender: "N",
 		baseStats: { hp: 111, atk: 127, def: 99, spa: 79, spd: 99, spe: 55 },
 		abilities: { 0: "Protosynthesis" },
@@ -17832,7 +17832,7 @@ castformmega: {
 		name: "Brute Bonnet-Mega",
 		baseSpecies: "Brute Bonnet",
 		forme: "Mega",
-		types: ["Grass", "Dark"],
+		types: ["Steel", "Flying"],
 		gender: "N",
 		baseStats: { hp: 111, atk: 147, def: 149, spa: 89, spd: 119, spe: 55 },
 		abilities: { 0: "Spore Shield" },
@@ -18047,7 +18047,7 @@ castformmega: {
 	wochien: {
 		num: 1001,
 		name: "Wo-Chien",
-		types: ["Dark", "Grass"],
+		types: ["Water", "Bug"],
 		gender: "N",
 		baseStats: { hp: 85, atk: 85, def: 100, spa: 95, spd: 135, spe: 70 },
 		abilities: { 0: "Tablets of Ruin" },
@@ -18099,7 +18099,7 @@ castformmega: {
 	roaringmoon: {
 		num: 1005,
 		name: "Roaring Moon",
-		types: ["Dark", "Dragon"],
+		types: ["Dark"],
 		gender: "N",
 		baseStats: { hp: 105, atk: 139, def: 71, spa: 55, spd: 101, spe: 119 },
 		abilities: { 0: "Protosynthesis" },
