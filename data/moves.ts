@@ -27590,7 +27590,7 @@ bloodoath: {
 	type: "Gamma",
 	category: "Physical",
 	accuracy: 90,
-	basePower: 75,
+	basePower: 50,
 	pp: 8,
 	priority: 0,
 	flags: {protect: 1, mirror: 1, contact: 1, bite: 1},
@@ -27896,6 +27896,62 @@ nuclearexplosion: {
 			source.faint(source, nukeMove as unknown as Effect);
 		}
 	},
+},
+chromaticclaw: {
+	num: -7003, // custom ID
+	name: "Chromatic Claw",
+	shortDesc: "High crit. Becomes the user's 2nd type or held Gem's type.",
+	type: "Normal", // overwritten by onModifyType
+	category: "Physical",
+	basePower: 90,
+	accuracy: 100,
+	pp: 10,
+	priority: 0,
+	critRatio: 2, // high crit
+	flags: {
+		contact: 1,
+		slicing: 1,
+		protect: 1,
+		mirror: 1,
+	},
+
+	onModifyType(move, pokemon) {
+		// Only override if it's still the base type
+		if (move.type !== 'Normal') return;
+
+		let newType: string | undefined;
+
+		// 1) Try to use held Gem type, if any
+		const item = pokemon.getItem();
+		if (item && (item as any).isGem) {
+			// item.id is an ID; treat it as string for text ops
+			let id = item.id as string; // e.g. "firegem"
+			if (id.endsWith('gem')) id = id.slice(0, -3); // "firegem" -> "fire"
+
+			const t = this.dex.types.get(id);
+			if (t && t.exists) {
+				newType = t.name; // e.g. "Fire"
+			}
+		}
+
+		// 2) Otherwise, fall back to user's secondary type
+		if (!newType) {
+			const types = pokemon.getTypes(); // runtime types
+			if (types.length > 1) {
+				newType = types[1];
+			} else if (types.length > 0) {
+				// fallback: mono-type uses its only type
+				newType = types[0];
+			}
+		}
+
+		if (newType) {
+			move.type = newType as any;
+			this.debug(`Chromatic Claw type set to ${newType}`);
+		}
+	},
+
+	target: "normal",
 },
 
 

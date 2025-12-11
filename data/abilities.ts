@@ -9672,32 +9672,41 @@ this.add('-start', pokemon, 'typechange', cur);
 	 * Bonus damage vs targets with your existing 'bleeding' volatile/status.
 	 */
 	bloodhound: {
-  name: "Bloodhound",
-  shortDesc: "On switch-in, phazes foe. 1.3× damage vs targets with [bleeding].",
-  rating: 4,
-  onStart(pokemon) { 
-const cur = pokemon.getTypes(true).join('/'); // runtime types 
-const base = pokemon.species.types.join('/'); // species types 
-this.add('-start', pokemon, 'typechange', cur);
+	name: "Bloodhound",
+	shortDesc: "On switch-in (once per battle), phazes foe. 1.3× damage vs targets with [bleeding].",
+	rating: 4,
 
-    const foe = pokemon.side.foe.active[0];
-    if (!foe) return;
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+		const base = pokemon.species.types.join('/'); // species types 
+		this.add('-start', pokemon, 'typechange', cur);
 
-    // can they be forced out?
-    const anchored = foe.hasAbility?.('suctioncups') || foe.volatiles['ingrain'];
-    if (!anchored && this.canSwitch(foe.side)) {
-      this.add('-ability', pokemon, 'Bloodhound');
-      this.add('-message', `${pokemon.name} flushed out ${foe.name}!`);
-      // Red Card–style phaze: flag the switch and let Actions process it
-      foe.forceSwitchFlag = true;
-    }
-  },
-  onBasePower(basePower, attacker, defender) {
-    if (!defender) return;
-    if (defender.volatiles['bleeding'] || defender.status === 'bleeding') {
-      return this.chainModify(1.3);
-    }
-  },
+		// If we've already used Bloodhound this battle, do nothing
+		if ((pokemon.m as any).bloodhoundUsed) return;
+
+		const foe = pokemon.side.foe.active[0];
+		if (!foe) return;
+
+		// can they be forced out?
+		const anchored = foe.hasAbility?.('suctioncups') || foe.volatiles['ingrain'];
+		if (!anchored && this.canSwitch(foe.side)) {
+			this.add('-ability', pokemon, 'Bloodhound');
+			this.add('-message', `${pokemon.name} flushed out ${foe.name}!`);
+
+			// Red Card–style phaze: flag the switch and let Actions process it
+			foe.forceSwitchFlag = true;
+
+			// Mark as used so it won't trigger again this battle
+			(pokemon.m as any).bloodhoundUsed = true;
+		}
+	},
+
+	onBasePower(basePower, attacker, defender) {
+		if (!defender) return;
+		if (defender.volatiles['bleeding'] || defender.status === 'bleeding') {
+			return this.chainModify(1.3);
+		}
+	},
 },
 
 
