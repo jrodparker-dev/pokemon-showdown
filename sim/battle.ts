@@ -2087,6 +2087,22 @@ export class Battle {
 					this.lastDamage = targetDamage;
 				}
 			}
+
+			// --- Gamma type cap: never above 2x on dual-types ---
+if (effect && effect.effectType === 'Move') {
+  const move = effect as ActiveMove;
+  if (move.type === 'Gamma') {
+    const targetTypes = target.getTypes();
+    if (targetTypes.length >= 2) {
+      // Normally this would be 4x because both types are weak to Gamma.
+      // Halve the final damage so the effective multiplier is only 2x.
+      this.debug('Gamma dual-type cap (4x -> 2x)');
+      targetDamage = this.clampIntRange(Math.floor(targetDamage / 2), 1);
+    }
+  }
+}
+// --- End Gamma type cap ---
+
 			// --- Type-based Focus Band (once per battle) ---
 {
   const PROTECTED_TYPES = new Set(['Gamma']); // add more if needed: ['Light', 'Gamma']
