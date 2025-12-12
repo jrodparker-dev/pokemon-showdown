@@ -10567,6 +10567,256 @@ scalesofruin: {
 	name: "Scales of Ruin",
 	rating: 4.5,
 },
+randochaos: {
+  name: "Randochaos",
+  shortDesc: "On every switch-in: fully random species, typing, stats (BST 550), EVs, nature, moves (signature STABs → Metronome + Adaptive Force), and ability. Keeps held item.",
+  rating: 5,
+
+  onSwitchIn(pokemon) {
+    if (pokemon.fainted) return;
+
+    const battle = this;
+
+    // Preserve HP ratio for the transformation
+    const hpRatio = Math.max(0, pokemon.hp) / Math.max(1, pokemon.maxhp || 1);
+
+    // ------------------------------------------------------------
+    // 1) Random species pool
+    // ------------------------------------------------------------
+    const speciesPool = this.dex.species.all().filter(s =>
+      s.exists &&
+      !s.nfe &&
+      !(s as any).battleOnly &&
+      !(s as any).isNonstandard &&
+      !(s as any).isMega &&
+      !(s as any).isPrimal &&
+      !(s as any).isGigantamax
+    );
+    if (!speciesPool.length) return;
+
+    let species = this.sample(speciesPool);
+    for (let i = 0; i < 4 && speciesPool.length > 1 && species.name === pokemon.species.name; i++) {
+      species = this.sample(speciesPool);
+    }
+
+    pokemon.formeChange(species, this.effect, true);
+
+    // ------------------------------------------------------------
+    // 2) Random typing
+    // ------------------------------------------------------------
+    const allTypes = this.dex.types.names().filter(t => t !== '???');
+    const primary = this.sample(allTypes);
+    let secondary: string | undefined = undefined;
+    if (this.randomChance(1, 2)) {
+      const pool = allTypes.filter(t => t !== primary);
+      if (pool.length) secondary = this.sample(pool);
+    }
+    const newTypes = secondary ? [primary, secondary] : [primary];
+    pokemon.setType(newTypes as string[]);
+    this.add('-start', pokemon, 'typechange', newTypes.join('/'));
+
+    // ------------------------------------------------------------
+    // 3) BST Normalization → 550
+    // (Same logic as before — unchanged)
+    // ------------------------------------------------------------
+    type StatName = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
+    const statKeys: StatName[] = ['hp','atk','def','spa','spd','spe'];
+
+    const baseStats = { ...species.baseStats };
+    const curBST = statKeys.reduce((n,k) => n + baseStats[k], 0);
+    const targetBST = 550;
+    let delta = targetBST - curBST;
+
+    const newBaseStats = { ...baseStats };
+    if (delta !== 0) {
+      if (delta > 0) {
+        const per = Math.floor(delta / 6);
+        const rem = delta - per * 6;
+        for (const s of statKeys) newBaseStats[s] += per;
+        for (let i = 0; i < rem; i++) {
+          const s = this.sample(statKeys);
+          newBaseStats[s]++;
+        }
+      } else {
+        delta = -delta;
+        const mutable = [...statKeys];
+        while (delta > 0 && mutable.length) {
+          const s = this.sample(mutable);
+          if (newBaseStats[s] > 1) {
+            newBaseStats[s]--;
+            delta--;
+          } else {
+            mutable.splice(mutable.indexOf(s), 1);
+          }
+        }
+      }
+    }
+
+    // ------------------------------------------------------------
+    // 4) Determine offensive focus → EVs + Nature
+    // ------------------------------------------------------------
+    const atkBase = newBaseStats.atk;
+    const spaBase = newBaseStats.spa;
+    const speBase = newBaseStats.spe;
+
+    const bestOff: 'atk' | 'spa' = atkBase >= spaBase ? 'atk' : 'spa';
+    const worstOff: 'atk' | 'spa' = bestOff === 'atk' ? 'spa' : 'atk';
+
+    const newEVs: StatsTable = {hp:0, atk:0, def:0, spa:0, spd:0, spe:0};
+    let natureName: string;
+
+    if (speBase >= 50) {
+      newEVs[bestOff] = 252;
+      newEVs.spe = 252;
+      newEVs.hp = 4;
+      natureName = (bestOff === 'atk') ? 'Jolly' : 'Timid';
+    } else {
+      newEVs[bestOff] = 252;
+      newEVs.hp = 252;
+      newEVs.def = 4;
+      natureName = (bestOff === 'atk') ? 'Adamant' : 'Modest';
+    }
+
+    pokemon.set.evs = newEVs;
+    pokemon.set.ivs = {hp:31, atk:31, def:31, spa:31, spd:31, spe:31};
+    pokemon.set.nature = natureName;
+
+    // ------------------------------------------------------------
+    // 5) Recalculate actual stats (same as before)
+    // ------------------------------------------------------------
+    const level = pokemon.level;
+    const natureObj = this.dex.natures.get(natureName);
+    const getNatureMod = (s:'atk'|'def'|'spa'|'spd'|'spe'):number=>{
+      if (!natureObj) return 1;
+      if (natureObj.plus === s) return 1.1;
+      if (natureObj.minus === s) return 0.9;
+      return 1;
+    };
+
+    const newStoredStats: StatsTable = {hp:0, atk:0, def:0, spa:0, spd:0, spe:0};
+    for (const s of statKeys) {
+      const B = newBaseStats[s];
+      const IV = pokemon.set.ivs[s];
+      const EV = pokemon.set.evs[s];
+      if (s === 'hp') {
+        newStoredStats.hp = Math.floor(((2*B+IV+Math.floor(EV/4))*level)/100)+level+10;
+      } else {
+        let val = Math.floor(((2*B+IV+Math.floor(EV/4))*level)/100)+5;
+        val = Math.floor(val * getNatureMod(s) + 0.5);
+        newStoredStats[s] = val;
+      }
+    }
+
+    (pokemon as any).storedStats = {...newStoredStats};
+    pokemon.maxhp = newStoredStats.hp;
+    pokemon.baseMaxhp = newStoredStats.hp;
+
+    // Restore HP %
+    pokemon.sethp(Math.max(1, Math.floor(pokemon.maxhp * hpRatio)));
+
+    // ------------------------------------------------------------
+    // 6) SIGNATURE MOVE LOGIC → Slots 1–2
+    // ------------------------------------------------------------
+
+    // Build signature move list dynamically:
+    const learnsets = (this.dex.data as any).Learnsets;
+    const signatureMoves: string[] = [];
+
+    // Count how many species learn each move
+    const moveLearners: Record<string, number> = {};
+    for (const sp of this.dex.species.all()) {
+      if (!sp.exists || !learnsets[sp.id]?.learnset) continue;
+      for (const mv of Object.keys(learnsets[sp.id].learnset)) {
+        moveLearners[mv] = (moveLearners[mv] || 0) + 1;
+      }
+    }
+
+    for (const mv in moveLearners) {
+      if (moveLearners[mv] === 1) signatureMoves.push(mv);
+    }
+
+    const allMoves = this.dex.moves.all().filter(m => m.exists && !m.isZ && !m.isMax);
+
+    const isDamaging = (m:any)=>m.category!=='Status' && (m.basePower>0||m.damage||m.ohko);
+    const preferredCategory = (bestOff === 'atk') ? 'Physical' : 'Special';
+
+    const sigPool = allMoves.filter(m =>
+      signatureMoves.includes(m.id) &&
+      isDamaging(m) &&
+      newTypes.includes(m.type) &&
+      m.category === preferredCategory
+    );
+
+    const strongStabPool = allMoves.filter(m =>
+      isDamaging(m) &&
+      newTypes.includes(m.type) &&
+      m.category === preferredCategory &&
+      (m.basePower||0) >= 70
+    );
+
+    const stabFallbackPool = allMoves.filter(m =>
+      isDamaging(m) &&
+      newTypes.includes(m.type) &&
+      m.category === preferredCategory
+    );
+
+    const genericFallbackPool = allMoves.filter(m =>
+      isDamaging(m) &&
+      m.category === preferredCategory
+    );
+
+    const chosenMoves: string[] = [];
+
+    const tryFill = (pool:any[], count:number)=>{
+      const arr=[...pool];
+      while (chosenMoves.length<count && arr.length){
+        const mv = arr.splice(this.random(arr.length),1)[0];
+        if (!chosenMoves.includes(mv.id)) chosenMoves.push(mv.id);
+      }
+    };
+
+    tryFill(sigPool, 2);
+    if (chosenMoves.length<2) tryFill(strongStabPool, 2);
+    if (chosenMoves.length<2) tryFill(stabFallbackPool, 2);
+    if (chosenMoves.length<2) tryFill(genericFallbackPool, 2);
+
+    while (chosenMoves.length<2) chosenMoves.push('tackle');
+
+    chosenMoves[2] = 'metronome';
+    chosenMoves[3] = 'adaptiveforce';
+
+    // Apply moves
+    pokemon.moveSlots.splice(0,pokemon.moveSlots.length);
+    (pokemon.baseMoveSlots as any).splice(0,(pokemon.baseMoveSlots as any).length);
+    for (const id of chosenMoves) {
+      const mv = this.dex.moves.get(id);
+      const slot = {
+        move: mv.name, id: mv.id as ID,
+        pp: mv.pp, maxpp: mv.pp, target: mv.target,
+        disabled: false, disabledSource: '', used:false
+      };
+      pokemon.moveSlots.push({...slot});
+      (pokemon.baseMoveSlots as any).push({...slot});
+    }
+
+    // ------------------------------------------------------------
+    // 7) Random ability — but keep Randochaos as BASE ability so it re-triggers
+    // ------------------------------------------------------------
+    const abilPool = this.dex.abilities.all().filter(a=>a.exists && !(a as any).isNonstandard);
+    if (abilPool.length){
+      const randAbil = this.sample(abilPool);
+      if (randAbil){
+        pokemon.setAbility(randAbil.id as ID, pokemon, true as any);
+        this.add('-ability', pokemon, randAbil.name, '[from] ability: Randochaos');
+      }
+    }
+
+    // **Critical:** ensure that next switch-in STILL activates Randochaos
+    pokemon.baseAbility = 'randochaos' as ID;
+
+    this.add('-message', `${pokemon.name} plunges into pure Randochaos!`);
+  },
+},
 
 
 };

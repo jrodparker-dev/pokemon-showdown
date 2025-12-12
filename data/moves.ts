@@ -24748,6 +24748,7 @@ adaptiveforce: {
   accuracy: 100,
   pp: 10,
   priority: 0,
+  ignoreImmunity: true,
   category: "Special", // overridden
   flags: {protect: 1, mirror: 1},
   onModifyMove(move, pokemon, target) {
