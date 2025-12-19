@@ -10817,6 +10817,46 @@ randochaos: {
     this.add('-message', `${pokemon.name} plunges into pure Randochaos!`);
   },
 },
+shortcircuit: {
+	name: "Short Circuit",
+	shortDesc: "When this Pokémon uses a move, it may instead use a random usable move.",
+	rating: 3.5,
+
+	// Core random-move hijack
+	onBeforeMove(pokemon, target, move) {
+		// Recursion guard so our own useMove call doesn't loop back here
+		const m = pokemon.m as any;
+		if (m.shortCircuitResolving) return;
+
+		// Build usable-move pool, like in the volatile:
+		// respects Disable, Taunt, Encore, Imprison, Choice, PP, etc.
+		const usable = pokemon.getMoves().filter(ms =>
+			!ms.disabled && (ms.pp ?? 0) > 0 && this.dex.moves.get(ms.id).id !== 'struggle'
+		);
+
+		// No usable moves? Let Struggle or whatever normally happens go through
+		if (!usable.length) return;
+
+		// Randomly pick a move from the usable pool
+		const pick = this.sample(usable);
+		const picked = this.dex.moves.get(pick.id);
+
+		// If RNG chose the same move, just let it proceed as-is
+		if (picked.id === move.id) return;
+
+		this.add('-ability', pokemon, 'Short Circuit');
+		this.add('-message', `${pokemon.name} short-circuited and used ${picked.name} instead!`);
+
+		// Fire the chosen move manually, then cancel the original
+		m.shortCircuitResolving = true;
+		const activeMove = this.dex.getActiveMove(picked);
+		this.actions.useMove(activeMove, pokemon);
+		m.shortCircuitResolving = false;
+
+		// Cancel the originally queued move
+		return false;
+	},
+},
 
 
 };
