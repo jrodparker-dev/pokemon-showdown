@@ -20412,7 +20412,7 @@ oinkolognemega: {
 		weightkg: 50,
 		eggGroups: ["Undiscovered"],
 	},
-	valkirien: {
+	valkyrien: {
 		num: -1022,
 		name: "Valkirien",
 		types: ["Fairy", "Light"],
