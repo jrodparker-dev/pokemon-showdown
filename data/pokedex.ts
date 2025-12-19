@@ -20414,7 +20414,7 @@ oinkolognemega: {
 	},
 	valkyrien: {
 		num: -1022,
-		name: "Valkirien",
+		name: "Valkyrien",
 		types: ["Fairy", "Light"],
 		baseStats: {hp: 90, atk: 115, def: 110, spa: 60, spd: 90, spe: 115},
 		abilities: {0: "Fateful Strike"},
