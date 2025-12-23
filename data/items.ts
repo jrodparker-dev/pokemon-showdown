@@ -8377,17 +8377,39 @@ elegantband: {
   // Run after Serene Grace so it overwrites its effect
   onModifyMovePriority: -1,
   onModifyMove(move) {
+    // Target secondaries (effects on the opponent)
     if (move.secondaries) {
-      this.debug('setting secondary chance to 30%');
+      this.debug('setting target secondary chances to 30%');
       for (const secondary of move.secondaries) {
-        secondary.chance = 30;
+        // If it already has a chance, clamp it; if not, give it one
+        if (secondary.chance === undefined || secondary.chance > 30) {
+          secondary.chance = 30;
+        }
       }
     }
+
+    // Self effects (like Close Combat / V-create stat drops)
     if (move.self) {
-      move.self.chance = 30;
+      const self = move.self;
+      // Only bother if it's actually doing something to the user
+      if (self.boosts || self.volatileStatus || self.sideCondition || self.weather || self.terrain) {
+        this.debug('setting self-effect chance to 30%');
+        if (self.chance === undefined || self.chance > 30) {
+          self.chance = 30;
+        }
+      }
+    }
+
+    // Some moves use selfBoost separately (mainly boosts on hit)
+    if (move.selfBoost) {
+      this.debug('setting selfBoost chance to 30%');
+      if (move.selfBoost.chance === undefined || move.selfBoost.chance > 30) {
+        move.selfBoost.chance = 30;
+      }
     }
   },
 },
+
 
 
 adrenalineshot: {
