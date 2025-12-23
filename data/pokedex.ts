@@ -3226,7 +3226,7 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 		forme: "Galar",
 		types: ["Dark", "Flying"],
 		gender: "N",
-		baseStats: { hp: 90, atk: 85, def: 90, spa: 100, spd: 125, spe: 90 },
+		baseStats: { hp: 90, atk: 255, def: 90, spa: 5, spd: 125, spe: 90 },
 		abilities: { 0: "Berserk" },
 		heightm: 2,
 		weightkg: 66,
