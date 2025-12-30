@@ -9624,23 +9624,16 @@ this.add('-start', pokemon, 'typechange', cur);
     // Mark as applied *before* formeChange so re-entrant onStart immediately returns
     (pokemon.m as any).statstealerApplied = true;
 
-    // ==== NEW: special handling for Klumph ====
+    // Choose base template to transform into
     let newSpecies: any;
     if (selfSpecies.id === 'klumph') {
-      // Use the dedicated stolen form if it exists
       const stolenTemplate = this.dex.species.get('klumphstolen');
-      if (stolenTemplate?.exists) {
-        newSpecies = this.dex.deepClone(stolenTemplate);
-      } else {
-        // Fallback: just clone current species if the form is missing
-        newSpecies = this.dex.deepClone(selfSpecies);
-      }
+      newSpecies = stolenTemplate?.exists ? this.dex.deepClone(stolenTemplate) : this.dex.deepClone(selfSpecies);
     } else {
-      // Default behavior for everyone else: clone current species
       newSpecies = this.dex.deepClone(selfSpecies);
     }
 
-    // Replace only non-HP base stats with foe's; keep HP so your HP stays constant
+    // Replace only non-HP base stats with foe's; keep HP
     newSpecies.baseStats = {
       hp: selfSpecies.baseStats.hp,
       atk: foeSpecies.baseStats.atk,
@@ -9650,15 +9643,21 @@ this.add('-start', pokemon, 'typechange', cur);
       spe: foeSpecies.baseStats.spe,
     };
 
-    // Apply the dynamic forme; ability/moves/item/IVs/EVs/nature are unchanged
+    // IMPORTANT: make the new template "compatible" with Statstealer
+    // so formeChange doesn't try to correct the ability back to a native one.
+    newSpecies.abilities = {0: 'Statstealer'};
+
     const ok = pokemon.formeChange(newSpecies, this.effect, true);
-    if (ok) {
-      this.add('-ability', pokemon, 'Statstealer');
-      this.add('-message', `${pokemon.name} mirrored ${foe.name}'s core stats!`);
-    }
+if (ok) {
+  // Force Statstealer again (your fork's setAbility expects boolean/undefined as 3rd arg)
+  pokemon.setAbility('statstealer', pokemon, true);
+
+  this.add('-ability', pokemon, 'Statstealer');
+  this.add('-message', `${pokemon.name} mirrored ${foe.name}'s core stats!`);
+}
+
   },
 
-  // Clear the guard when you leave the field so it can reapply next time you come in
   onSwitchOut(pokemon) {
     if ((pokemon.m as any).statstealerApplied) {
       delete (pokemon.m as any).statstealerApplied;
