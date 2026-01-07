@@ -1644,18 +1644,35 @@ export class RandomTeams {
 	randomSets: { [species: string]: RandomTeamsTypes.RandomSpeciesData } = require('./sets.json');
 	randomDoublesSets: { [species: string]: RandomTeamsTypes.RandomSpeciesData } = require('./doubles-sets.json');
 
-	randomTeam() {
+		randomTeam() {
 		this.enforceNoDirectCustomBanlistChanges();
 
 		const seed = this.prng.getSeed();
 		const ruleTable = this.dex.formats.getRuleTable(this.format);
 		const pokemon: RandomTeamsTypes.RandomSet[] = [];
 
+		// ============================================================
+		// TUNABLE SETTINGS
+		// ============================================================
+		// Set to false to fully remove "type-cap" and "weakness-cap" filtering.
+		// (Recommended while you’re still adding custom types / unfinished learnsets.)
+		const USE_TYPE_AND_WEAKNESS_CAPS = false;
+
+		// Extra loosen factor when caps are enabled.
+		// If you later flip USE_TYPE_AND_WEAKNESS_CAPS=true, this makes the caps scale
+		// up automatically if you have more than the standard 18 types.
+		const BASELINE_TYPE_COUNT = 18;
+		// ============================================================
+
 		// For Monotype
 		const isMonotype = !!this.forceMonotype || ruleTable.has('sametypeclause');
 		const isDoubles = this.format.gameType !== 'singles';
-		const typePool = this.dex.types.names().filter(name => name !== "Stellar");
-		const type = this.forceMonotype || this.sample(typePool);
+
+		// IMPORTANT: use *all* types your dex knows about (including custom),
+		// but still exclude Stellar from random type picking like vanilla does.
+		const typeNames = this.dex.types.names().filter(name => name !== "Stellar");
+
+		const type = this.forceMonotype || this.sample(typeNames);
 
 		// PotD stuff
 		const usePotD = global.Config && Config.potd && ruleTable.has('potd');
@@ -1670,23 +1687,70 @@ export class RandomTeams {
 		const teamDetails: RandomTeamsTypes.TeamDetails = {};
 		let numMaxLevelPokemon = 0;
 
+		// Debug tracking that will show in the popup error box
+		const triedSpecies: string[] = [];
+		const skipReasons: { [k: string]: number } = {};
+		const addSkip = (reason: string) => {
+			skipReasons[reason] = (skipReasons[reason] || 0) + 1;
+		};
+
 		const pokemonList = isDoubles ? Object.keys(this.randomDoublesSets) : Object.keys(this.randomSets);
 		const [pokemonPool, baseSpeciesPool] = this.getPokemonPool(type, pokemon, isMonotype, pokemonList);
 
+		// If your curated sets list ends up empty, fail loudly with useful info.
+		if (!baseSpeciesPool.length) {
+			throw new Error(
+				`Could not build a random team for ${this.format} (seed=${seed})\n` +
+				`- Built Pokémon: ${pokemon.length}/${this.maxTeamSize}\n` +
+				`- Gametype: ${this.format.gameType}\n` +
+				`- Monotype: ${isMonotype}\n` +
+				`- Forced Type: ${this.forceMonotype || 'none'}\n` +
+				`- Note: baseSpeciesPool is empty (no eligible Pokémon in randomSets/randomDoublesSets).`
+			);
+		}
+
 		let leadsRemaining = this.format.gameType === 'doubles' ? 2 : 1;
+
+		// Cap scaling if enabled (auto-loosens when you have more than 18 types)
+		const typeScale = Math.max(1, Math.ceil(typeNames.length / BASELINE_TYPE_COUNT));
+		const limitFactor = Math.round(this.maxTeamSize / 6) || 1;
+
+		// Vanilla-ish limits, scaled if you have more types:
+		const maxSameType = (2 * limitFactor) * typeScale;              // default vanilla-ish: 2 per type
+		const maxWeakToType = (3 * limitFactor) * typeScale;            // default vanilla-ish: 3 weak to a type
+		const maxDoubleWeakToType = (1 * limitFactor) * typeScale;      // default vanilla-ish: 1 double-weak to a type
+		const maxWeakToFreezeDry = (4 * limitFactor) * typeScale;       // default vanilla-ish: 4 weak to Freeze-Dry
+		const maxTypeComboInMonotype = (3 * limitFactor) * typeScale;   // default vanilla-ish: 3 of same combo in monotype
+
 		while (baseSpeciesPool.length && pokemon.length < this.maxTeamSize) {
 			const baseSpecies = this.sampleNoReplace(baseSpeciesPool);
 			let species = this.dex.species.get(this.sample(pokemonPool[baseSpecies]));
-			if (!species.exists) continue;
+			if (!species.exists) {
+				addSkip('missing-species');
+				continue;
+			}
+
+			// Track attempts for debug
+			triedSpecies.push(species.id);
+			if (triedSpecies.length > 12) triedSpecies.shift();
 
 			// Limit to one of each species (Species Clause)
-			if (baseFormes[species.baseSpecies]) continue;
+			if (baseFormes[species.baseSpecies]) {
+				addSkip('species-clause');
+				continue;
+			}
 
 			// Treat Ogerpon formes and Terapagos like the Tera Blast user role; reject if team has one already
-			if (['ogerpon', 'ogerponhearthflame', 'terapagos'].includes(species.id) && teamDetails.teraBlast) continue;
+			if (['ogerpon', 'ogerponhearthflame', 'terapagos'].includes(species.id) && teamDetails.teraBlast) {
+				addSkip('tera-blast-user-duplicate');
+				continue;
+			}
 
 			// Illusion shouldn't be on the last slot
-			if (species.baseSpecies === 'Zoroark' && pokemon.length >= (this.maxTeamSize - 1)) continue;
+			if (species.baseSpecies === 'Zoroark' && pokemon.length >= (this.maxTeamSize - 1)) {
+				addSkip('illusion-last-slot');
+				continue;
+			}
 
 			const types = species.types;
 			const typeCombo = types.slice().sort().join();
@@ -1694,34 +1758,38 @@ export class RandomTeams {
 				this.dex.getEffectiveness('Ice', species) > 0 ||
 				(this.dex.getEffectiveness('Ice', species) > -2 && types.includes('Water'))
 			);
-			// Dynamically scale limits for different team sizes. The default and minimum value is 1.
-			const limitFactor = Math.round(this.maxTeamSize / 6) || 1;
 
-			if (!isMonotype && !this.forceMonotype) {
+			if (!isMonotype && !this.forceMonotype && USE_TYPE_AND_WEAKNESS_CAPS) {
 				let skip = false;
 
-				// Limit two of any type
+				// Limit "too many of any type"
 				for (const typeName of types) {
-					if (typeCount[typeName] >= 2 * limitFactor) {
+					if ((typeCount[typeName] || 0) >= maxSameType) {
+						addSkip('type-cap');
 						skip = true;
 						break;
 					}
 				}
 				if (skip) continue;
 
-				// Limit three weak to any type, and one double weak to any type
-				for (const typeName of this.dex.types.names()) {
-					// it's weak to the type
-					if (this.dex.getEffectiveness(typeName, species) > 0) {
-						if (!typeWeaknesses[typeName]) typeWeaknesses[typeName] = 0;
-						if (typeWeaknesses[typeName] >= 3 * limitFactor) {
+				// Limit weaknesses
+				for (const typeName of typeNames) {
+					const eff = this.dex.getEffectiveness(typeName, species);
+
+					// weak
+					if (eff > 0) {
+						const curWeak = (typeWeaknesses[typeName] || 0);
+						if (curWeak >= maxWeakToType) {
+							addSkip('weakness-cap');
 							skip = true;
 							break;
 						}
 					}
-					if (this.dex.getEffectiveness(typeName, species) > 1) {
-						if (!typeDoubleWeaknesses[typeName]) typeDoubleWeaknesses[typeName] = 0;
-						if (typeDoubleWeaknesses[typeName] >= limitFactor) {
+					// double weak
+					if (eff > 1) {
+						const curDWeak = (typeDoubleWeaknesses[typeName] || 0);
+						if (curDWeak >= maxDoubleWeakToType) {
+							addSkip('double-weakness-cap');
 							skip = true;
 							break;
 						}
@@ -1734,46 +1802,67 @@ export class RandomTeams {
 					this.dex.getEffectiveness('Fire', species) === 0 &&
 					Object.values(species.abilities).filter(a => ['Dry Skin', 'Fluffy'].includes(a)).length
 				) {
-					if (!typeWeaknesses['Fire']) typeWeaknesses['Fire'] = 0;
-					if (typeWeaknesses['Fire'] >= 3 * limitFactor) continue;
+					const curWeak = (typeWeaknesses['Fire'] || 0);
+					if (curWeak >= maxWeakToType) {
+						addSkip('weakness-cap');
+						continue;
+					}
 				}
 
-				// Limit four weak to Freeze-Dry
+				// Limit weak to Freeze-Dry
 				if (weakToFreezeDry) {
-					if (!typeWeaknesses['Freeze-Dry']) typeWeaknesses['Freeze-Dry'] = 0;
-					if (typeWeaknesses['Freeze-Dry'] >= 4 * limitFactor) continue;
+					const curWeakFD = (typeWeaknesses['Freeze-Dry'] || 0);
+					if (curWeakFD >= maxWeakToFreezeDry) {
+						addSkip('freeze-dry-cap');
+						continue;
+					}
 				}
 
 				// Limit one level 100 Pokemon
 				if (!this.adjustLevel && (this.getLevel(species, isDoubles) === 100) && numMaxLevelPokemon >= limitFactor) {
+					addSkip('level-100-cap');
 					continue;
 				}
 			}
 
-			// Limit three of any type combination in Monotype
-			if (!this.forceMonotype && isMonotype && (typeComboCount[typeCombo] >= 3 * limitFactor)) continue;
+			// Limit type combos in Monotype (optional caps)
+			if (!this.forceMonotype && isMonotype && USE_TYPE_AND_WEAKNESS_CAPS) {
+				if (((typeComboCount[typeCombo] || 0) >= maxTypeComboInMonotype)) {
+					addSkip('typecombo-cap');
+					continue;
+				}
+			}
 
 			// The Pokemon of the Day
 			if (potd?.exists && (pokemon.length === 1 || this.maxTeamSize === 1)) species = potd;
 
 			let set: RandomTeamsTypes.RandomSet;
 
-			if (leadsRemaining) {
-				if (
-					isDoubles && DOUBLES_NO_LEAD_POKEMON.includes(species.baseSpecies) ||
-					!isDoubles && NO_LEAD_POKEMON.includes(species.baseSpecies)
-				) {
-					if (pokemon.length + leadsRemaining === this.maxTeamSize) continue;
+			try {
+				if (leadsRemaining) {
+					if (
+						isDoubles && DOUBLES_NO_LEAD_POKEMON.includes(species.baseSpecies) ||
+						!isDoubles && NO_LEAD_POKEMON.includes(species.baseSpecies)
+					) {
+						if (pokemon.length + leadsRemaining === this.maxTeamSize) {
+							addSkip('no-lead-forced-last-slot');
+							continue;
+						}
+						set = this.randomSet(species, teamDetails, false, isDoubles);
+						pokemon.push(set);
+					} else {
+						set = this.randomSet(species, teamDetails, true, isDoubles);
+						pokemon.unshift(set);
+						leadsRemaining--;
+					}
+				} else {
 					set = this.randomSet(species, teamDetails, false, isDoubles);
 					pokemon.push(set);
-				} else {
-					set = this.randomSet(species, teamDetails, true, isDoubles);
-					pokemon.unshift(set);
-					leadsRemaining--;
 				}
-			} else {
-				set = this.randomSet(species, teamDetails, false, isDoubles);
-				pokemon.push(set);
+			} catch (e) {
+				// If randomSet blows up (often missing sets / bad movepool / etc), count it and keep trying.
+				addSkip('randomset-error');
+				continue;
 			}
 
 			// Don't bother tracking details for the last Pokemon
@@ -1784,33 +1873,21 @@ export class RandomTeams {
 
 			// Increment type counters
 			for (const typeName of types) {
-				if (typeName in typeCount) {
-					typeCount[typeName]++;
-				} else {
-					typeCount[typeName] = 1;
-				}
+				typeCount[typeName] = (typeCount[typeName] || 0) + 1;
 			}
-			if (typeCombo in typeComboCount) {
-				typeComboCount[typeCombo]++;
-			} else {
-				typeComboCount[typeCombo] = 1;
-			}
+			typeComboCount[typeCombo] = (typeComboCount[typeCombo] || 0) + 1;
 
-			// Increment weakness counter
-			for (const typeName of this.dex.types.names()) {
-				// it's weak to the type
-				if (this.dex.getEffectiveness(typeName, species) > 0) {
-					typeWeaknesses[typeName]++;
-				}
-				if (this.dex.getEffectiveness(typeName, species) > 1) {
-					typeDoubleWeaknesses[typeName]++;
-				}
+			// Increment weakness counters (SAFE increments - never NaN)
+			for (const typeName of typeNames) {
+				const eff = this.dex.getEffectiveness(typeName, species);
+				if (eff > 0) typeWeaknesses[typeName] = (typeWeaknesses[typeName] || 0) + 1;
+				if (eff > 1) typeDoubleWeaknesses[typeName] = (typeDoubleWeaknesses[typeName] || 0) + 1;
 			}
 			// Count Dry Skin/Fluffy as Fire weaknesses
 			if (['Dry Skin', 'Fluffy'].includes(set.ability) && this.dex.getEffectiveness('Fire', species) === 0) {
-				typeWeaknesses['Fire']++;
+				typeWeaknesses['Fire'] = (typeWeaknesses['Fire'] || 0) + 1;
 			}
-			if (weakToFreezeDry) typeWeaknesses['Freeze-Dry']++;
+			if (weakToFreezeDry) typeWeaknesses['Freeze-Dry'] = (typeWeaknesses['Freeze-Dry'] || 0) + 1;
 
 			// Increment level 100 counter
 			if (set.level === 100) numMaxLevelPokemon++;
@@ -1840,12 +1917,28 @@ export class RandomTeams {
 				teamDetails.teraBlast = 1;
 			}
 		}
+
 		if (pokemon.length < this.maxTeamSize && pokemon.length < 12) { // large teams sometimes cannot be built
-			throw new Error(`Could not build a random team for ${this.format} (seed=${seed})`);
+			const lines = [
+				`Could not build a random team for ${this.format} (seed=${seed})`,
+				`- Seed: ${seed}`,
+				`- Built Pokémon: ${pokemon.length}/${this.maxTeamSize}`,
+				`- Gametype: ${this.format.gameType}`,
+				`- Monotype: ${isMonotype}`,
+				`- Forced Type: ${this.forceMonotype || 'none'}`,
+				`- Caps enabled: ${USE_TYPE_AND_WEAKNESS_CAPS}`,
+				`- Last tried species: ${triedSpecies.join(', ') || '(none)'}`,
+				`- Skip reasons:`,
+				...Object.keys(skipReasons)
+					.sort((a, b) => (skipReasons[b] || 0) - (skipReasons[a] || 0))
+					.map(k => `-- ${k}: ${skipReasons[k]}`),
+			];
+			throw new Error(lines.join('\n'));
 		}
 
 		return pokemon;
 	}
+
 
 	randomCCTeam(): RandomTeamsTypes.RandomSet[] {
 		this.enforceNoDirectCustomBanlistChanges();
