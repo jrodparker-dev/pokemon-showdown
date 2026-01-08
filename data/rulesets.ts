@@ -626,49 +626,88 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		},
 	},
 	teampreview: {
-		effectType: 'Rule',
-		name: 'Team Preview',
-		desc: "Allows each player to see the Pok&eacute;mon on their opponent's team before they choose their lead Pok&eacute;mon",
-		onBegin() {
-			if (this.ruleTable.has(`teratypepreview`)) {
-				this.add('rule', 'Tera Type Preview: Tera Types are shown at Team Preview');
-			}
-		},
-		onTeamPreview() {
-			this.add('clearpoke');
+	effectType: 'Rule',
+	name: 'Team Preview',
+	desc: "Allows each player to see the Pok&eacute;mon on their opponent's team before they choose their lead Pok&eacute;mon",
+	onBegin() {
+		if (this.ruleTable.has(`teratypepreview`)) {
+			this.add('rule', 'Tera Type Preview: Tera Types are shown at Team Preview');
+		}
+	},
+
+	onTeamPreview() {
+		this.add('clearpoke');
+
+		// Blind Team Preview:
+		// We MUST still send |poke| entries or the client won't render preview properly.
+		// But we can mask the species so neither player learns the opponent's roster.
+		if (this.ruleTable?.has('blindteampreview')) {
 			for (const pokemon of this.getAllPokemon()) {
-				let details = pokemon.details.replace(', shiny', '')
-					.replace(/(Zacian|Zamazenta)(?!-Crowned)/g, '$1-*'); // Hacked-in Crowned formes will be revealed
-				if (!this.ruleTable.has('speciesrevealclause')) {
-					details = details
-						.replace(/(Greninja|Gourgeist|Pumpkaboo|Xerneas|Silvally|Urshifu|Dudunsparce)(-[a-zA-Z?-]+)?/g, '$1-*');
-				}
+				// pokemon.details looks like: "Regidrago, L77, M" or "Pikachu, L50"
+				// Mask the species name (everything before the first comma).
+				let details = pokemon.details
+					.replace(', shiny', '')
+					.replace(/^[^,]+/, 'Pok&eacute;mon-*');
+
+				// Keep the same "speciesrevealclause" handling pattern if you want,
+				// but at this point everything is already masked anyway.
+
 				this.add('poke', pokemon.side.id, details, '');
 			}
-			if (this.ruleTable.has(`teratypepreview`)) {
-				for (const side of this.sides) {
-					let buf = ``;
-					for (const pokemon of side.pokemon) {
-						buf += buf ? ` / ` : `raw|${side.name}'s Tera Types:<br />`;
-						buf += `<psicon pokemon="${pokemon.species.id}" /><psicon type="${pokemon.teraType}" />`;
-					}
-					this.add(`${buf}`);
-				}
-			}
+
+			// IMPORTANT: do NOT add('teampreview') here; the engine already emits it.
 			this.makeRequest('teampreview');
-		},
-	},
-	teratypepreview: {
-		effectType: 'Rule',
-		name: 'Tera Type Preview',
-		desc: "Allows each player to see the Tera Type of the Pok&eacute;mon on their opponent's team before they choose their lead Pok&eacute;mon",
-		onValidateRule() {
-			if (!this.ruleTable.has('teampreview')) {
-				throw new Error(`The "Tera Type Preview" rule${this.ruleTable.blame('teratypepreview')} requires Team Preview.`);
+			return;
+		}
+
+		// Normal Team Preview behavior (reveals full rosters)
+		for (const pokemon of this.getAllPokemon()) {
+			let details = pokemon.details.replace(', shiny', '')
+				.replace(/(Zacian|Zamazenta)(?!-Crowned)/g, '$1-*'); // Hacked-in Crowned formes will be revealed
+			if (!this.ruleTable.has('speciesrevealclause')) {
+				details = details
+					.replace(/(Greninja|Gourgeist|Pumpkaboo|Xerneas|Silvally|Urshifu|Dudunsparce)(-[a-zA-Z?-]+)?/g, '$1-*');
 			}
-		},
-		// implemented in team preview
+			this.add('poke', pokemon.side.id, details, '');
+		}
+
+		if (this.ruleTable.has(`teratypepreview`)) {
+			for (const side of this.sides) {
+				let buf = ``;
+				for (const pokemon of side.pokemon) {
+					buf += buf ? ` / ` : `raw|${side.name}'s Tera Types:<br />`;
+					buf += `<psicon pokemon="${pokemon.species.id}" /><psicon type="${pokemon.teraType}" />`;
+				}
+				this.add(`${buf}`);
+			}
+		}
+
+		this.makeRequest('teampreview');
 	},
+},
+
+blindteampreview: {
+	effectType: 'Rule',
+	name: 'Blind Team Preview',
+	desc: 'Players choose a lead without seeing the opponent\u2019s team.',
+},
+
+teratypepreview: {
+	effectType: 'Rule',
+	name: 'Tera Type Preview',
+	desc: "Allows each player to see the Tera Type of the Pok&eacute;mon on their opponent's team before they choose their lead Pok&eacute;mon",
+	onValidateRule() {
+		if (!this.ruleTable.has('teampreview')) {
+			throw new Error(`The "Tera Type Preview" rule${this.ruleTable.blame('teratypepreview')} requires Team Preview.`);
+		}
+		if (this.ruleTable.has('blindteampreview')) {
+			throw new Error(`The "Tera Type Preview" rule${this.ruleTable.blame('teratypepreview')} can't be used with Blind Team Preview.`);
+		}
+	},
+	// implemented in team preview
+},
+
+
 	onevsone: {
 		effectType: 'Rule',
 		name: 'One vs One',

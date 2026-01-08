@@ -7753,5 +7753,16 @@
                 "teraTypes": ["Dark"]
             }
         ]
+    },
+    "valkyrien": {
+        "level": 85,
+        "sets": [
+            {
+                "role":"Fast Attacker",
+                "movepool": ["Radiant Spear", "Moonstrike", "Cauterize", "Searing Stab", "Leaf Blade", "Psycho Cut", "Toxic Slash"],
+                "abilities": ["Fateful Strike", "Sharpness"],
+                "teraTypes": ["Steel", "Dark"]
+            }
+        ]
     }
 }

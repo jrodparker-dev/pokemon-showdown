@@ -141,7 +141,7 @@ class ScheduleGenerator {
 export function generateFormatSchedule() {
 	return new ScheduleGenerator().generate();
 }
-
+/** 
 export async function getLadderTop(format: string) {
 	try {
 		const results = await Net(`https://${Config.routes.root}/ladder/?format=${toID(format)}&json`).get();
@@ -180,7 +180,7 @@ export async function updateBadgeholders() {
 	}
 	saveData();
 }
-
+*/
 function getYear() {
 	return new Date().getFullYear();
 }
@@ -225,7 +225,7 @@ export function rollTimer() {
 		clearTimeout(updateTimeout);
 	}
 	updateTimeout = true;
-	void updateBadgeholders();
+	//void updateBadgeholders();
 	const time = Date.now();
 	const next = new Date();
 	next.setHours(next.getHours() + 1, 0, 0, 0);

@@ -10002,11 +10002,24 @@ this.add('-start', pokemon, 'typechange', cur);
   name: "Crystallization",
   shortDesc: "Gains a 2nd type from held Gem; EOT consumes unused Gem for +1 all stats.",
   rating: 4,
-  onStart(pokemon) {
-const cur = pokemon.getTypes(true).join('/'); // runtime types 
-const base = pokemon.species.types.join('/'); // species types 
-this.add('-start', pokemon, 'typechange', cur);
 
+  onSwitchIn(pokemon) {
+    // Reapply stored typing as early as possible so entry hazards use the updated type.
+    const storedSecondary = pokemon.m.crystallizationType as string | undefined;
+    if (storedSecondary) {
+      const primary = pokemon.getTypes()[0] || pokemon.species.types[0];
+      const newTypes: string[] = [];
+      if (primary) newTypes.push(primary);
+      if (storedSecondary !== primary) newTypes.push(storedSecondary);
+
+      if (newTypes.length && pokemon.setType(newTypes)) {
+        this.add('-ability', pokemon, 'Crystallization');
+        this.add('-start', pokemon, 'typechange', newTypes.join('/'), '[from] ability: Crystallization');
+      }
+      return;
+    }
+
+    // Otherwise, try to derive and store from currently held Gem on first entry.
     const item = pokemon.getItem();
     if (!item?.isGem) return;
 
@@ -10018,16 +10031,19 @@ this.add('-start', pokemon, 'typechange', cur);
     }
     if (!secondary) return;
 
-    const primary = pokemon.getTypes()[0];
+    const primary = pokemon.getTypes()[0] || pokemon.species.types[0];
     const newTypes: string[] = [];
     if (primary) newTypes.push(primary);
     if (secondary !== primary) newTypes.push(secondary);
 
     if (newTypes.length && pokemon.setType(newTypes)) {
+      pokemon.m.crystallizationType = secondary;
+
       this.add('-ability', pokemon, 'Crystallization');
       this.add('-start', pokemon, 'typechange', newTypes.join('/'), '[from] item: ' + item.name);
     }
   },
+
   onResidualOrder: 28,
   onResidualSubOrder: 2,
   onResidual(pokemon) {
@@ -10036,6 +10052,17 @@ this.add('-start', pokemon, 'typechange', cur);
 
     const item = pokemon.getItem();
     if (!item?.isGem) return;
+
+    // Lock the typing BEFORE consuming the Gem
+    if (!pokemon.m.crystallizationType) {
+      let secondary: string | null = null;
+      if (item.id && item.id.endsWith('gem')) {
+        const typeId = item.id.slice(0, -3) as ID;
+        const t = this.dex.types.get(typeId);
+        if (t?.exists) secondary = t.name;
+      }
+      if (secondary) pokemon.m.crystallizationType = secondary;
+    }
 
     if (pokemon.useItem()) {
       this.add('-ability', pokemon, 'Crystallization');
