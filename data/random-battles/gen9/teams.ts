@@ -1897,6 +1897,15 @@ export class RandomTeams {
 			if (set.ability === 'Drought' || set.ability === 'Orichalcum Pulse' || set.moves.includes('sunnyday')) {
 				teamDetails.sun = 1;
 			}
+			if (set.ability === 'Crystallization') {
+				const allTypes = Object.values(this.dex.types)
+				.filter(t => t.exists && !t.isNonstandard)
+				.map(t => t.name);
+				const gemType = this.sample(allTypes);
+				set.item = `${gemType} Gem`;
+			}
+
+
 			if (set.ability === 'Sand Stream') teamDetails.sand = 1;
 			if (set.ability === 'Snow Warning' || set.moves.includes('snowscape') || set.moves.includes('chillyreception')) {
 				teamDetails.snow = 1;

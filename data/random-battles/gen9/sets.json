@@ -7764,5 +7764,27 @@
                 "teraTypes": ["Steel", "Dark"]
             }
         ]
+    },
+    "dragrism": {
+        "level": 75,
+        "sets": [
+            {
+                "role":"Setup Sweeper",
+                "movepool": ["Voidclaw", "Chromatic Claw", "Crunch", "Dual Wingbeat", "Protect", "Draco Vortex", "Draco Punch"],
+                "abilities": ["Crystallization"],
+                "teraTypes": ["Fairy", "Fighting"]
+            }
+        ]
+    },
+    "nucleode": {
+        "level": 81,
+        "sets": [
+            {
+                "role":"Fast Support",
+                "movepool": ["Nuclear Explosion", "Toxic", "Call For Aid", "Gamma Ray", "Thunder Wave"],
+                "abilities": ["Radioactive"],
+                "teraTypes": ["Gamma"]
+            }
+        ]
     }
 }
