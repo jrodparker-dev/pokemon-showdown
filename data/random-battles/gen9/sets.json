@@ -7781,7 +7781,7 @@
         "sets": [
             {
                 "role":"Fast Support",
-                "movepool": ["Nuclear Explosion", "Toxic", "Call For Aid", "Gamma Ray", "Thunder Wave"],
+                "movepool": ["Nuclear Explosion", "Call For Aid", "Gamma Ray", "Thunder Wave"],
                 "abilities": ["Radioactive"],
                 "teraTypes": ["Gamma"]
             }

@@ -34,6 +34,13 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		ruleset: ['PotD', 'Obtainable', 'Species Clause', 'Team Preview', 'Blind Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Sleep Clause Mod', 'Illusion Level Mod'],
 	},
 	{
+		name: "[Custom] Random Battle",
+		desc: 'Random Teams of Pokemon with Jordans sets',
+		mod: 'custom',
+		team: 'random',
+		ruleset: ['Obtainable', 'Species Clause', 'Team Preview', 'Blind Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Sleep Clause Mod', 'Illusion Level Mod']
+	},
+	{
 		name: "[Gen 9] Unrated Random Battle",
 		mod: 'gen9',
 		team: 'random',
