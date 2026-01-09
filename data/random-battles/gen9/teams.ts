@@ -1,3 +1,171 @@
+const CUSTOM_WILDCARD_MOVES: readonly string[] = [
+  'punchingbag',
+  'insectpunch',
+  'randomhazards',
+  'superpunch',
+  'retaliationscreen',
+  'vampiricbite',
+  'wingofthefae',
+  'ironshackles',
+  'mirage',
+  'darkterrain',
+  'grassattack',
+  'lazylazer',
+  'starfall',
+  'callofthewilds',
+  'gasoline',
+  'solarburst',
+  'instashock',
+  'foresightblast',
+  'terracharge',
+  'venomlash',
+  'galebeak',
+  'dracopunch',
+  'glimmerrush',
+  'moonstrike',
+  'backstab',
+  'callforaid',
+  'whimsycannon',
+  'frozenearth',
+  'shortcircuit',
+  'mindshards',
+  'staticjolt',
+  'dragonsfury',
+  'pixieflurry',
+  'shadowbarrage',
+  'phantomrattle',
+  'feathervolley',
+  'toxicneedles',
+  'emberbarrage',
+  'tidalslap',
+  'shrapnelstorm',
+  'pinatabond',
+  'freezeray',
+  'poisongasbomb',
+  'nullzone',
+  'shatteringscream',
+  'benchbolt',
+  'aidofrevival',
+  'firejab',
+  'rainbowpunching',
+  'protectivepillow',
+  'insectsting',
+  'graspinghands',
+  'plagueswarm',
+  'stonejaw',
+  'hotwater',
+  'stoneflutter',
+  'coldboulder',
+  'freezeblast',
+  'icyhot',
+  'skyquake',
+  'adaptiveforce',
+  'soulrend',
+  'volcaniccrush',
+  'ashenbreath',
+  'stonearmor',
+  'auroraray',
+  'moonblossom',
+  'mysticpulse',
+  'earthrend',
+  'drillram',
+  'spikebarrage',
+  'cyclonewing',
+  'skyreprieve',
+  'mindstream',
+  'tidalprism',
+  'lotusfist',
+  'naturesresolve',
+  'midnightslash',
+  'dreadgale',
+  'feathercloak',
+  'toxicmaw',
+  'dracospike',
+  'venomstorm',
+  'scaleguard',
+  'hauntspire',
+  'creepingroot',
+  'lifesap',
+  'ironrend',
+  'shadowrend',
+  'metallicroar',
+  'armorlock',
+  'wraithflame',
+  'spectralblaze',
+  'pincercrush',
+  'martiallunge',
+  'crashingpalm',
+  'steamburst',
+  'frozenbarrier',
+  'dracovortex',
+  'tornado',
+  'clarityveil',
+  'aquabarrier',
+  'vinebreaker',
+  'sporeguard',
+  'revvingdrill',
+  'phantomdive',
+  'phantomguard',
+  'soulspark',
+  'cauterize',
+  'swarmguard',
+  'ultimateslam',
+  'inversepower',
+  'dnalaser',
+  'loadoutshift',
+  'evaporate',
+  'temptingoffer',
+  'searingstab',
+  'overwhelm',
+  'sandyvortex',
+  'solarvortex',
+  'beautycoil',
+  'venomfangs',
+  'strikingstorm',
+  'spiritbeam',
+  'rootguard',
+  'nuclearfangs',
+  'haunt',
+  'eyecontact',
+  'dualswap',
+  'toxicslash',
+  'chromaticclaw',
+  'disorientingbite',
+  'serratedfangs',
+  'serratedspikes',
+  'nuclearexplosion',
+  'explosivespores',
+  'blindinglight',
+  'frozenwings',
+  'venomquake',
+  'radiantspear',
+  'barkbite',
+  'emberoath',
+  'sylvanlament',
+  'smackemtwice',
+  'divinerage',
+  'fellswoop',
+  'talktothehand',
+  'nailscratch',
+  'enchantingspin',
+  'blownkiss',
+  'voidclaw',
+  'pyrokenesis',
+  'ragnarokcry',
+  'dodgeball',
+  'runecleave',
+  'lunartide',
+  'drako',
+  'storedscales',
+  'gammaray',
+  'benchhex',
+  'rainbowpummeling',
+  'doubleteamanime',
+  'darkmoon',
+  'poop',
+  'benchsnipe',
+];
+
 import { Dex, toID } from '../../../sim/dex';
 import { Utils } from '../../../lib';
 import { PRNG, type PRNGSeed } from '../../../sim/prng';
@@ -713,6 +881,85 @@ export class RandomTeams {
 		}
 		return moveType;
 	}
+	private pickWildcardCustomMove(
+  species: Species,
+  moves: Set<string>,
+  opts?: {
+    types?: readonly string[];
+    ability?: string;
+    teraType?: string;
+  }
+): ID | null {
+  const atk = species.baseStats.atk;
+  const spa = species.baseStats.spa;
+  const preferPhysical = atk > spa;
+
+  // Allow callers to override types/ability/teraType, otherwise fall back safely.
+  const types = (opts?.types?.length ? opts.types : species.types) as readonly string[];
+  const ability = opts?.ability || species.abilities?.[0] || '';
+  const teraType = opts?.teraType || '';
+
+  const alreadyHasStatus = [...moves].some(m => {
+    const mv = this.dex.moves.get(m);
+    return mv?.category === 'Status';
+  });
+
+  // More reliable than getMovePool: uses the learnset object keys.
+  const normallyGetsStatus = (() => {
+    const learnset = this.dex.species.getMovePool(species.id);
+    if (!learnset) return true; // if unknown, assume yes (safer for variety)
+    for (const moveid in learnset) {
+      const mv = this.dex.moves.get(moveid);
+      if (mv?.category === 'Status') return true;
+    }
+    return false;
+  })();
+
+  const candidates: Move[] = [];
+  for (const raw of CUSTOM_WILDCARD_MOVES) {
+    const id = toID(raw) as ID; // raw can be "Punching Bag" etc
+    if (moves.has(id)) continue;
+    const move = this.dex.moves.get(id);
+    if (!move?.exists) continue;
+    candidates.push(move);
+  }
+  if (!candidates.length) return null;
+
+  // Helper to evaluate "effective" move type (tera/ability effects if your codebase supports it)
+  const effectiveType = (m: Move) => {
+    // If your RandomTeams has getMoveType available, use it; otherwise fall back to m.type.
+    // @ts-ignore - in PS random-teams this exists in the class
+    return this.getMoveType ? this.getMoveType(m, species, [ability], teraType) : m.type;
+  };
+
+  // 1) Prefer STAB + best attacking stat
+  const stabAttackers = candidates.filter(m =>
+    m.category !== 'Status' &&
+    types.includes(effectiveType(m)) &&
+    (preferPhysical ? m.category === 'Physical' : m.category === 'Special')
+  );
+  if (stabAttackers.length) return this.sample(stabAttackers).id;
+
+  // 2) Status move fallback (if the mon typically has them)
+  if (!alreadyHasStatus && normallyGetsStatus) {
+    const statusMoves = candidates.filter(m => m.category === 'Status');
+    if (statusMoves.length) return this.sample(statusMoves).id;
+  }
+
+  // 3) Any damaging wildcard (still prefer best attacking side first)
+  const preferredSide = candidates.filter(m =>
+    m.category !== 'Status' &&
+    (preferPhysical ? m.category === 'Physical' : m.category === 'Special')
+  );
+  if (preferredSide.length) return this.sample(preferredSide).id;
+
+  const attackers = candidates.filter(m => m.category !== 'Status');
+  if (attackers.length) return this.sample(attackers).id;
+
+  return null;
+}
+
+
 
 	// Generate random moveset for a given species, role, tera type.
 	randomMoveset(
@@ -1041,7 +1288,22 @@ export class RandomTeams {
 				}
 			}
 		}
-		return moves;
+		// ----- CHAOS WILDCARD MOVE (FORCE SLOT 4) -----
+if (moves.size === this.maxMoveCount) {
+  // Remove one random existing move to make room (usually slot 4)
+  const arr = [...moves];
+  const removed = this.sample(arr);
+  moves.delete(removed);
+}
+
+const wildcard = this.pickWildcardCustomMove(species, moves);
+if (wildcard) {
+  moves.add(wildcard);
+}
+// --------------------------------------------
+
+return moves;
+
 	}
 
 	shouldCullAbility(
@@ -1422,6 +1684,207 @@ export class RandomTeams {
 		return 'Leftovers';
 	}
 
+		/**
+	 * Refined singles item picker:
+	 * - Allows more variety
+	 * - Removes forced HDB just for Rock weakness (keeps it as a weighted option)
+	 * - Can pick weakness-resist berries for one of the mon's weaknesses
+	 * - Can pick Focus Sash for frail mons or mons with a 4x weakness
+	 * - Integrates custom items with gating/weighting rules
+	 */
+	getRefinedItem(
+		ability: string,
+		types: string[],
+		moves: Set<string>,
+		counter: MoveCounter,
+		teamDetails: RandomTeamsTypes.TeamDetails,
+		species: Species,
+		isLead: boolean,
+		teraType: string,
+		role: RandomTeamsTypes.Role,
+	): string {
+		// ---- tiny helpers ----
+		const hasMove = (id: string) => moves.has(toID(id));
+		const baseStats = species.baseStats;
+
+		const isSupportMon = () => {
+			// Prefer your role labels if present
+			if (role && /support|bulky support|fast support|doubles support|bulky protect|av pivot/i.test(String(role))) return true;
+
+			// Otherwise infer from move choices
+			let statusCount = 0;
+			let utilityCount = 0;
+			for (const m of moves) {
+				const mv = this.dex.moves.get(m);
+				if (!mv) continue;
+				if (mv.category === 'Status') statusCount++;
+
+				// common “support/utility” moves
+				if ([
+					'stealthrock', 'spikes', 'toxicspikes', 'stickyweb',
+					'defog', 'rapidspin', 'mortalspin',
+					'reflect', 'lightscreen', 'auroraveil',
+					'wish', 'healingwish', 'healpulse', 'lifedew', 'recover', 'roost', 'softboiled', 'slackoff',
+					'teleport', 'uturn', 'voltswitch', 'flipturn', 'partingshot',
+					'knockoff', 'taunt', 'encore',
+				].includes(mv.id)) utilityCount++;
+			}
+			return statusCount >= 2 || utilityCount >= 2;
+		};
+
+		const isFrail = () => {
+			const bulk = baseStats.hp + baseStats.def + baseStats.spd;
+			return bulk <= 205 || (baseStats.hp <= 70 && (baseStats.def <= 70 || baseStats.spd <= 70));
+		};
+
+		const hasQuadWeakness = () => {
+			for (const t of this.dex.types.names()) {
+				if (t === 'Stellar') continue;
+				const eff = this.dex.getEffectiveness(t, species);
+				if (eff >= 2) return true; // typically 4x
+			}
+			return false;
+		};
+
+		const hasTypeMove = (typeName: string) => {
+			for (const m of moves) {
+				const mv = this.dex.moves.get(m);
+				if (mv?.type === typeName) return true;
+			}
+			return false;
+		};
+
+		const hasMultihitMove = () => {
+			for (const m of moves) {
+				const mv = this.dex.moves.get(m);
+				if (mv?.multihit) return true;
+			}
+			return false;
+		};
+
+		// ---- weakness berry selection (vanilla berries only) ----
+		const berryByType: Record<string, string> = {
+			Fire: 'Occa Berry',
+			Water: 'Passho Berry',
+			Electric: 'Wacan Berry',
+			Grass: 'Rindo Berry',
+			Ice: 'Yache Berry',
+			Fighting: 'Chople Berry',
+			Poison: 'Kebia Berry',
+			Ground: 'Shuca Berry',
+			Flying: 'Coba Berry',
+			Psychic: 'Payapa Berry',
+			Bug: 'Tanga Berry',
+			Rock: 'Charti Berry',
+			Ghost: 'Kasib Berry',
+			Dragon: 'Haban Berry',
+			Dark: 'Colbur Berry',
+			Steel: 'Babiri Berry',
+			Fairy: 'Roseli Berry',
+		};
+
+		const pickWeaknessBerry = (): string | null => {
+			const weakTypes: {type: string; eff: number}[] = [];
+			for (const t of this.dex.types.names()) {
+				if (t === 'Stellar') continue;
+				const eff = this.dex.getEffectiveness(t, species);
+				if (eff > 0 && berryByType[t]) weakTypes.push({type: t, eff});
+			}
+			if (!weakTypes.length) return null;
+
+			weakTypes.sort((a, b) => b.eff - a.eff); // prefer bigger weakness
+			const chosen = (this.randomChance(7, 10)) ? weakTypes[0] : this.sample(weakTypes);
+			return berryByType[chosen.type] || null;
+		};
+
+		const weaknessBerry = pickWeaknessBerry();
+
+		// ---- custom item eligibility ----
+		// Force Type Dice on multihit users (as requested)
+		if (hasMultihitMove()) return 'Type Dice';
+
+		const heavyArmorEligible = isSupportMon();
+		const speedBeltEligible = baseStats.spe >= 100;
+		const galeEligible = hasTypeMove('Flying');
+		const witherEligible = hasTypeMove('Grass');
+
+		const elegantBoost = hasMove('closecombat') || hasMove('leafstorm') || hasMove('dracometeor');
+
+		const sashEligible =
+			(isFrail() || hasQuadWeakness()) &&
+			ability !== 'Sturdy' &&
+			!hasMove('substitute');
+
+		// ---- weighted pool ----
+		const pool: string[] = [];
+
+		// baseline common items (keep some stability)
+		pool.push(
+			'Leftovers', 'Leftovers',
+			'Life Orb',
+			'Lum Berry',
+			'Sitrus Berry',
+			'Expert Belt'
+		);
+
+		// Rock weakness: no longer forced Boots
+		const rockEff = this.dex.getEffectiveness('Rock', species);
+		if (rockEff > 0) {
+			// Boots still possible, just not mandatory
+			pool.push('Heavy-Duty Boots', 'Heavy-Duty Boots');
+			// add other survival options
+			pool.push('Sitrus Berry', 'Leftovers');
+			if (weaknessBerry) pool.push(weaknessBerry);
+		} else {
+			pool.push('Heavy-Duty Boots');
+		}
+
+		// Weakness berry option
+		if (weaknessBerry) {
+			pool.push(weaknessBerry, weaknessBerry);
+		}
+
+		// Focus Sash option for frail/4x
+		if (sashEligible) {
+			pool.push('Focus Sash', 'Focus Sash', 'Focus Sash');
+		}
+
+		// Your “any mon can randomly get sometimes” custom items
+		pool.push(
+			'Fuzzy Mushroom',
+			'Lucky Petal',
+			'Rainbow Core',
+			'Mimic Wand',
+			'Twilight Mirror',
+			'Prism Pearl'
+		);
+
+		// Gated custom items
+		if (heavyArmorEligible) pool.push('Heavy Armor', 'Heavy Armor');
+		if (speedBeltEligible) pool.push('Speed Belt', 'Speed Belt');
+		if (galeEligible) pool.push('Gale Pendant', 'Gale Pendant');
+		if (witherEligible) pool.push('Witherseed Relic', 'Witherseed Relic');
+
+		// Elegant Band weighting
+		if (elegantBoost) {
+			pool.push('Elegant Band', 'Elegant Band', 'Elegant Band', 'Elegant Band');
+		} else {
+			pool.push('Elegant Band'); // still appears sometimes
+		}
+
+		// ---- filter to existing items (supports mods; silently drops missing customs) ----
+		const filtered: string[] = [];
+		for (const it of pool) {
+			const item = this.dex.items.get(it);
+			if (!item || item.exists === false) continue;
+			if (item.isNonstandard) continue; // optional; remove if you want nonstandard
+			filtered.push(item.name);
+		}
+
+		return filtered.length ? this.sample(filtered) : 'Leftovers';
+	}
+
+
 	getLevel(
 		species: Species,
 		isDoubles: boolean,
@@ -1525,7 +1988,8 @@ export class RandomTeams {
 			if (isDoubles) {
 				item = this.getDoublesItem(ability, types, moves, counter, teamDetails, species, isLead, teraType, role);
 			} else {
-				item = this.getItem(ability, types, moves, counter, teamDetails, species, isLead, teraType, role);
+				// NEW refined singles fallback
+				item = this.getRefinedItem(ability, types, moves, counter, teamDetails, species, isLead, teraType, role);
 			}
 		}
 
@@ -1588,22 +2052,45 @@ export class RandomTeams {
 		if (this.forceTeraType) teraType = this.forceTeraType;
 
 		// shuffle moves to add more randomness to camomons
-		const shuffledMoves = Array.from(moves);
-		this.prng.shuffle(shuffledMoves);
-		return {
-			name: species.baseSpecies,
-			species: forme,
-			gender: species.baseSpecies === 'Greninja' ? 'M' : (species.gender || (this.random(2) ? 'F' : 'M')),
-			shiny: this.randomChance(1, 1024),
-			level,
-			moves: shuffledMoves,
-			ability,
-			evs,
-			ivs,
-			item,
-			teraType,
-			role,
-		};
+		// shuffle moves to add more randomness to camomons
+const shuffledMoves = Array.from(moves);
+this.prng.shuffle(shuffledMoves);
+
+// 50% chance to replace the 4th move with a custom wildcard move,
+// but cap the ENTIRE TEAM to max 3 custom wildcard moves total.
+const td = teamDetails as RandomTeamsTypes.TeamDetails & {customMoveCount?: number};
+if (
+  shuffledMoves.length >= 4 &&
+  (td.customMoveCount || 0) < 3 &&
+  this.randomChance(1, 2) // 50%
+) {
+  const wildcard = this.pickWildcardCustomMove(species, moves, {types, ability, teraType});
+
+  if (wildcard) {
+    // Replace slot 4 (index 3). Also avoid duplicates.
+    const wid = toID(wildcard);
+    if (!shuffledMoves.map(m => toID(m)).includes(wid)) {
+      shuffledMoves[3] = wildcard;
+      td.customMoveCount = (td.customMoveCount || 0) + 1;
+    }
+  }
+}
+
+return {
+  name: species.baseSpecies,
+  species: forme,
+  gender: species.baseSpecies === 'Greninja' ? 'M' : (species.gender || (this.random(2) ? 'F' : 'M')),
+  shiny: this.randomChance(1, 1024),
+  level,
+  moves: shuffledMoves,
+  ability,
+  evs,
+  ivs,
+  item,
+  teraType,
+  role,
+};
+
 	}
 
 	getPokemonPool(
@@ -1684,7 +2171,9 @@ export class RandomTeams {
 		const typeComboCount: { [k: string]: number } = {};
 		const typeWeaknesses: { [k: string]: number } = {};
 		const typeDoubleWeaknesses: { [k: string]: number } = {};
-		const teamDetails: RandomTeamsTypes.TeamDetails = {};
+		const teamDetails: RandomTeamsTypes.TeamDetails & {customMoveCount?: number} = {};
+teamDetails.customMoveCount = 0;
+
 		let numMaxLevelPokemon = 0;
 
 		// Debug tracking that will show in the popup error box
