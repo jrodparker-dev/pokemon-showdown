@@ -8374,41 +8374,70 @@ elegantband: {
     basePower: 70,
     volatileStatus: 'flinch',
   },
+
   // Run after Serene Grace so it overwrites its effect
   onModifyMovePriority: -1,
   onModifyMove(move) {
-    // Target secondaries (effects on the opponent)
-    if (move.secondaries) {
+    // Helper: normalize to move.secondaries (PS supports both `secondary` and `secondaries`)
+    const pushSecondary = (sec: any) => {
+      if (!move.secondaries) move.secondaries = [];
+      move.secondaries.push(sec);
+    };
+
+    // 1) Target secondaries (effects on the opponent)
+    if (move.secondaries?.length) {
       this.debug('setting target secondary chances to 30%');
       for (const secondary of move.secondaries) {
         // If it already has a chance, clamp it; if not, give it one
-        if (secondary.chance === undefined || secondary.chance > 30) {
-          secondary.chance = 30;
-        }
+        if (secondary.chance === undefined || secondary.chance > 30) secondary.chance = 30;
       }
     }
 
-    // Self effects (like Close Combat / V-create stat drops)
+    // Some moves use singular `secondary` instead of `secondaries`
+    const singular = (move as any).secondary;
+    if (singular) {
+      this.debug('normalizing singular secondary and clamping to 30%');
+      if (singular.chance === undefined || singular.chance > 30) singular.chance = 30;
+      pushSecondary(singular);
+      (move as any).secondary = null;
+    }
+
+    // 2) Self effects (like Close Combat / V-create stat drops)
+    // NOTE: `move.self` does NOT support `chance` in typings or engine logic.
+    // To make it probabilistic, convert it into a normal secondary with `self: ...`.
     if (move.self) {
-      const self = move.self;
+      const self: any = move.self;
+
       // Only bother if it's actually doing something to the user
-      if (self.boosts || self.volatileStatus || self.sideCondition || self.weather || self.terrain) {
-        this.debug('setting self-effect chance to 30%');
-        if (self.chance === undefined || self.chance > 30) {
-          self.chance = 30;
-        }
+      if (self.boosts || self.volatileStatus || self.sideCondition || self.weather || self.terrain || self.status) {
+        this.debug('converting self-effect to 30% secondary');
+        pushSecondary({
+          chance: 30,
+          self,
+        });
+
+        // Remove deterministic self so it doesn't always happen
+        delete (move as any).self;
       }
     }
 
-    // Some moves use selfBoost separately (mainly boosts on hit)
-    if (move.selfBoost) {
-      this.debug('setting selfBoost chance to 30%');
-      if (move.selfBoost.chance === undefined || move.selfBoost.chance > 30) {
-        move.selfBoost.chance = 30;
-      }
+    // 3) Some moves use selfBoost separately (mainly boosts on hit)
+    // `selfBoost` also doesn't have a typed `chance`, and isn't rolled by engine.
+    // Convert to a secondary the same way.
+    if ((move as any).selfBoost) {
+      const selfBoost: any = (move as any).selfBoost;
+      this.debug('converting selfBoost to 30% secondary');
+
+      pushSecondary({
+        chance: 30,
+        self: selfBoost,
+      });
+
+      delete (move as any).selfBoost;
     }
   },
 },
+
 
 
 
@@ -9508,10 +9537,11 @@ mysterybox: {
     "Each turn emulates a random item (Band/Specs/Scarf, Life Orb, Leftovers, Expert Belt, Muscle Band, Wise Glasses, Rocky Helmet, Assault Vest, Sitrus, Lum, Focus Sash, Custap, Weakness Policy).",
 
   // Pick first emulation on switch-in
-  onStart(pokemon) { mbPickNew(this, pokemon); },
+  onStart(pokemon) {
+    mbPickNew(this, pokemon);
+  },
 
   // One consolidated residual hook:
-  //  - prime Custap if applicable
   //  - apply Leftovers heal for the *current* emulation
   //  - rotate to a new emulation for next turn
   onResidualOrder: 28,
@@ -9519,24 +9549,50 @@ mysterybox: {
   onResidual(pokemon) {
     if (!pokemon.hp) return;
     const slot = mbGetSlot(this, pokemon);
+    slot.battleUsed ||= {};
+    slot.state ||= {};
     const id = slot.id;
-
-    // Custap Berry (once per battle): arm +0.1 for next action at ≤ 1/4 HP
-    if (id === 'custapberry' && !slot.battleUsed['custapberry']) {
-      if (pokemon.hp <= Math.floor(pokemon.maxhp / 4) && mbTryEatBerry(this, pokemon)) {
-        slot.state.custapPrimed = true;
-        this.add('-activate', pokemon, 'item: Mystery Box', '[emulating] Custap Berry');
-        slot.battleUsed['custapberry'] = true;
-      }
-    }
 
     // Leftovers heal (current emulation) before we rotate
     if (id === 'leftovers' && pokemon.hp < pokemon.maxhp) {
-      this.heal(this.clampIntRange(Math.floor(pokemon.baseMaxhp / 16), 1), pokemon, pokemon, this.dex.items.get('leftovers'));
+      this.heal(
+        this.clampIntRange(Math.floor(pokemon.baseMaxhp / 16), 1),
+        pokemon,
+        pokemon,
+        this.dex.items.get('leftovers')
+      );
     }
 
     // Rotate emulation for next turn
     mbPickNew(this, pokemon);
+  },
+
+  // Custap Berry (once per battle): +0.1 priority WHEN ORDER IS CALCULATED
+  // Do NOT "prime" in residual; that timing is unreliable for action order.
+  onFractionalPriority(_priority, pokemon, _target, move) {
+    if (!move) return;
+
+    const slot = mbGetSlot(this, pokemon);
+    slot.battleUsed ||= {};
+    slot.state ||= {};
+
+    // Only if we're currently emulating Custap
+    if (slot.id !== 'custapberry') return;
+
+    // Once per battle per Pokemon
+    if (slot.battleUsed['custapberry']) return;
+
+    // HP gate
+    if (pokemon.hp > Math.floor(pokemon.maxhp / 4)) return;
+
+    // Optional: keep berry-blocking behavior (Unnerve/Embargo/etc) if your helper supports it.
+    // IMPORTANT: mbTryEatBerry must be emulation-aware (i.e. not require the actual held item to be a berry),
+    // otherwise it will always fail for Mystery Box.
+    if (typeof mbTryEatBerry === 'function' && !mbTryEatBerry(this, pokemon)) return;
+
+    slot.battleUsed['custapberry'] = true;
+    this.add('-activate', pokemon, 'item: Mystery Box', '[emulating] Custap Berry');
+    return 0.1;
   },
 
   // Choice multipliers (no lock)
@@ -9552,27 +9608,25 @@ mysterybox: {
     const id = mbGetSlot(this, source).id;
     if (id === 'choicescarf') return this.chainModify(1.5);
   },
+
   // Prevent choosing Status moves when emulating Assault Vest (UI + server)
-onDisableMove(pokemon) {
-  const id = mbGetSlot(this, pokemon).id;
-  if (id !== 'assaultvest') return;
-  for (const slot of pokemon.moveSlots) {
-    const mv = this.dex.moves.get(slot.id);
-    if (mv.category === 'Status') {
-      // disable this move for this turn; tag with the item effect
-      pokemon.disableMove(mv.id as ID, true, this.effect);
+  onDisableMove(pokemon) {
+    const id = mbGetSlot(this, pokemon).id;
+    if (id !== 'assaultvest') return;
+    for (const slot of pokemon.moveSlots) {
+      const mv = this.dex.moves.get(slot.id);
+      if (mv.category === 'Status') {
+        pokemon.disableMove(mv.id as ID, true, this.effect);
+      }
     }
-  }
-},
-
-
+  },
 
   // Assault Vest: block Status moves
   onTryMove(source, _target, move) {
     const id = mbGetSlot(this, source).id;
     if (id === 'assaultvest' && move?.category === 'Status') {
       this.add('-fail', source, 'item: Mystery Box', '[emulating] Assault Vest');
-    return false;
+      return false;
     }
   },
 
@@ -9589,19 +9643,18 @@ onDisableMove(pokemon) {
     if (id === 'wiseglasses' && move.category === 'Special') return this.chainModify(1.1);
   },
 
-  // Life Orb recoil + clear Custap one-shot flag after acting
+  // Life Orb recoil
   onAfterMove(source, _target, move) {
     if (!move || move.category === 'Status') return;
     const id = mbGetSlot(this, source).id;
     if (id === 'lifeorb' && (move.totalDamage || move.hit > 0)) {
-      this.damage(this.clampIntRange(Math.floor(source.baseMaxhp / 10), 1), source, source, this.dex.items.get('lifeorb'));
+      this.damage(
+        this.clampIntRange(Math.floor(source.baseMaxhp / 10), 1),
+        source,
+        source,
+        this.dex.items.get('lifeorb')
+      );
     }
-    const slot = mbGetSlot(this, source);
-    if (slot.state?.custapPrimed) slot.state.custapPrimed = false;
-  },
-  onMoveAborted(source) {
-    const slot = mbGetSlot(this, source);
-    if (slot.state?.custapPrimed) slot.state.custapPrimed = false;
   },
 
   // Single combined onDamagingHit:
@@ -9609,6 +9662,7 @@ onDisableMove(pokemon) {
   //  - Rocky Helmet (1/6 on contact)
   onDamagingHit(_damage, target, source, move) {
     const slot = mbGetSlot(this, target);
+    slot.battleUsed ||= {};
     const id = slot.id;
     if (!move) return;
 
@@ -9623,13 +9677,19 @@ onDisableMove(pokemon) {
 
     // Rocky Helmet
     if (id === 'rockyhelmet' && move.flags?.contact && source && !source.fainted) {
-      this.damage(this.clampIntRange(Math.floor(source.baseMaxhp / 6), 1), source, target, this.dex.items.get('rockyhelmet'));
+      this.damage(
+        this.clampIntRange(Math.floor(source.baseMaxhp / 6), 1),
+        source,
+        target,
+        this.dex.items.get('rockyhelmet')
+      );
     }
   },
 
   // Focus Sash (once per battle)
   onDamage(damage, target, _source, effect) {
     const slot = mbGetSlot(this, target);
+    slot.battleUsed ||= {};
     if (slot.id !== 'focussash') return;
     if (slot.battleUsed['focussash']) return;
     if (!effect || effect.effectType !== 'Move') return;
@@ -9643,11 +9703,17 @@ onDisableMove(pokemon) {
   // Sitrus Berry (≤ 1/2 HP, once per battle)
   onUpdate(pokemon) {
     const slot = mbGetSlot(this, pokemon);
+    slot.battleUsed ||= {};
     if (slot.id !== 'sitrusberry') return;
     if (slot.battleUsed['sitrusberry']) return;
     if (!pokemon.hp || pokemon.hp > Math.floor(pokemon.maxhp / 2)) return;
-    if (!mbTryEatBerry(this, pokemon)) return;
-    this.heal(this.clampIntRange(Math.floor(pokemon.baseMaxhp / 4), 1), pokemon, pokemon, this.dex.items.get('sitrusberry'));
+    if (typeof mbTryEatBerry === 'function' && !mbTryEatBerry(this, pokemon)) return;
+    this.heal(
+      this.clampIntRange(Math.floor(pokemon.baseMaxhp / 4), 1),
+      pokemon,
+      pokemon,
+      this.dex.items.get('sitrusberry')
+    );
     this.add('-activate', pokemon, 'item: Mystery Box', '[emulating] Sitrus Berry');
     slot.battleUsed['sitrusberry'] = true;
   },
@@ -9655,9 +9721,10 @@ onDisableMove(pokemon) {
   // Lum Berry (on status infliction once) + confusion
   onSetStatus(_status, target) {
     const slot = mbGetSlot(this, target);
+    slot.battleUsed ||= {};
     if (slot.id !== 'lumberry') return;
     if (slot.battleUsed['lumberry']) return;
-    if (!mbTryEatBerry(this, target)) return;
+    if (typeof mbTryEatBerry === 'function' && !mbTryEatBerry(this, target)) return;
     this.add('-activate', target, 'item: Mystery Box', '[emulating] Lum Berry');
     target.cureStatus();
     slot.battleUsed['lumberry'] = true;
@@ -9666,20 +9733,16 @@ onDisableMove(pokemon) {
   onTryAddVolatile(sta, target) {
     if (sta.id !== 'confusion') return;
     const slot = mbGetSlot(this, target);
+    slot.battleUsed ||= {};
     if (slot.id !== 'lumberry') return;
     if (slot.battleUsed['lumberry']) return;
-    if (!mbTryEatBerry(this, target)) return;
+    if (typeof mbTryEatBerry === 'function' && !mbTryEatBerry(this, target)) return;
     this.add('-activate', target, 'item: Mystery Box', '[emulating] Lum Berry');
     slot.battleUsed['lumberry'] = true;
     return null; // block confusion
   },
-
-  // Custap: apply the +0.1 only if primed
-  onFractionalPriority(_priority, pokemon, _target, move) {
-    if (!move) return;
-    if (mbGetSlot(this, pokemon).state?.custapPrimed) return 0.1;
-  },
 },
+
 
 torkoalite: {
 	name: "Torkoalite",

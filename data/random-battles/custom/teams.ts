@@ -1,295 +1,426 @@
-// server/mods/<yourmod>/random-teams.ts (or random-teams.ts in your format folder)
-// A “Chaos Random Battles” skeleton: no sets.json, no curated movepools.
-// All Pokémon available (filtered for existence), moves are generated here.
-// Item is forced to Mystery Box (with a commented-out future item picker).
+/**
+ * Random Chaos Teams (copy-paste teams.ts)
+ *
+ * Goals:
+ * - All fully evolved Pokémon eligible (no sets.json required)
+ * - All Pokémon hold "Mystery Box"
+ * - Moves are NOT limited to learnset overall, but we prefer learnset for 1 slot:
+ *   1) 1 STAB attacking move from the Pokémon's OWN learnset
+ *   2) 1 STAB attacking move from ANYWHERE
+ *   3) 1 Status move from ANYWHERE
+ *   4) 1 Attacking move from ANYWHERE matching its higher attacking stat (Atk vs SpA)
+ *
+ * Guardrails:
+ * - Avoid weak attacking moves: basePower < 60 are rejected UNLESS:
+ *   - multihit move
+ *   - priority move
+ *   - scaling/basePowerCallback
+ *   - fixed/scaling damage via damage/damageCallback
+ *
+ * Notes:
+ * - This file assumes your format sets `team: "randomChaos"` so getTeam() calls randomChaosTeam().
+ * - Item "Mystery Box" must exist in your mod's items.ts (or base data if you put it there).
+ */
 
 import {Dex, toID} from '../../../sim/dex';
 import {PRNG, type PRNGSeed} from '../../../sim/prng';
+import type {RuleTable} from '../../../sim/dex-formats';
+import type {PokemonSet} from '../../../sim/teams';
+
+type StatsTable = {hp: number; atk: number; def: number; spa: number; spd: number; spe: number};
 
 export class RandomTeams {
-  readonly dex: ModdedDex;
-  readonly format: Format;
-  readonly gen: number;
-  readonly maxTeamSize: number;
-  readonly maxMoveCount: number;
-  readonly adjustLevel: number | null;
-  prng: PRNG;
+	readonly dex: ModdedDex;
+	readonly format: Format;
+	readonly gen: number;
+	prng: PRNG;
 
-  // Guardrails you can tune later
-  static readonly FORCE_ITEM = 'Mystery Box';
+	readonly maxTeamSize: number;
+	readonly maxMoveCount: number;
+	readonly adjustLevel: number | null;
+	readonly forceMonotype: string | undefined;
+	readonly forceTeraType: string | undefined;
 
-  constructor(format: Format | string, prng: PRNG | PRNGSeed | null) {
-    format = Dex.formats.get(format);
-    this.dex = Dex.forFormat(format);
-    this.format = format;
-    this.gen = this.dex.gen;
-    this.prng = PRNG.get(prng);
+	constructor(format: Format | string, prng: PRNG | PRNGSeed | null) {
+		format = Dex.formats.get(format);
+		this.dex = Dex.forFormat(format);
+		this.format = format;
+		this.gen = this.dex.gen;
 
-    const ruleTable = this.dex.formats.getRuleTable(format);
-    this.maxTeamSize = ruleTable.maxTeamSize;
-    this.maxMoveCount = ruleTable.maxMoveCount;
-    this.adjustLevel = ruleTable.adjustLevel;
-  }
+		const ruleTable = Dex.formats.getRuleTable(format);
+		this.maxTeamSize = ruleTable.maxTeamSize;
+		this.maxMoveCount = ruleTable.maxMoveCount;
+		this.adjustLevel = ruleTable.adjustLevel;
 
-  setSeed(prng?: PRNG | PRNGSeed) {
-    this.prng = PRNG.get(prng);
-  }
+		const forceMonotype = ruleTable.valueRules.get('forcemonotype');
+		this.forceMonotype = forceMonotype && this.dex.types.get(forceMonotype).exists ?
+			this.dex.types.get(forceMonotype).name : undefined;
 
-  random(m?: number, n?: number) {
-    return this.prng.random(m, n);
-  }
-  randomChance(numerator: number, denominator: number) {
-    return this.prng.randomChance(numerator, denominator);
-  }
-  sample<T>(items: readonly T[]): T {
-    return this.prng.sample(items);
-  }
-  shuffle<T>(items: T[]): T[] {
-    this.prng.shuffle(items);
-    return items;
-  }
+		const forceTeraType = ruleTable.valueRules.get('forceteratype');
+		this.forceTeraType = forceTeraType && this.dex.types.get(forceTeraType).exists ?
+			this.dex.types.get(forceTeraType).name : undefined;
 
-  getTeam(options: PlayerOptions | null = null): PokemonSet[] {
-    // Format.team should point to "randomChaosTeam" OR you can just call randomTeam directly.
-    const generatorName = (
-      typeof this.format.team === 'string' && this.format.team.startsWith('random')
-    ) ? this.format.team + 'Team' : '';
-    // @ts-expect-error dynamic dispatch
-    return this[generatorName || 'randomTeam'](options);
-  }
+		this.prng = PRNG.get(prng);
+	}
 
-  /** Main entry for your chaos mode */
-  randomChaosTeam(): PokemonSet[] {
-    return this.randomTeam();
-  }
+	setSeed(prng?: PRNG | PRNGSeed) {
+		this.prng = PRNG.get(prng);
+	}
 
-  randomTeam(_options: PlayerOptions | null = null): PokemonSet[] {
-    const team: PokemonSet[] = [];
-    const seenBaseSpecies = new Set<string>();
+	// ------------------------------------------------------------
+	// RNG helpers
+	// ------------------------------------------------------------
+	randomChance(numerator: number, denominator: number) {
+		return this.prng.randomChance(numerator, denominator);
+	}
+	random(m?: number, n?: number) {
+		return this.prng.random(m, n);
+	}
+	sample<T>(items: readonly T[]): T {
+		return this.prng.sample(items);
+	}
+	fastPop<T>(list: T[], index: number): T {
+		const length = list.length;
+		if (index < 0 || index >= length) throw new Error(`Index ${index} out of bounds`);
+		const element = list[index];
+		list[index] = list[length - 1];
+		list.pop();
+		return element;
+	}
+	sampleNoReplace<T>(list: T[]): T | null {
+		if (!list.length) return null;
+		const index = this.random(list.length);
+		return this.fastPop(list, index);
+	}
 
-    // “All Pokémon available”: pull from the Dex, filter to things you actually want.
-    // You can loosen/tighten these filters later.
-    const pool = this.dex.species.all().filter(s =>
-      s.exists &&
-      s.num > 0 &&
-      !s.isNonstandard && // change this if you want to include nonstandard/custom
-      !s.battleOnly &&  // we’ll handle battleOnly via getUsableForme()
-      !s.nfe === false    // no-op placeholder; keep or remove
-    );
+	// ------------------------------------------------------------
+	// Public entrypoint
+	// ------------------------------------------------------------
+	getTeam(options: PlayerOptions | null = null): PokemonSet[] {
+		const generatorName = (
+			typeof this.format.team === 'string' && this.format.team.startsWith('random')
+		) ? this.format.team + 'Team' : '';
+		// @ts-expect-error dynamic access
+		return this[generatorName || 'randomChaosTeam'](options);
+	}
 
-    if (!pool.length) throw new Error(`Chaos Random: species pool is empty for mod=${this.dex.currentMod}`);
+	// ------------------------------------------------------------
+	// Core policy: Fully evolved pool
+	// ------------------------------------------------------------
+	private isEligibleSpecies(species: Species, ruleTable: RuleTable, pickedBaseSpecies: Set<string>) {
+		if (!species.exists) return false;
+		if (species.num <= 0) return false;
 
-    // Simple “no repeats by base species” guardrail
-    // (You can remove this if you want *true* chaos.)
-    let safety = 0;
-    while (team.length < this.maxTeamSize && safety++ < 5000) {
-      const species = this.sample(pool);
-      const base = species.baseSpecies;
-      if (seenBaseSpecies.has(base)) continue;
+		// Keep it sane by default (you can loosen later)
+		if (species.isNonstandard) return false;
 
-      const set = this.randomSet(species);
-      team.push(set);
-      seenBaseSpecies.add(base);
-    }
+		// ✅ Fully evolved only
+		if (species.nfe) return false;
 
-    if (team.length < this.maxTeamSize) {
-      throw new Error(`Chaos Random: could not fill team (built ${team.length}/${this.maxTeamSize})`);
-    }
+		// Monotype support if you ever enable it
+		if (this.forceMonotype && !species.types.includes(this.forceMonotype)) return false;
 
-    return team;
-  }
+		// Respect bans (if any)
+		if (ruleTable.check('pokemon:' + species.id)) return false;
+		if (ruleTable.check('basepokemon:' + toID(species.baseSpecies))) return false;
 
-  /** Convert a species into the forme you actually want to use in-battle */
-  private getUsableForme(species: Species): Species {
-    // If it has a battleOnly forme (like some transformations), choose the battleOnly species.
-    if (typeof species.battleOnly === 'string') {
-      return this.dex.species.get(species.battleOnly);
-    }
-    // Cosmetic formes etc: keep base for simplicity in chaos mode.
-    return species;
-  }
+		// Species clause by base species
+		if (pickedBaseSpecies.has(species.baseSpecies)) return false;
 
-  /** Get a “learnable” move pool for the species in this gen/mod. */
-  private getLearnableMovePool(species: Species): string[] {
-    // This returns IDs (already lowercase).
-    // If you want to include absolutely everything regardless of legality, replace with dex.moves.all().
-    const set = this.dex.species.getMovePool(species.id);
-    return [...set].filter(id => {
-      const m = this.dex.moves.get(id);
-      if (!m.exists) return false;
-      if (m.isNonstandard) return false;
-      if (m.gen > this.gen) return false;
-      // Avoid weird unusables
-      if (m.realMove) return false;
-      if (m.isZ || m.isMax) return false;
-      if (id === 'struggle') return false;
-      return true;
-    });
-  }
+		return true;
+	}
 
-  private pickRandomStatusMove(movePool: string[]): string | null {
-    const status = movePool.filter(id => this.dex.moves.get(id).category === 'Status');
-    return status.length ? this.sample(status) : null;
-  }
+	private buildSpeciesPool(ruleTable: RuleTable) {
+		const pickedBaseSpecies = new Set<string>();
+		const pool = this.dex.species.all().filter(s => this.isEligibleSpecies(s, ruleTable, pickedBaseSpecies));
 
-  private pickRandomStabMove(movePool: string[], type: string): string | null {
-    const stab = movePool.filter(id => {
-      const m = this.dex.moves.get(id);
-      if (m.category === 'Status') return false;
-      if (!m.basePower && !m.basePowerCallback) return false;
-      return m.type === type;
-    });
-    return stab.length ? this.sample(stab) : null;
-  }
+		// We want unique base species when sampling; easiest is make a baseSpecies list:
+		const byBase: {[base: string]: Species[]} = {};
+		for (const s of pool) {
+			if (!byBase[s.baseSpecies]) byBase[s.baseSpecies] = [];
+			byBase[s.baseSpecies].push(s);
+		}
+		const baseSpeciesList = Object.keys(byBase);
+		return {byBase, baseSpeciesList};
+	}
 
-  private pickRandomDamagingOfCategory(movePool: string[], category: 'Physical' | 'Special'): string | null {
-    const dmg = movePool.filter(id => {
-      const m = this.dex.moves.get(id);
-      if (m.category !== category) return false;
-      if (!m.basePower && !m.basePowerCallback) return false;
-      return true;
-    });
-    return dmg.length ? this.sample(dmg) : null;
-  }
+	// ------------------------------------------------------------
+	// Move quality filters
+	// ------------------------------------------------------------
+	private isGoodAttackMove(move: Move): boolean {
+		if (!move.exists) return false;
+		if (move.category === 'Status') return false;
+		if (move.isNonstandard) return false;
 
-  private getLevel(species: Species): number {
-    if (this.adjustLevel) return this.adjustLevel;
+		// Allow exceptions even if "low BP"
+		if (move.multihit) return true;
+		if (move.priority && move.priority > 0) return true;
+		if (move.basePowerCallback) return true; // scaling BP (Electro Ball etc)
+		if (move.damageCallback || move.damage) return true; // fixed/scaling damage (Seismic Toss etc)
 
-    // Keep it super simple for chaos mode; tweak later.
-    // If you want, reuse the tierScale you had in the other file.
-    if (species.tier === 'Uber') return 76;
-    if (species.tier === 'OU') return 80;
-    return 82;
-  }
-  private getNature(species: Species): string {
+		const bp = move.basePower || 0;
+		return bp >= 60;
+	}
 
-  // Decide based on higher attacking stat
-  if (species.baseStats.atk > species.baseStats.spa) {
-    return this.sample(['Adamant', 'Jolly']);
-  } else if (species.baseStats.spa > species.baseStats.atk) {
-    return this.sample(['Modest', 'Timid']);
-  }
+	private isGoodStatusMove(move: Move): boolean {
+		if (!move.exists) return false;
+		if (move.category !== 'Status') return false;
+		if (move.isNonstandard) return false;
+		return true;
+	}
 
-  // If equal, go fully neutral-chaos
-  return this.sample([
-    'Hardy', 'Docile', 'Serious', 'Bashful', 'Quirky',
-  ]);
-}
+	private moveIdListAllMoves(): ID[] {
+		// Convert to IDs once; light cost but fine for chaos mode
+		return this.dex.moves.all()
+			.filter(m => m.exists && !m.isNonstandard)
+			.map(m => m.id);
+	}
 
+	// ------------------------------------------------------------
+	// Move picking rules (your requested 4 slots)
+	// ------------------------------------------------------------
+	private pickStabFromLearnset(species: Species, preferredPhysical: boolean, already: Set<string>): string | null {
+		const learnset = [...this.dex.species.getMovePool(species.id)];
+		const types = species.types;
 
-  /** ITEM: forced Mystery Box. Leave a commented future “light” item picker. */
-  private getItem(_species: Species, _moves: string[]): string {
-    return RandomTeams.FORCE_ITEM;
+		const candidates: string[] = [];
+		for (const id of learnset) {
+			if (already.has(id)) continue;
+			const move = this.dex.moves.get(id);
+			if (!this.isGoodAttackMove(move)) continue;
+			if (!types.includes(move.type)) continue;
+			// optional: lean toward the higher offense, but don't hard force
+			if (preferredPhysical && move.category === 'Special') continue;
+			if (!preferredPhysical && move.category === 'Physical') continue;
+			candidates.push(id);
+		}
 
-    /*
-    // Future light item picker (commented out for now):
-    // Keep it intentionally minimal so chaos stays chaos.
-    const possible = ['Leftovers', 'Life Orb', 'Heavy-Duty Boots', 'Focus Sash'];
-    return this.sample(possible);
-    */
-  }
+		// If none match preferred category, allow either category (still STAB, still learnset)
+		if (!candidates.length) {
+			for (const id of learnset) {
+				if (already.has(id)) continue;
+				const move = this.dex.moves.get(id);
+				if (!this.isGoodAttackMove(move)) continue;
+				if (!types.includes(move.type)) continue;
+				candidates.push(id);
+			}
+		}
 
-  /** Build moveset: 1 random status + 1 STAB per type + fill w/ best attacking stat category */
-  private randomMoveset(species: Species): string[] {
-    species = this.getUsableForme(species);
-    const movePool = this.getLearnableMovePool(species);
+		return candidates.length ? this.sample(candidates) : null;
+	}
 
-    // If a species somehow has no legal moves in pool, fall back to “all moves” (chaos backup).
-    const fallbackPool = this.dex.moves.all()
-      .filter(m => m.exists && !m.isNonstandard && m.gen <= this.gen && !m.realMove && !m.isZ && !m.isMax && m.id !== 'struggle')
-      .map(m => m.id);
+	private pickStabFromAnywhere(species: Species, preferredPhysical: boolean, already: Set<string>, allMoveIds: ID[]): string | null {
+		const types = species.types;
+		const candidates: string[] = [];
 
-    const pool = movePool.length ? movePool : fallbackPool;
+		for (const id of allMoveIds) {
+			if (already.has(id)) continue;
+			const move = this.dex.moves.get(id);
+			if (!this.isGoodAttackMove(move)) continue;
+			if (!types.includes(move.type)) continue;
 
-    const moves = new Set<string>();
+			// prefer matching attack stat, but don't block if empty
+			if (preferredPhysical && move.category === 'Special') continue;
+			if (!preferredPhysical && move.category === 'Physical') continue;
 
-    // 1) One random Status move
-    const status = this.pickRandomStatusMove(pool);
-    if (status) moves.add(status);
+			candidates.push(id);
+		}
 
-    // 2) One random STAB move for each type
-    for (const t of species.types) {
-      if (moves.size >= this.maxMoveCount) break;
-      const stab = this.pickRandomStabMove(pool, t);
-      if (stab) moves.add(stab);
-    }
+		if (!candidates.length) {
+			for (const id of allMoveIds) {
+				if (already.has(id)) continue;
+				const move = this.dex.moves.get(id);
+				if (!this.isGoodAttackMove(move)) continue;
+				if (!types.includes(move.type)) continue;
+				candidates.push(id);
+			}
+		}
 
-    // 3) Fill remaining with damaging moves matching highest attacking stat
-    const prefer: 'Physical' | 'Special' = (species.baseStats.atk >= species.baseStats.spa) ? 'Physical' : 'Special';
+		return candidates.length ? this.sample(candidates) : null;
+	}
 
-    while (moves.size < this.maxMoveCount) {
-      const pick = this.pickRandomDamagingOfCategory(pool, prefer)
-        ?? this.pickRandomDamagingOfCategory(pool, prefer === 'Physical' ? 'Special' : 'Physical')
-        ?? this.sample(pool);
+	private pickStatusFromAnywhere(already: Set<string>, allMoveIds: ID[]): string {
+		const candidates: string[] = [];
+		for (const id of allMoveIds) {
+			if (already.has(id)) continue;
+			const move = this.dex.moves.get(id);
+			if (!this.isGoodStatusMove(move)) continue;
+			candidates.push(id);
+		}
 
-      if (!pick) break;
-      moves.add(pick);
+		// If somehow empty (shouldn't happen), fall back to Protect
+		return candidates.length ? this.sample(candidates) : 'protect';
+	}
 
-      // Safety: if pool is tiny and we keep colliding
-      if (moves.size >= pool.length) break;
-    }
+	private pickAttackFromAnywhere(preferredPhysical: boolean, already: Set<string>, allMoveIds: ID[]): string {
+		const candidates: string[] = [];
+		for (const id of allMoveIds) {
+			if (already.has(id)) continue;
+			const move = this.dex.moves.get(id);
+			if (!this.isGoodAttackMove(move)) continue;
 
-    // Guardrail: ensure at least 1 damaging move exists
-    const hasDamaging = [...moves].some(id => this.dex.moves.get(id).category !== 'Status');
-    if (!hasDamaging) {
-      const anyDamaging = pool.filter(id => this.dex.moves.get(id).category !== 'Status');
-      if (anyDamaging.length) {
-        // Replace a random move (or add if somehow under cap)
-        const replacement = this.sample(anyDamaging);
-        if (moves.size >= this.maxMoveCount) {
-          const arr = [...moves];
-          moves.delete(this.sample(arr));
-        }
-        moves.add(replacement);
-      }
-    }
+			if (preferredPhysical && move.category !== 'Physical') continue;
+			if (!preferredPhysical && move.category !== 'Special') continue;
 
-    const out = [...moves];
-    this.shuffle(out);
-    return out.slice(0, this.maxMoveCount);
-  }
+			candidates.push(id);
+		}
 
-  randomSet(s: string | Species): PokemonSet {
-    let species = (typeof s === 'string') ? this.dex.species.get(s) : s;
-    species = this.getUsableForme(species);
+		// If none exist, relax category constraint
+		if (!candidates.length) {
+			for (const id of allMoveIds) {
+				if (already.has(id)) continue;
+				const move = this.dex.moves.get(id);
+				if (!this.isGoodAttackMove(move)) continue;
+				candidates.push(id);
+			}
+		}
 
-    const moves = this.randomMoveset(species);
-    const item = this.getItem(species, moves);
+		// If STILL none exist (very unlikely), Struggle
+		return candidates.length ? this.sample(candidates) : 'struggle';
+	}
 
-    // You said “mostly random”, so ability is random among real abilities.
-    // This ignores “best ability” logic on purpose.
-    const abilityChoices = Object.values(species.abilities).filter(a => {
-      const ab = this.dex.abilities.get(a);
-      return ab.exists && !ab.isNonstandard && ab.gen <= this.gen;
-    });
-    const ability = abilityChoices.length ? this.sample(abilityChoices) : 'No Ability';
+	private getMoves(species: Species): string[] {
+		const moves = new Set<string>();
 
-    // Simple, neutral EV/IV baseline (you can add chaos EV logic later)
-    const evs = {hp: 85, atk: 85, def: 85, spa: 85, spd: 85, spe: 85};
-    const ivs = {hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31};
+		const allMoveIds = this.moveIdListAllMoves();
 
-    const level = this.getLevel(species);
-	const nature = this.getNature(species);
+		// Highest attack stat preference
+		let preferredPhysical = false;
+		if (species.baseStats.atk > species.baseStats.spa) preferredPhysical = true;
+		else if (species.baseStats.spa > species.baseStats.atk) preferredPhysical = false;
+		else preferredPhysical = this.randomChance(1, 2); // tie = chaos
 
+		// 1) STAB from learnset
+		const stabLearnset = this.pickStabFromLearnset(species, preferredPhysical, moves);
+		if (stabLearnset) moves.add(stabLearnset);
 
-    // Tera: random from all types (excluding Stellar like PS usually does)
-    const teraType = this.sample(this.dex.types.names().filter(t => t !== 'Stellar'));
+		// 2) STAB from anywhere
+		const stabAny = this.pickStabFromAnywhere(species, preferredPhysical, moves, allMoveIds);
+		if (stabAny) moves.add(stabAny);
 
-    return {
-      name: species.baseSpecies,
-      species: species.name,
-      gender: species.gender || (this.random(2) ? 'F' : 'M'),
-      shiny: this.randomChance(1, 1024),
-      level,
-      moves,
-	  nature,
-      ability,
-      evs,
-      ivs,
-      item,
-      teraType,
-    };
-  }
+		// 3) Status from anywhere
+		moves.add(this.pickStatusFromAnywhere(moves, allMoveIds));
+
+		// 4) Attacking from anywhere matching higher stat
+		moves.add(this.pickAttackFromAnywhere(preferredPhysical, moves, allMoveIds));
+
+		return [...moves];
+	}
+
+	// ------------------------------------------------------------
+	// Ability / item / nature / level
+	// ------------------------------------------------------------
+	private getAbility(species: Species): string {
+		const abilities = Object.values(species.abilities).filter(Boolean);
+		if (!abilities.length) return 'No Ability';
+		return this.sample(abilities);
+	}
+
+	private getNature(species: Species): string {
+		// Keep it simple and “good enough”
+		const atk = species.baseStats.atk;
+		const spa = species.baseStats.spa;
+		const spe = species.baseStats.spe;
+
+		if (atk > spa) return this.sample(spe >= 80 ? ['Jolly', 'Adamant'] : ['Adamant', 'Brave']);
+		if (spa > atk) return this.sample(spe >= 80 ? ['Timid', 'Modest'] : ['Modest', 'Quiet']);
+		return this.sample(['Hardy', 'Docile', 'Serious', 'Bashful', 'Quirky']);
+	}
+
+	private getLevel(species: Species): number {
+		if (this.adjustLevel) return this.adjustLevel;
+
+		// simple tier scale (you can replace with your own)
+		const tier = species.tier;
+		const tierScale: Partial<Record<Species['tier'], number>> = {
+			Uber: 76,
+			OU: 80,
+			UUBL: 81,
+			UU: 82,
+			RUBL: 83,
+			RU: 84,
+			NUBL: 85,
+			NU: 86,
+			PUBL: 87,
+			PU: 88, "(PU)": 88, NFE: 88,
+		};
+		return tierScale[tier] || 80;
+	}
+
+	private getItem(_species: Species): string {
+		// ✅ forced item for chaos mode
+		return 'Mystery Box';
+
+		// --- LIGHT ITEM PICKER (commented out for later) ---
+		// const pool = ['Leftovers', 'Life Orb', 'Choice Scarf', 'Heavy-Duty Boots', 'Focus Sash'];
+		// return this.sample(pool);
+	}
+
+	// ------------------------------------------------------------
+	// The actual team generator for `team: "randomChaos"`
+	// ------------------------------------------------------------
+	randomChaosTeam(_options: PlayerOptions | null = null): PokemonSet[] {
+		const ruleTable = this.dex.formats.getRuleTable(this.format);
+		const team: PokemonSet[] = [];
+
+		const {byBase, baseSpeciesList} = this.buildSpeciesPool(ruleTable);
+		if (!baseSpeciesList.length) throw new Error(`Random Chaos: no eligible fully-evolved species in dex.`);
+
+		const pickedBase = new Set<string>();
+
+		// Create a mutable list for no-replace sampling
+		const bases = baseSpeciesList.slice();
+
+		while (bases.length && team.length < this.maxTeamSize) {
+			const base = this.sampleNoReplace(bases);
+			if (!base) break;
+
+			if (pickedBase.has(base)) continue;
+			pickedBase.add(base);
+
+			// Pick a random forme/species entry under this base (still must be eligible)
+			const candidates = (byBase[base] || []).filter(s => this.isEligibleSpecies(s, ruleTable, new Set()));
+			if (!candidates.length) continue;
+
+			const species = this.sample(candidates);
+
+			const level = this.getLevel(species);
+
+			// Simple, neutral EV/IV baseline (tweak later)
+			const evs: StatsTable = {hp: 85, atk: 85, def: 85, spa: 85, spd: 85, spe: 85};
+			const ivs: StatsTable = {hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31};
+
+			const moves = this.getMoves(species);
+			const ability = this.getAbility(species);
+			const item = this.getItem(species);
+			const nature = this.getNature(species);
+
+			// Tera: random from all types (excluding Stellar like PS usually does)
+			let teraType = this.sample(this.dex.types.names().filter(t => t !== 'Stellar'));
+			if (this.forceTeraType) teraType = this.forceTeraType;
+
+			team.push({
+				name: species.baseSpecies,
+				species: species.name,
+				gender: species.gender || (this.randomChance(1, 2) ? 'F' : 'M'),
+				shiny: this.randomChance(1, 1024),
+				level,
+				moves,
+				ability,
+				item,
+				nature,
+				evs,
+				ivs,
+				teraType,
+			});
+		}
+
+		if (team.length < this.maxTeamSize) {
+			throw new Error(`Random Chaos: could not fill team (${team.length}/${this.maxTeamSize}).`);
+		}
+
+		return team;
+	}
 }
 
 export default RandomTeams;
