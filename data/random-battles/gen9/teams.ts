@@ -2062,7 +2062,7 @@ const td = teamDetails as RandomTeamsTypes.TeamDetails & {customMoveCount?: numb
 if (
   shuffledMoves.length >= 4 &&
   (td.customMoveCount || 0) < 3 &&
-  this.randomChance(1, 2) // 50%
+  this.randomChance(1, 3) // 33%
 ) {
   const wildcard = this.pickWildcardCustomMove(species, moves, {types, ability, teraType});
 

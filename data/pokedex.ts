@@ -17949,7 +17949,7 @@ castformmega: {
 	ironthorns: {
 		num: 995,
 		name: "Iron Thorns",
-		types: ["Fire", "Ghost"],
+		types: ["Rock", "Electric"],
 		gender: "N",
 		baseStats: { hp: 100, atk: 134, def: 110, spa: 70, spd: 84, spe: 72 },
 		abilities: { 0: "Quark Drive" },
