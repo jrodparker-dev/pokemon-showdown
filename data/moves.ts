@@ -801,41 +801,58 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 		contestType: "Beautiful",
 	},
 	aurawheel: {
-		num: 783,
-		accuracy: 100,
-		basePower: 110,
-		category: "Physical",
-		name: "Aura Wheel",
-		pp: 10,
-		priority: 0,
-		flags: { protect: 1, mirror: 1 },
-		secondary: {
-			chance: 100,
-			self: {
-				boosts: {
-					spe: 1,
-				},
-			},
+	num: 783,
+	accuracy: 100,
+	basePower: 110,
+	category: "Physical",
+	name: "Aura Wheel",
+	pp: 10,
+	priority: 0,
+	flags: {protect: 1, mirror: 1},
+	secondary: {
+		chance: 100,
+		self: {
+			boosts: {spe: 1},
 		},
-		onTry(source) {
-			if (source.species.baseSpecies === 'Morpeko') {
-				return;
-			}
-			this.attrLastMove('[still]');
-			this.add('-fail', source, 'move: Aura Wheel');
-			this.hint("Only a Pokemon whose form is Morpeko or Morpeko-Hangry can use this move.");
-			return null;
-		},
-		onModifyType(move, pokemon) {
+	},
+
+	// Morpeko forms keep their native behavior; everyone else alternates types on use
+	onModifyType(move, pokemon) {
+		// Morpeko logic unchanged
+		if (pokemon.species.baseSpecies === 'Morpeko') {
 			if (pokemon.species.name === 'Morpeko-Hangry') {
 				move.type = 'Dark';
 			} else {
 				move.type = 'Electric';
 			}
-		},
-		target: "normal",
-		type: "Electric",
+			return;
+		}
+
+		// Non-Morpeko: alternate Electric <-> Dark each time Aura Wheel is used
+		// Track state on the user with a volatile
+		const v = pokemon.volatiles['aurawheel'] as any;
+		const useDark = v?.darkNext === true;
+
+		move.type = useDark ? 'Dark' : 'Electric';
+
+		// Flip for next time
+		if (!pokemon.volatiles['aurawheel']) pokemon.addVolatile('aurawheel');
+		(pokemon.volatiles['aurawheel'] as any).darkNext = !useDark;
 	},
+
+	// Define the volatile used for non-Morpeko users
+	condition: {
+		noCopy: true,
+		onStart(pokemon) {
+			// default: next Aura Wheel will be Dark AFTER the first Electric use
+			(this.effectState as any).darkNext = false;
+		},
+	},
+
+	target: "normal",
+	type: "Electric", // base (will be overridden by onModifyType)
+},
+
 	aurorabeam: {
 		num: 62,
 		accuracy: 100,

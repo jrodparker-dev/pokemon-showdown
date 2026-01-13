@@ -21,6 +21,8 @@
  * - This file assumes your format sets `team: "randomChaos"` so getTeam() calls randomChaosTeam().
  * - Item "Mystery Box" must exist in your mod's items.ts (or base data if you put it there).
  */
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const levels: Record<string, number> = require('./levels.json');
 
 import {Dex, toID} from '../../../sim/dex';
 import {PRNG, type PRNGSeed} from '../../../sim/prng';
@@ -280,41 +282,143 @@ export class RandomTeams {
 	}
 
 	private getMoves(species: Species): string[] {
-		const moves = new Set<string>();
+	const moves = new Set<string>();
+	const allMoveIds = this.moveIdListAllMoves();
 
-		const allMoveIds = this.moveIdListAllMoves();
+	// Highest attack stat preference
+	let preferredPhysical = false;
+	if (species.baseStats.atk > species.baseStats.spa) preferredPhysical = true;
+	else if (species.baseStats.spa > species.baseStats.atk) preferredPhysical = false;
+	else preferredPhysical = this.randomChance(1, 2); // tie = chaos
 
-		// Highest attack stat preference
-		let preferredPhysical = false;
-		if (species.baseStats.atk > species.baseStats.spa) preferredPhysical = true;
-		else if (species.baseStats.spa > species.baseStats.atk) preferredPhysical = false;
-		else preferredPhysical = this.randomChance(1, 2); // tie = chaos
+	// Helper: pick an *attacking* STAB move for a specific type (learnset first, then anywhere)
+	const pickAttackingStabOfType = (typeName: string): string | null => {
+		const wantedType = this.dex.types.get(typeName).name; // normalize
+		const learnset = this.dex.species.getMovePool(species.id);
 
-		// 1) STAB from learnset
-		const stabLearnset = this.pickStabFromLearnset(species, preferredPhysical, moves);
-		if (stabLearnset) moves.add(stabLearnset);
+		const isGood = (id: string, requirePreferredCategory: boolean) => {
+			const mv = this.dex.moves.get(id);
+			if (!mv?.exists) return false;
+			if (mv.category === 'Status') return false;
+			if (mv.type !== wantedType) return false;
+			if (moves.has(mv.id)) return false;
 
-		// 2) STAB from anywhere
-		const stabAny = this.pickStabFromAnywhere(species, preferredPhysical, moves, allMoveIds);
-		if (stabAny) moves.add(stabAny);
+			if (requirePreferredCategory) {
+				if (preferredPhysical && mv.category !== 'Physical') return false;
+				if (!preferredPhysical && mv.category !== 'Special') return false;
+			}
+			return true;
+		};
 
-		// 3) Status from anywhere
-		moves.add(this.pickStatusFromAnywhere(moves, allMoveIds));
+		// 1) Learnset, preferred category
+		const learnPref = [...learnset].filter(id => isGood(id, true));
+		if (learnPref.length) return this.sample(learnPref);
 
-		// 4) Attacking from anywhere matching higher stat
-		moves.add(this.pickAttackFromAnywhere(preferredPhysical, moves, allMoveIds));
+		// 2) Learnset, any attacking category
+		const learnAny = [...learnset].filter(id => isGood(id, false));
+		if (learnAny.length) return this.sample(learnAny);
 
-		return [...moves];
+		// 3) Anywhere, preferred category
+		const anyPref = allMoveIds.filter(id => isGood(id, true));
+		if (anyPref.length) return this.sample(anyPref);
+
+		// 4) Anywhere, any attacking category
+		const anyAny = allMoveIds.filter(id => isGood(id, false));
+		if (anyAny.length) return this.sample(anyAny);
+
+		return null;
+	};
+
+	// Helper: pick an attacking move from anywhere, preferably matching Physical/Special,
+	// and optionally requiring a "new type" (not in disallowedTypes).
+	const pickAttackFromAnywhereFiltered = (
+		disallowedTypes?: Set<string>
+	): string => {
+		const isCandidate = (id: string, requirePreferredCategory: boolean) => {
+			const mv = this.dex.moves.get(id);
+			if (!mv?.exists) return false;
+			if (mv.category === 'Status') return false;
+			if (moves.has(mv.id)) return false;
+
+			if (disallowedTypes && disallowedTypes.has(mv.type)) return false;
+
+			if (requirePreferredCategory) {
+				if (preferredPhysical && mv.category !== 'Physical') return false;
+				if (!preferredPhysical && mv.category !== 'Special') return false;
+			}
+			return true;
+		};
+
+		// 1) Prefer matching category
+		const pref = allMoveIds.filter(id => isCandidate(id, true));
+		if (pref.length) return this.sample(pref);
+
+		// 2) Any attacking category
+		const any = allMoveIds.filter(id => isCandidate(id, false));
+		if (any.length) return this.sample(any);
+
+		// 3) Hard fallback to your existing picker (ignores disallowedTypes)
+		return this.pickAttackFromAnywhere(preferredPhysical, moves, allMoveIds);
+	};
+
+	// ---------- STAB LOGIC ----------
+	if (species.types.length >= 2) {
+		// Dual-type: force both STABs as attacking moves
+		const stab1 = pickAttackingStabOfType(species.types[0]);
+		if (stab1) moves.add(stab1);
+
+		const stab2 = pickAttackingStabOfType(species.types[1]);
+		if (stab2) moves.add(stab2);
+
+		// Fallback: if one type couldn't find an attacking move, still ensure we have 2 attacking STABs total
+		while (moves.size < 2) {
+			const fallback = this.pickStabFromAnywhere(species, preferredPhysical, moves, allMoveIds);
+			if (!fallback) break;
+			const mv = this.dex.moves.get(fallback);
+			if (mv?.category !== 'Status') moves.add(fallback);
+		}
+	} else {
+		// Single-type:
+		// 1) pick ONE attacking STAB move (do NOT force a second STAB)
+		const stab = pickAttackingStabOfType(species.types[0]);
+		if (stab) moves.add(stab);
+
+		// 2) pick a second attacking move of a DIFFERENT TYPE, fitting best attacking stat
+		const disallowedTypes = new Set<string>();
+		disallowedTypes.add(this.dex.types.get(species.types[0]).name); // don't pick same-type as STAB
+		moves.add(pickAttackFromAnywhereFiltered(disallowedTypes));
 	}
+
+	// 3) Status from anywhere (as move #3)
+	if (moves.size < 3) moves.add(this.pickStatusFromAnywhere(moves, allMoveIds));
+
+	// 4) Attacking from anywhere, GUARANTEED different type than existing 3 moves
+	if (moves.size < 4) {
+		const usedTypes = new Set<string>();
+		for (const id of moves) {
+			const mv = this.dex.moves.get(id);
+			if (mv?.exists) usedTypes.add(mv.type);
+		}
+		moves.add(pickAttackFromAnywhereFiltered(usedTypes));
+	}
+
+	// Top off if we somehow didn't reach 4
+	while (moves.size < 4) {
+		moves.add(this.pickAttackFromAnywhere(preferredPhysical, moves, allMoveIds));
+	}
+
+	return [...moves];
+}
+
+
 
 	// ------------------------------------------------------------
 	// Ability / item / nature / level
 	// ------------------------------------------------------------
-	private getAbility(species: Species): string {
-		const abilities = Object.values(species.abilities).filter(Boolean);
-		if (!abilities.length) return 'No Ability';
-		return this.sample(abilities);
-	}
+	private getAbility(_species: Species): string {
+	return 'Random';
+}
+
 
 	private getNature(species: Species): string {
 		// Keep it simple and “good enough”
@@ -327,25 +431,42 @@ export class RandomTeams {
 		return this.sample(['Hardy', 'Docile', 'Serious', 'Bashful', 'Quirky']);
 	}
 
-	private getLevel(species: Species): number {
-		if (this.adjustLevel) return this.adjustLevel;
+	
 
-		// simple tier scale (you can replace with your own)
-		const tier = species.tier;
-		const tierScale: Partial<Record<Species['tier'], number>> = {
-			Uber: 76,
-			OU: 80,
-			UUBL: 81,
-			UU: 82,
-			RUBL: 83,
-			RU: 84,
-			NUBL: 85,
-			NU: 86,
-			PUBL: 87,
-			PU: 88, "(PU)": 88, NFE: 88,
-		};
-		return tierScale[tier] || 80;
+private getLevel(species: Species): number {
+	// Hard override (used by tests / special modes)
+	if (this.adjustLevel) return this.adjustLevel;
+
+	// Direct lookup (toID-safe)
+	const id = species.id;
+	if (levels[id]) return levels[id];
+
+	// ---- Forme fallback logic ----
+	// If a forme is missing, fall back to base species
+	if (species.baseSpecies) {
+		const baseId = toID(species.baseSpecies);
+		if (levels[baseId]) return levels[baseId];
 	}
+
+	// ---- Tier-based emergency fallback ----
+	// Should almost never hit unless something new was added
+	const tierScale: Partial<Record<Species['tier'], number>> = {
+		Uber: 76,
+		OU: 80,
+		UUBL: 81,
+		UU: 82,
+		RUBL: 83,
+		RU: 84,
+		NUBL: 85,
+		NU: 86,
+		PUBL: 87,
+		PU: 88,
+		"(PU)": 88,
+		NFE: 88,
+	};
+
+	return tierScale[species.tier] || 80;
+}
 
 	private getItem(_species: Species): string {
 		// ✅ forced item for chaos mode

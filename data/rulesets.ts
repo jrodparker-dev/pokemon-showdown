@@ -692,6 +692,58 @@ blindteampreview: {
 	desc: 'Players choose a lead without seeing the opponent\u2019s team.',
 },
 
+
+bst600: {
+    name: "BST 600",
+    desc: "All Pokémon have their base stat total adjusted to 600 by distributing the difference evenly; remainder goes to the highest stat.",
+
+    onModifySpecies(species) {
+      // Don't touch if missing stats for some reason
+      if (!species?.baseStats) return;
+
+      // Clone so we don't mutate the Dex cache
+      const s = this.dex.deepClone(species);
+
+      const stats: (keyof StatsTable)[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+      const base = s.baseStats;
+
+      const bst =
+        base.hp + base.atk + base.def + base.spa + base.spd + base.spe;
+
+      const targetBST = 600;
+      let delta = targetBST - bst;
+      if (delta === 0) return s;
+
+      // Find the highest existing stat (ties: first in order)
+      let highestKey: keyof StatsTable = 'hp';
+      for (const k of stats) {
+        if (base[k] > base[highestKey]) highestKey = k;
+      }
+
+      // Even split, remainder to the highest stat
+      const per = delta > 0 ? Math.floor(delta / 6) : -Math.floor((-delta) / 6);
+      let rem = delta - per * 6;
+
+      // Apply the even split
+      for (const k of stats) base[k] += per;
+
+      // Apply remainder to highest stat
+      base[highestKey] += rem;
+
+      // Safety clamp (just in case something weird goes below 1)
+      for (const k of stats) {
+        if (base[k] < 1) base[k] = 1;
+      }
+
+      // If clamping happened, BST might drift slightly; you can optionally re-normalize,
+      // but most mods won't need that unless you have extremely low-stat species + huge negative delta.
+
+      s.baseStats = base;
+      return s;
+    },
+  },
+
+
 teratypepreview: {
 	effectType: 'Rule',
 	name: 'Tera Type Preview',

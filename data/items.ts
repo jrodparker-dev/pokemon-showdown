@@ -9699,48 +9699,65 @@ mysterybox: {
     slot.battleUsed['focussash'] = true;
     return target.hp - 1;
   },
+// Sitrus Berry (≤ 1/2 HP, once per battle)
+// Lum Berry (major status OR existing confusion, once per battle)
+// NOTE: Must be a single onUpdate hook.
+onUpdate(pokemon) {
+  const slot = mbGetSlot(this, pokemon);
+  slot.battleUsed ||= {};
 
-  // Sitrus Berry (≤ 1/2 HP, once per battle)
-  onUpdate(pokemon) {
-    const slot = mbGetSlot(this, pokemon);
-    slot.battleUsed ||= {};
-    if (slot.id !== 'sitrusberry') return;
-    if (slot.battleUsed['sitrusberry']) return;
-    if (!pokemon.hp || pokemon.hp > Math.floor(pokemon.maxhp / 2)) return;
-    if (typeof mbTryEatBerry === 'function' && !mbTryEatBerry(this, pokemon)) return;
-    this.heal(
-      this.clampIntRange(Math.floor(pokemon.baseMaxhp / 4), 1),
-      pokemon,
-      pokemon,
-      this.dex.items.get('sitrusberry')
-    );
-    this.add('-activate', pokemon, 'item: Mystery Box', '[emulating] Sitrus Berry');
-    slot.battleUsed['sitrusberry'] = true;
-  },
+  // -------------------------
+  // Sitrus Berry trigger
+  // -------------------------
+  if (slot.id === 'sitrusberry' && !slot.battleUsed['sitrusberry']) {
+    if (pokemon.hp && pokemon.hp <= Math.floor(pokemon.maxhp / 2)) {
+      if (typeof mbTryEatBerry !== 'function' || mbTryEatBerry(this, pokemon)) {
+        this.heal(
+          this.clampIntRange(Math.floor(pokemon.baseMaxhp / 4), 1),
+          pokemon,
+          pokemon,
+          this.dex.items.get('sitrusberry')
+        );
+        this.add('-activate', pokemon, 'item: Mystery Box', '[emulating] Sitrus Berry');
+        slot.battleUsed['sitrusberry'] = true;
+      }
+    }
+  }
 
-  // Lum Berry (on status infliction once) + confusion
-  onSetStatus(_status, target) {
-    const slot = mbGetSlot(this, target);
-    slot.battleUsed ||= {};
-    if (slot.id !== 'lumberry') return;
-    if (slot.battleUsed['lumberry']) return;
-    if (typeof mbTryEatBerry === 'function' && !mbTryEatBerry(this, target)) return;
-    this.add('-activate', target, 'item: Mystery Box', '[emulating] Lum Berry');
-    target.cureStatus();
-    slot.battleUsed['lumberry'] = true;
-    return false;
-  },
-  onTryAddVolatile(sta, target) {
-    if (sta.id !== 'confusion') return;
-    const slot = mbGetSlot(this, target);
-    slot.battleUsed ||= {};
-    if (slot.id !== 'lumberry') return;
-    if (slot.battleUsed['lumberry']) return;
-    if (typeof mbTryEatBerry === 'function' && !mbTryEatBerry(this, target)) return;
-    this.add('-activate', target, 'item: Mystery Box', '[emulating] Lum Berry');
-    slot.battleUsed['lumberry'] = true;
-    return null; // block confusion
-  },
+  // -------------------------
+  // Lum Berry trigger
+  // (cures existing major status or clears existing confusion)
+  // -------------------------
+  if (slot.id === 'lumberry' && !slot.battleUsed['lumberry']) {
+    const hasStatus = !!pokemon.status;
+    const hasConfusion = !!pokemon.volatiles?.confusion;
+
+    if (hasStatus || hasConfusion) {
+      if (typeof mbTryEatBerry !== 'function' || mbTryEatBerry(this, pokemon)) {
+        this.add('-activate', pokemon, 'item: Mystery Box', '[emulating] Lum Berry');
+        if (hasStatus) pokemon.cureStatus();
+        if (hasConfusion) pokemon.removeVolatile('confusion');
+        slot.battleUsed['lumberry'] = true;
+      }
+    }
+  }
+},
+
+// Lum Berry: block confusion application (once per battle)
+onTryAddVolatile(sta, target) {
+  if (sta.id !== 'confusion') return;
+  const slot = mbGetSlot(this, target);
+  slot.battleUsed ||= {};
+  if (slot.id !== 'lumberry') return;
+  if (slot.battleUsed['lumberry']) return;
+
+  if (typeof mbTryEatBerry === 'function' && !mbTryEatBerry(this, target)) return;
+
+  this.add('-activate', target, 'item: Mystery Box', '[emulating] Lum Berry');
+  slot.battleUsed['lumberry'] = true;
+  return null; // block confusion
+},
+
 },
 
 

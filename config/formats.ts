@@ -41,6 +41,20 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		ruleset: ['Obtainable', 'Species Clause', 'Team Preview', 'Blind Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Sleep Clause Mod', 'Illusion Level Mod']
 	},
 	{
+		name: "BST 600 Random Battle",
+		desc: 'Random Teams with balanced base stats',
+		mod: 'bst600random',
+		team: 'random',
+		ruleset: ['Species Clause', 'HP Percentage Mod', 'Cancel Mod', 'BST600', 'Sleep Clause Mod', 'Illusion Level Mod']
+	},
+	{
+		name: "Camomons Random",
+		desc: 'Random battles but with camomons rules',
+		mod: 'camomonsrandom',
+		team: 'randomCamo',
+		ruleset: ['Obtainable', 'Species Clause', 'Team Preview', 'Camomons Mod', 'HP Percentage Mod', 'Cancel Mod', 'Sleep Clause Mod', 'Illusion Level Mod']
+	},
+	{
 		name: "[Gen 9] Unrated Random Battle",
 		mod: 'gen9',
 		team: 'random',

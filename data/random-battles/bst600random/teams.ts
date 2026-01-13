@@ -1889,29 +1889,13 @@ return moves;
 
 
 	getLevel(
-		species: Species,
-		isDoubles: boolean,
-	): number {
-		if (this.adjustLevel) return this.adjustLevel;
-		// doubles levelling
-		if (isDoubles && this.randomDoublesSets[species.id]["level"]) return this.randomDoublesSets[species.id]["level"]!;
-		if (!isDoubles && this.randomSets[species.id]["level"]) return this.randomSets[species.id]["level"]!;
-		// Default to tier-based levelling
-		const tier = species.tier;
-		const tierScale: Partial<Record<Species['tier'], number>> = {
-			Uber: 76,
-			OU: 80,
-			UUBL: 81,
-			UU: 82,
-			RUBL: 83,
-			RU: 84,
-			NUBL: 85,
-			NU: 86,
-			PUBL: 87,
-			PU: 88, "(PU)": 88, NFE: 88,
-		};
-		return tierScale[tier] || 80;
-	}
+	species: Species,
+	isDoubles: boolean,
+): number {
+	if (this.adjustLevel) return this.adjustLevel;
+	return 100;
+}
+
 
 	getForme(species: Species): string {
 		if (typeof species.battleOnly === 'string') {
@@ -1932,17 +1916,457 @@ return moves;
 		}
 		return species.name;
 	}
+private randomFallbackSet(
+  species: Species,
+  teamDetails: RandomTeamsTypes.TeamDetails,
+  isLead: boolean,
+  isDoubles: boolean
+): RandomTeamsTypes.RandomSet {
+  // Ability: keep your existing logic
+  const abilities = Object.values(species.abilities)
+    .filter(a => a && this.dex.abilities.get(a).exists && !this.dex.abilities.get(a).isNonstandard);
+  const ability = (this.gen <= 2) ? 'No Ability' : (abilities.length ? this.sample(abilities) : 'No Ability');
+  const abil = toID(ability);
+
+  const preferPhysical = species.baseStats.atk >= species.baseStats.spa;
+
+  // ----------------------------
+  // Global move pools (from anywhere)
+  // ----------------------------
+  const allMoves = this.dex.moves.all()
+    .filter(m =>
+      m.exists &&
+      !m.isNonstandard &&
+      !m.isZ &&
+      !m.isMax &&
+      !m.realMove
+    );
+
+  const damaging = allMoves.filter(m => m.category !== 'Status');
+  const status = allMoves.filter(m => m.category === 'Status');
+
+  const dmgPref = damaging.filter(m => m.category === (preferPhysical ? 'Physical' : 'Special'));
+  const dmgAny = damaging;
+
+  const setupMoveIds: ID[] = [
+    'calmmind','swordsdance','dragondance','quiverdance','nastyplot','bulkup','coil',
+    'agility','rockpolish','shellsmash','shiftgear','workup','autotomize'
+  ].map(toID);
+
+  const contraryPackage: ID[] = [
+    'leafstorm','superpower','overheat','dracometeor','psychoboost','vcreate','fleurcannon'
+  ].map(toID);
+
+  const drainingMoveIds: ID[] = [
+    'gigadrain','drainpunch','drainingkiss','oblivionwing','paraboliccharge','hornleech','leechlife'
+  ].map(toID);
+
+  const facadeId = toID('facade');
+
+  // Helpers
+  const pick = <T>(arr: T[]) => (arr.length ? this.sample(arr) : null);
+
+  const isRecoilMove = (m: Move) => !!m.recoil || !!m.hasCrashDamage || !!m.mindBlownRecoil || m.selfdestruct === 'always';
+
+  const moveHasSecondaryOrFlinch = (m: Move) =>
+    (m.secondary || (m.secondaries && m.secondaries.length)) || m.volatileStatus === 'flinch';
+
+  const isPunch = (m: Move) => !!m.flags?.punch;
+  const isBite = (m: Move) => !!m.flags?.bite;
+
+  // Type chart helpers (casts avoid TS pain in older forks)
+  const isSuperEffectiveTypeOnType = (atkType: string, defType: string) => {
+    // dummy target with a single type
+    const dummy = {types: [defType]} as any;
+    return this.dex.getEffectiveness(atkType, dummy) > 0;
+  };
+
+  const getWeaknessTypes = () => {
+    const types = this.dex.types.all().map(t => t.name).filter(t => t !== '???');
+    // types that hit THIS species super effectively
+    return types.filter(t => this.dex.getEffectiveness(t, species as any) > 0);
+  };
+
+  const weaknesses = getWeaknessTypes();
+
+  // Candidates with biases
+  const filteredDamagingPool = (() => {
+    let pool = dmgPref.length ? dmgPref : dmgAny;
+
+    // Sheer Force: avoid recoil/crash/selfdestruct-y moves
+    if (abil === 'sheerforce') pool = pool.filter(m => !isRecoilMove(m));
+
+    // Iron Fist / Strong Jaw: prefer punch/bite moves (we'll bias selection below)
+    return pool;
+  })();
+
+  const stabCandidatesForType = (type: string) => {
+    let pool = filteredDamagingPool.filter(m => m.type === type);
+    // Serene Grace bias: prefer secondaries/flinch when possible
+    if (abil === 'serenegrace') {
+      const sg = pool.filter(moveHasSecondaryOrFlinch);
+      if (sg.length) pool = sg;
+    }
+    // Triage bias: prefer draining moves if possible
+    if (abil === 'triage') {
+      const tri = pool.filter(m => drainingMoveIds.includes(m.id));
+      if (tri.length) pool = tri;
+    }
+    // Contrary package: prefer those specific moves if they match type/category
+    if (abil === 'contrary') {
+      const con = pool.filter(m => contraryPackage.includes(m.id));
+      if (con.length) pool = con;
+    }
+    // Iron Fist / Strong Jaw bias on STAB too
+    if (abil === 'ironfist') {
+      const p = pool.filter(isPunch);
+      if (p.length) pool = p;
+    }
+    if (abil === 'strongjaw') {
+      const b = pool.filter(isBite);
+      if (b.length) pool = b;
+    }
+    return pool;
+  };
+
+  const coverageCandidates = () => {
+    let pool = filteredDamagingPool;
+
+    // Serene Grace: prefer secondary/flinch coverage if possible
+    if (abil === 'serenegrace') {
+      const sg = pool.filter(moveHasSecondaryOrFlinch);
+      if (sg.length) pool = sg;
+    }
+    // Triage: prefer draining moves
+    if (abil === 'triage') {
+      const tri = pool.filter(m => drainingMoveIds.includes(m.id));
+      if (tri.length) pool = tri;
+    }
+    // Contrary: prefer contrary package
+    if (abil === 'contrary') {
+      const con = pool.filter(m => contraryPackage.includes(m.id));
+      if (con.length) pool = con;
+    }
+    // Iron Fist / Strong Jaw biases
+    if (abil === 'ironfist') {
+      const p = pool.filter(isPunch);
+      if (p.length) pool = p;
+    }
+    if (abil === 'strongjaw') {
+      const b = pool.filter(isBite);
+      if (b.length) pool = b;
+    }
+    return pool;
+  };
+
+  const pickCoverageVsWeakness = () => {
+    // pick a move whose TYPE is super-effective vs at least one of the species weaknesses
+    const cov = coverageCandidates().filter(m => {
+      // avoid repeating exact STAB types for the special “anti-weakness” slot
+      if (species.types.includes(m.type)) return false;
+      return weaknesses.some(w => isSuperEffectiveTypeOnType(m.type, w));
+    });
+
+    // If nothing hits a weakness, fall back to any non-STAB coverage
+    return pick((cov.length ? cov : coverageCandidates().filter(m => !species.types.includes(m.type))) );
+  };
+
+  const pickRandomCoverage = (excludeTypes: string[] = []) => {
+    let pool = coverageCandidates().filter(m => !excludeTypes.includes(m.type));
+    // try to avoid duplicating STAB types unless we have to
+    const nonStab = pool.filter(m => !species.types.includes(m.type));
+    if (nonStab.length) pool = nonStab;
+    return pick(pool);
+  };
+
+  const pickRandomStatusFromAnywhere = (excludeIds: Set<ID>) => {
+    let pool = status.filter(m => !excludeIds.has(m.id));
+
+    // Prankster: prefer “actionable” status
+    if (abil === 'prankster') {
+      const good = ['taunt','encore','thunderwave','willowisp','toxic','spore','substitute','recover','roost','protect','haze']
+        .map(toID);
+      const preferred = pool.filter(m => good.includes(m.id));
+      if (preferred.length) pool = preferred;
+    }
+
+    return pick(pool);
+  };
+
+  // ----------------------------
+  // Slot-based move selection
+  // ----------------------------
+  const moves: ID[] = [];
+  const used = new Set<ID>();
+
+  const types = species.types;
+  const type1 = types[0];
+  const type2 = types[1];
+
+  // Slot 1: STAB type1
+  const stab1 = pick(stabCandidatesForType(type1));
+  if (stab1) { moves.push(stab1.id); used.add(stab1.id); }
+
+  // Slot 2:
+  if (type2) {
+    // Dual type: STAB type2
+    const stab2Pool = stabCandidatesForType(type2).filter(m => !used.has(m.id));
+    const stab2 = pick(stab2Pool);
+    if (stab2) { moves.push(stab2.id); used.add(stab2.id); }
+  } else {
+    // Single type: coverage that hits one of our weaknesses super effectively
+    const cov = pickCoverageVsWeakness();
+    if (cov) { moves.push(cov.id); used.add(cov.id); }
+  }
+
+  // Determine if species *learns* setup (from its actual learnset/movepool)
+  const learns = new Set([...this.dex.species.getMovePool(species.id)]);
+  const learnedSetups = setupMoveIds.filter(id => learns.has(id));
+
+  // Slot 3: Status from anywhere, unless it learns setup (75% setup / 25% other status)
+  let slot3: ID | null = null;
+  if (learnedSetups.length && this.randomChance(3, 4)) {
+    // 75%
+    slot3 = pick(learnedSetups.filter(id => !used.has(id))) || null;
+  }
+  if (!slot3) {
+    const st = pickRandomStatusFromAnywhere(used);
+    slot3 = st ? st.id : null;
+  }
+  if (slot3) { moves.push(slot3); used.add(slot3); }
+
+  // Slot 4: random coverage (damaging) from anywhere
+  const excludeTypes = [...new Set(types)]; // avoid STAB types if possible
+  let slot4 = pickRandomCoverage(excludeTypes);
+  if (slot4 && used.has(slot4.id)) {
+    // try again a couple times
+    for (let i = 0; i < 3; i++) {
+      const retry = pickRandomCoverage(excludeTypes);
+      if (retry && !used.has(retry.id)) { slot4 = retry; break; }
+    }
+  }
+  if (slot4) { moves.push(slot4.id); used.add(slot4.id); }
+
+  // If we somehow ended up short, fill with anything damaging of preferred category
+  while (moves.length < this.maxMoveCount) {
+    const filler = pick(filteredDamagingPool.filter(m => !used.has(m.id)));
+    if (!filler) break;
+    moves.push(filler.id); used.add(filler.id);
+  }
+
+  // ----------------------------
+  // Ability-driven item & move adjustments
+  // ----------------------------
+  let itemId: ID | null = null;
+
+  // Guts: Flame Orb + Facade (physical only makes sense)
+  if (abil === 'guts' && this.dex.items.get('flameorb').exists) {
+    itemId = toID('flameorb');
+    if (preferPhysical && !moves.includes(facadeId)) {
+      // Prefer to put Facade in the last slot if it's currently Status/duplicate-ish
+      moves[moves.length - 1] = facadeId;
+    }
+  }
+
+  // Poison Heal: Toxic Orb
+  if (abil === 'poisonheal' && this.dex.items.get('toxicorb').exists) {
+    itemId = toID('toxicorb');
+  }
+
+  // Sheer Force: Life Orb (already filtered recoil moves above)
+  if (abil === 'sheerforce' && this.dex.items.get('lifeorb').exists) {
+    itemId = toID('lifeorb');
+  }
+
+  // Magic Guard: Life Orb
+  if (abil === 'magicguard' && this.dex.items.get('lifeorb').exists) {
+    itemId = toID('lifeorb');
+  }
+
+  // Unburden: consumable item bias
+  if (!itemId && abil === 'unburden') {
+    const candidates = ['sitrusberry','whiteherb','focussash','redcard','electricseed','grassyseed','psychicseed','mistyseed']
+      .map(toID)
+      .filter(id => this.dex.items.get(id).exists);
+    itemId = pick(candidates) || null;
+  }
+
+  // Weather setters
+  if (!itemId && abil === 'drizzle' && this.dex.items.get('damprock').exists) itemId = toID('damprock');
+  if (!itemId && abil === 'drought' && this.dex.items.get('heatrock').exists) itemId = toID('heatrock');
+
+  // ----------------------------
+  // Stat-based heavy Choice weighting
+  // If Choice picked -> NO Status moves allowed.
+  // ----------------------------
+  const atk = species.baseStats.atk;
+  const spa = species.baseStats.spa;
+  const spe = species.baseStats.spe;
+
+  const choiceBand = toID('choiceband');
+  const choiceSpecs = toID('choicespecs');
+  const choiceScarf = toID('choicescarf');
+
+  const canBand = this.dex.items.get(choiceBand).exists;
+  const canSpecs = this.dex.items.get(choiceSpecs).exists;
+  const canScarf = this.dex.items.get(choiceScarf).exists;
+
+  // If item wasn't forced by ability, roll a weighted item
+  if (!itemId) {
+    const weighted: Array<{id: ID, weight: number}> = [];
+
+    // baseline good items
+    const add = (id: ID, w: number) => { if (this.dex.items.get(id).exists) weighted.push({id, weight: w}); };
+    add(toID('leftovers'), 12);
+    add(toID('heavydutyboots'), 10);
+    add(toID('lifeorb'), 10);
+    add(toID('focussash'), 8);
+    add(toID('assaultvest'), 6);
+
+    // heavy Choice weighting by stats
+    if (atk > 100 && canBand) weighted.push({id: choiceBand, weight: 35});
+    if (spa > 100 && canSpecs) weighted.push({id: choiceSpecs, weight: 35});
+    if (spe > 100 && canScarf) weighted.push({id: choiceScarf, weight: 35});
+
+    // Weighted pick
+    const total = weighted.reduce((s, x) => s + x.weight, 0);
+    let r = this.random(total || 1);
+    itemId = (weighted.length ? weighted[weighted.length - 1].id : toID('leftovers'));
+    for (const x of weighted) {
+      r -= x.weight;
+      if (r < 0) { itemId = x.id; break; }
+    }
+  }
+
+  const isChoice = itemId === choiceBand || itemId === choiceSpecs || itemId === choiceScarf;
+
+  if (isChoice) {
+    // Replace any Status moves with damaging coverage (preferred category)
+    for (let i = 0; i < moves.length; i++) {
+      const m = this.dex.moves.get(moves[i]);
+      if (m.category === 'Status') {
+        const replacement = pickRandomCoverage([...new Set(species.types)]);
+        if (replacement) moves[i] = replacement.id;
+      }
+    }
+    // Ensure all moves are damaging; if still not, brute fill
+    for (let i = 0; i < moves.length; i++) {
+      const m = this.dex.moves.get(moves[i]);
+      if (m.category === 'Status') {
+        const rep = pick(filteredDamagingPool);
+        if (rep) moves[i] = rep.id;
+      }
+    }
+  }
+
+  // ----------------------------
+  // Final set fields
+  // ----------------------------
+  const item = itemId ? this.dex.items.get(itemId).name : '';
+
+  // ---- Nature + EV selection based on base stats (and item/ability overrides) ----
+
+const preferSpecial = spa >= atk + 15;
+
+// Speed nature thresholds (with overrides)
+let effectiveSpe = spe;
+
+// Choice Scarf => always treat as fast (force Jolly/Timid)
+const isChoiceScarf = itemId === toID('choicescarf');
+
+// Speed-multiplier abilities => treat Speed as higher for nature decision
+const speedBoostAbilities = new Set<ID>([
+  'swiftswim','chlorophyll','sandrush','slushrush','surgesurfer','quickfeet','unburden',
+].map(toID));
+
+if (speedBoostAbilities.has(abil)) effectiveSpe += 30;
+if (isChoiceScarf) effectiveSpe += 999; // guarantees Timid/Jolly path
+
+let wantSpeedNature = false;
+if (effectiveSpe >= 95) wantSpeedNature = true;
+else if (effectiveSpe <= 75) wantSpeedNature = false;
+else wantSpeedNature = this.randomChance(1, 2); // 76–94: 50/50
+
+let nature: string;
+let evs: StatsTable;
+
+// Default IVs (you can later adjust for special cases like Trick Room, Gyro Ball, etc.)
+const ivs: StatsTable = {hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31};
+
+if (preferPhysical) {
+  nature = wantSpeedNature ? 'Jolly' : 'Adamant';
+  // If speed nature: max Atk/Spe; otherwise max Atk/HP (bulkier breaker)
+  evs = wantSpeedNature
+    ? {hp: 0, atk: 252, def: 4, spa: 0, spd: 0, spe: 252}
+    : {hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0};
+} else if (preferSpecial) {
+  nature = wantSpeedNature ? 'Timid' : 'Modest';
+  evs = wantSpeedNature
+    ? {hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252}
+    : {hp: 252, atk: 0, def: 4, spa: 252, spd: 0, spe: 0};
+} else {
+  // Mixed / unclear: choose based on which attacking stat is higher, then apply speed rule
+  const physicalLeaning = atk >= spa;
+  if (physicalLeaning) {
+    nature = wantSpeedNature ? 'Jolly' : 'Adamant';
+    evs = wantSpeedNature
+      ? {hp: 0, atk: 252, def: 4, spa: 0, spd: 0, spe: 252}
+      : {hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0};
+  } else {
+    nature = wantSpeedNature ? 'Timid' : 'Modest';
+    evs = wantSpeedNature
+      ? {hp: 0, atk: 0, def: 4, spa: 252, spd: 0, spe: 252}
+      : {hp: 252, atk: 0, def: 4, spa: 252, spd: 0, spe: 0};
+  }
+}
+
+
+  const level = this.getLevel(species, isDoubles); // your getLevel returns 100
+
+  return {
+    name: species.baseSpecies,
+    species: species.name,
+    item,
+    ability,
+    moves: moves.slice(0, this.maxMoveCount),
+    nature,
+    evs,
+    ivs,
+    level,
+    shiny: this.randomChance(1, 1024),
+    gender: species.baseSpecies === 'Greninja' ? 'M' : (species.gender || (this.random(2) ? 'F' : 'M')),
+  };
+}
+
 
 	randomSet(
-		s: string | Species,
-		teamDetails: RandomTeamsTypes.TeamDetails = {},
-		isLead = false,
-		isDoubles = false
-	): RandomTeamsTypes.RandomSet {
-		const species = this.dex.species.get(s);
-		const forme = this.getForme(species);
-		const sets = this[`random${isDoubles ? 'Doubles' : ''}Sets`][species.id]["sets"];
-		const possibleSets: RandomTeamsTypes.RandomSetData[] = [];
+  s: string | Species,
+  teamDetails: RandomTeamsTypes.TeamDetails = {},
+  isLead = false,
+  isDoubles = false
+): RandomTeamsTypes.RandomSet {
+  const species = this.dex.species.get(s);
+  const formeName = this.getForme(species);
+  const forme = this.dex.species.get(formeName);
+
+  const table = this[`random${isDoubles ? 'Doubles' : ''}Sets`];
+
+  // Prefer exact forme entry, then base species entry
+  const entry =
+    table[forme.id] ||
+    table[species.id] ||
+    (species.baseSpecies ? table[toID(species.baseSpecies)] : undefined);
+
+  // If not in sets.json, generate a fallback set instead of throwing
+  if (!entry || !entry.sets) {
+    return this.randomFallbackSet(forme.exists ? forme : species, teamDetails, isLead, isDoubles);
+  }
+
+  const sets = entry.sets;
+  const possibleSets: RandomTeamsTypes.RandomSetData[] = [];
+  // ...rest of your existing randomSet logic...
+
+
 
 		const ruleTable = this.dex.formats.getRuleTable(this.format);
 
@@ -2081,7 +2505,7 @@ if (
 
 return {
   name: species.baseSpecies,
-  species: forme,
+  species: forme.name,
   gender: species.baseSpecies === 'Greninja' ? 'M' : (species.gender || (this.random(2) ? 'F' : 'M')),
   shiny: this.randomChance(1, 1024),
   level,
@@ -2186,7 +2610,13 @@ teamDetails.customMoveCount = 0;
 			skipReasons[reason] = (skipReasons[reason] || 0) + 1;
 		};
 
-		const pokemonList = isDoubles ? Object.keys(this.randomDoublesSets) : Object.keys(this.randomSets);
+		const pokemonList = this.dex.species.all()
+  .filter(s =>
+    s.exists &&
+	!s.isNonstandard        // optional (or allow, your getPokemonPool already groups formes)
+  )
+  .map(s => s.id);
+
 		const [pokemonPool, baseSpeciesPool] = this.getPokemonPool(type, pokemon, isMonotype, pokemonList);
 
 		// If your curated sets list ends up empty, fail loudly with useful info.
