@@ -27306,7 +27306,7 @@ bloodoath: {
                 if (!move) return;
 
 
-                if (!move.flags['protect'] || move.category === 'Status') {
+                if (!move.flags['protect']) {
                     if (['gmaxoneblow', 'gmaxrapidflow'].includes(move.id)) return;
                     if (move.isZ || move.isMax) target.getMoveHitData(move).zBrokeProtect = true;
                     return;

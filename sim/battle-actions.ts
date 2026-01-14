@@ -869,8 +869,28 @@ export class BattleActions {
 					targetHits = this.battle.sample([2, 2, 2, 3, 3, 3, 4, 5]);
 				}
 			} else {
-				targetHits = this.battle.random(targetHits[0], targetHits[1] + 1);
-			}
+  const min = targetHits[0];
+  const max = targetHits[1];
+
+  // default roll
+  targetHits = this.battle.random(min, max + 1);
+
+  // Loaded Dice / Type Dice logic for arbitrary multihit ranges:
+  // Bias toward the top end of the range.
+  // Example [5,10] => force 8-10 (i.e., max - 2 .. max)
+  if (hasDice) {
+    const span = max - min; // e.g. 5
+    if (span >= 2) {
+      // Pick from the top 3 results (tweak 3 -> 2 if you want even stricter)
+      const topWindow = Math.min(3, span + 1); // never exceed available outcomes
+      targetHits = max - this.battle.random(topWindow);
+    } else {
+      // Very small ranges like [4,5] => just take max
+      targetHits = max;
+    }
+  }
+}
+
 		}
 		if (targetHits === 10 && hasDice) targetHits -= this.battle.random(7);
 		targetHits = Math.floor(targetHits);
