@@ -5573,8 +5573,7 @@ export const Items: import('../sim/dex-items').ItemDataTable = {
 			type: "Psychic",
 		},
 		onUpdate(pokemon) {
-			if (pokemon.hp <= pokemon.maxhp / 4 || (pokemon.hp <= pokemon.maxhp / 2 &&
-				pokemon.hasAbility('gluttony') && pokemon.abilityState.gluttony)) {
+			if (pokemon.hp <= pokemon.maxhp / 4 || (pokemon.hp <= pokemon.maxhp / 2 && pokemon.abilityState.gluttony)) {
 				pokemon.eatItem();
 			}
 		},

@@ -8117,7 +8117,7 @@ berrymaster: {
     this.add('-start', pokemon, 'typechange', cur);
     pokemon.abilityState.gluttony = true;
   },
-  onDamage(_damage, pokemon) {
+  onDamage(item, pokemon) {
     // preserve your gluttony flag refresh
     pokemon.abilityState.gluttony = true;
   },
