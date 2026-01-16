@@ -6109,6 +6109,7 @@ hafgrout: { tier: "OU", natDexTier: "AG",   },
 draughollow: { tier: "OU", natDexTier: "AG",   },
 mindhoggr: { tier: "OU", natDexTier: "AG",   },
 narcissa: { tier: "OU", natDexTier: "AG",   },
+mintwirl: { tier: "OU", natDexTier: "AG",   },
 
 
 };

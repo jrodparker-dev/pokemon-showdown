@@ -6061,7 +6061,20 @@ export const Pokedex: import('../sim/dex-species').SpeciesDataTable = {
 		heightm: 1.1,
 		weightkg: 5,
 		color: "Brown",
+		evos: ["Mintwirl"],
 		eggGroups: ["Field", "Human-Like"],
+	},
+	mintwirl: {
+		num: -327,
+		name: "Mintwirl",
+		types: ["Normal", "Psychic"],
+		baseStats: { hp:100, atk: 85, def: 85, spa: 75, spd: 90, spe: 88},
+		abilities: { 0: "Contrary", 1: "Tangled Feet", H: "Twisted Dimensions"},
+		heightm: 1.5,
+		weightkg: 7,
+		color: "Pink",
+		prevo: "Spinda",
+		eggGroups: ["Field", "Human-Like"]
 	},
 	trapinch: {
 		num: 328,
