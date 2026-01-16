@@ -2102,7 +2102,7 @@ if (effect && effect.effectType === 'Move') {
   }
 }
 // --- End Gamma type cap ---
-
+/* 
 			// --- Type-based Focus Band (once per battle) ---
 {
   const PROTECTED_TYPES = new Set(['Gamma']); // add more if needed: ['Light', 'Gamma']
@@ -2126,7 +2126,7 @@ if (effect && effect.effectType === 'Move') {
   }
 }
 // --- End Type-based Focus Band ---
-
+*/
 
 
 

@@ -1812,6 +1812,34 @@ export class BattleActions {
 		// types
 		let typeMod = target.runEffectiveness(move);
 		typeMod = this.battle.clampIntRange(typeMod, -6, 6);
+		// --- Gamma First-Hit Resistance (per Gamma-state) ---
+{
+  if (move && move.category !== 'Status' && target && !target.fainted) {
+    // @ts-ignore - persistent scratch space
+    const m = ((target as any).m ??= {});
+
+    const hasGammaNow = target.hasType('Gamma');
+    const hadGammaBefore = m._hadGammaTyping === true;
+
+    // If Gamma was newly gained (including via Tera Gamma), reset the "first hit used" flag
+    if (hasGammaNow && !hadGammaBefore) {
+      m.gammaFirstHitUsed = false;
+    }
+    // Track current state for next time
+    m._hadGammaTyping = hasGammaNow;
+
+    // Apply the "first hit is always NVE" rule once per Gamma-state
+    if (hasGammaNow && m.gammaFirstHitUsed !== true) {
+      // Force Not Very Effective overall (0.5x) for this hit
+      typeMod = -1;
+
+      // mark it for consumption ONLY if damage actually happens
+      m._pendingGammaFirstHitConsume = true;
+    }
+  }
+}
+// --- End Gamma First-Hit Resistance ---
+
 		target.getMoveHitData(move).typeMod = typeMod;
 		if (typeMod > 0) {
 			if (!suppressMessages) this.battle.add('-supereffective', target);
@@ -1847,11 +1875,29 @@ export class BattleActions {
 			this.battle.add('-zbroken', target);
 		}
 
-		// Generation 6-7 moves the check for minimum 1 damage after the final modifier...
-		if (this.battle.gen !== 5 && !baseDamage) return 1;
+		// Generation 6-7 moves the check for minimum 1 damage after the final damage modifiers...
+let finalDamage: number;
+if (this.battle.gen !== 5 && !baseDamage) {
+  finalDamage = 1;
+} else {
+  // ...but 16-bit truncation happens even later, and can truncate to 0
+  finalDamage = tr(baseDamage, 16);
+}
 
-		// ...but 16-bit truncation happens even later, and can truncate to 0
-		return tr(baseDamage, 16);
+// Consume Gamma first-hit shield only if damage was actually dealt
+{
+  // @ts-ignore
+  const m = (target as any).m;
+  if (m?._pendingGammaFirstHitConsume) {
+    if (finalDamage > 0) {
+      m.gammaFirstHitUsed = true;
+    }
+    delete m._pendingGammaFirstHitConsume;
+  }
+}
+
+return finalDamage;
+
 	}
 
 	/**

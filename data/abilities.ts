@@ -9668,7 +9668,7 @@ if (ok) {
 	/** BLOODHOUND
 	 * On entry: force-switch the opposing active if possible.
 	 * Bonus damage vs targets with your existing 'bleeding' volatile/status.
-	 */
+	 
 	bloodhound: {
 	name: "Bloodhound",
 	shortDesc: "On switch-in (once per battle), phazes foe. 1.3× damage vs targets with [bleeding].",
@@ -9706,7 +9706,82 @@ if (ok) {
 		}
 	},
 },
+*/
+bloodhound: {
+  name: "Bloodhound",
+  shortDesc:
+    "When hit by a move, forces the attacker to switch (like Red Card). First hit taken is capped at 50%. Marks the attacker; if it switches in while this is active, it takes level/3 damage.",
+  rating: 4,
 
+  // (Optional) keep your typechange message if you want it
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+  },
+
+  // If the marked target switches in while the Bloodhound holder is on the field, ping it
+  onAnySwitchIn(pokemon) {
+    const holder = this.effectState.target;
+    if (!holder?.isActive || holder.fainted) return;
+
+    // @ts-ignore - persistent scratch space
+    const m = ((holder as any).m ??= {});
+    const marked = m.bloodhoundMarkedTarget as Pokemon | undefined;
+    if (!marked) return;
+
+    if (pokemon === marked) {
+      this.add('-message', `The bloodhound finds its target`);
+      const dmg = Math.floor(pokemon.level / 3);
+      if (dmg > 0) this.damage(dmg, pokemon, holder);
+    }
+  },
+
+  // Cap the FIRST instance of move damage the holder takes in the battle at 50% max HP
+  // This must be in onDamage (pre-application), not onDamagingHit (post-application).
+  onDamage(damage, target, source, effect) {
+    if (!source || source === target) return;
+    if (!effect || effect.effectType !== 'Move') return;
+    if (typeof damage !== 'number' || damage <= 0) return;
+
+    // @ts-ignore - persistent scratch space
+    const m = ((target as any).m ??= {});
+    if (m.bloodhoundFirstDamageCapped) return;
+
+    // Only cap the first time the ability reacts in the battle
+    m.bloodhoundFirstDamageCapped = true;
+
+    const cap = Math.floor(target.maxhp / 2);
+    if (damage > cap) return cap;
+  },
+
+  // After taking a damaging hit, mark the attacker and force it to switch (if possible)
+  onDamagingHit(damage, target, source, move) {
+    if (!source || source === target) return;
+    if (!move || move.category === 'Status') return;
+
+    // Red Card-style "can't be forced out" checks
+    const anchored = source.hasAbility?.('suctioncups') || source.volatiles['ingrain'];
+    if (anchored) return;
+    if (!this.canSwitch(source.side)) return;
+
+    this.add('-ability', target, 'Bloodhound');
+
+    // Mark the attacker BEFORE the switch
+    // @ts-ignore - persistent scratch space
+    const m = ((target as any).m ??= {});
+    m.bloodhoundMarkedTarget = source;
+
+    // Force switch the attacker
+    source.forceSwitchFlag = true;
+  },
+
+  onBasePower(basePower, attacker, defender) {
+    if (!defender) return;
+    if (defender.volatiles['bleeding'] || defender.status === 'bleeding') {
+      return this.chainModify(1.3);
+    }
+  },
+},
 
 	/** RADIOACTIVE
 	 * Each time this Pokémon uses a damaging move, roll base power uniformly 50–150.
