@@ -9710,19 +9710,24 @@ if (ok) {
 bloodhound: {
   name: "Bloodhound",
   shortDesc:
-    "When hit by a move, forces the attacker to switch (like Red Card). First hit taken is capped at 50%. Marks the attacker; if it switches in while this is active, it takes level/3 damage.",
+    "When hit by a move, forces the attacker to switch (like Red Card). Once per battle: if at full HP, survives a KO hit at 1 HP. Marks the attacker; if it switches in while this is active, it takes level/3 damage.",
   rating: 4,
 
-  // (Optional) keep your typechange message if you want it
   onStart(pokemon) {
-    const cur = pokemon.getTypes(true).join('/');
-    this.add('-start', pokemon, 'typechange', cur);
+    // keep your UI type info
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
+
+    // store a reliable reference to the holder for onAnySwitchIn
+    this.effectState.holder = pokemon;
   },
 
   // If the marked target switches in while the Bloodhound holder is on the field, ping it
   onAnySwitchIn(pokemon) {
-    const holder = this.effectState.target;
-    if (!holder?.isActive || holder.fainted) return;
+    const holder: Pokemon | undefined = this.effectState.holder;
+    if (!holder || !holder.isActive || holder.fainted) return;
 
     // @ts-ignore - persistent scratch space
     const m = ((holder as any).m ??= {});
@@ -9736,8 +9741,7 @@ bloodhound: {
     }
   },
 
-  // Cap the FIRST instance of move damage the holder takes in the battle at 50% max HP
-  // This must be in onDamage (pre-application), not onDamagingHit (post-application).
+  // Focus Sash-style: once per battle, if at full HP, survive a KO hit at 1 HP
   onDamage(damage, target, source, effect) {
     if (!source || source === target) return;
     if (!effect || effect.effectType !== 'Move') return;
@@ -9745,19 +9749,25 @@ bloodhound: {
 
     // @ts-ignore - persistent scratch space
     const m = ((target as any).m ??= {});
-    if (m.bloodhoundFirstDamageCapped) return;
+    if (m.bloodhoundSashUsed) return;
 
-    // Only cap the first time the ability reacts in the battle
-    m.bloodhoundFirstDamageCapped = true;
-
-    const cap = Math.floor(target.maxhp / 2);
-    if (damage > cap) return cap;
+    // Only works from full HP, like Focus Sash
+    if (target.hp === target.maxhp && damage >= target.hp) {
+      m.bloodhoundSashUsed = true;
+      this.add('-ability', target, 'Bloodhound');
+      this.add('-message', `${target.name} endured the hit!`);
+      return target.hp - 1; // leave at 1 HP
+    }
   },
 
   // After taking a damaging hit, mark the attacker and force it to switch (if possible)
   onDamagingHit(damage, target, source, move) {
     if (!source || source === target) return;
     if (!move || move.category === 'Status') return;
+
+    // IMPORTANT: do not trigger if Bloodhound holder died from the hit
+    // (onDamagingHit is post-damage; if you're at 0/fainted, bail)
+    if (target.fainted || target.hp <= 0) return;
 
     // Red Card-style "can't be forced out" checks
     const anchored = source.hasAbility?.('suctioncups') || source.volatiles['ingrain'];
@@ -9782,6 +9792,7 @@ bloodhound: {
     }
   },
 },
+
 
 	/** RADIOACTIVE
 	 * Each time this Pokémon uses a damaging move, roll base power uniformly 50–150.
@@ -10635,38 +10646,38 @@ this.add('-start', pokemon, 'typechange', cur);
 },
 
 scalesofruin: {
+	name: "Scales of Ruin",
+	rating: 4.5,
+	flags: {},
+
 	onStart(pokemon) {
-		const cur = pokemon.getTypes(true).join('/'); // runtime types 
-		const base = pokemon.species.types.join('/'); // species types 
+		const cur = pokemon.getTypes(true).join('/');
 		this.add('-start', pokemon, 'typechange', cur);
 
 		if (this.suppressingAbility(pokemon)) return;
 		this.add('-ability', pokemon, 'Scales of Ruin');
+		this.add('-message', `Scales of Ruin lowered all other Pokémon's accuracy!`);
 	},
 
-	// Reduce accuracy of all non-user moves
 	onAnyAccuracy(accuracy, source, target, move) {
-		// In case your fork ever passes non-numeric accuracy (like "always hits")
 		if (typeof accuracy !== 'number') return;
+		if (!source || !move) return;
 
-		const abilityHolder = this.effectState.target;
+		// ✅ Exclude the holder by ID (NOT name)
+		if (source.hasAbility?.('scalesofruin')) return;
 
-		// Do not reduce accuracy of moves used by the ability holder
-		if (source && source.hasAbility('Scales of Ruin')) return;
-
-		// Use `any` so TS doesn't complain about our custom field
+		// Non-stacking guard like other ruin abilities
+		const holder = this.effectState.target;
 		const m: any = move;
-		if (!m.ruinedAccHolder) m.ruinedAccHolder = abilityHolder;
-		if (m.ruinedAccHolder !== abilityHolder) return;
+		if (!m.ruinedAccHolder) m.ruinedAccHolder = holder;
+		if (m.ruinedAccHolder !== holder) return;
 
-		this.debug('Scales of Ruin Accuracy drop');
-		return this.chainModify(0.85); // 85% accuracy multiplier
+		return this.chainModify(0.01);
 	},
-
-	flags: {},
-	name: "Scales of Ruin",
-	rating: 4.5,
 },
+
+
+
 randochaos: {
   name: "Randochaos",
   shortDesc: "On every switch-in: fully random species, typing, stats (BST 550), EVs, nature, moves (signature STABs → Metronome + Adaptive Force), and ability. Keeps held item.",
@@ -10813,16 +10824,18 @@ randochaos: {
 
     // Restore HP %
     pokemon.sethp(Math.max(1, Math.floor(pokemon.maxhp * hpRatio)));
-
     // ------------------------------------------------------------
-    // 6) SIGNATURE MOVE LOGIC → Slots 1–2
+    // 6) SIGNATURE MOVE LOGIC → Slots 1–2 (DUAL TYPES MUST BE UNIQUE)
     // ------------------------------------------------------------
 
-    // Build signature move list dynamically:
+    const allMoves = this.dex.moves.all().filter(m => m.exists && !m.isZ && !m.isMax);
+
+    const isDamaging = (m: any) => m.category !== 'Status' && (m.basePower > 0 || m.damage || m.ohko);
+    const preferredCategory = (bestOff === 'atk') ? 'Physical' : 'Special';
+
     const learnsets = (this.dex.data as any).Learnsets;
     const signatureMoves: string[] = [];
 
-    // Count how many species learn each move
     const moveLearners: Record<string, number> = {};
     for (const sp of this.dex.species.all()) {
       if (!sp.exists || !learnsets[sp.id]?.learnset) continue;
@@ -10830,60 +10843,80 @@ randochaos: {
         moveLearners[mv] = (moveLearners[mv] || 0) + 1;
       }
     }
+    for (const mv in moveLearners) if (moveLearners[mv] === 1) signatureMoves.push(mv);
 
-    for (const mv in moveLearners) {
-      if (moveLearners[mv] === 1) signatureMoves.push(mv);
-    }
+    const stabPoolsByTier = (type: string) => {
+      const sig = allMoves.filter(m =>
+        signatureMoves.includes(m.id) &&
+        isDamaging(m) &&
+        m.type === type &&
+        m.category === preferredCategory
+      );
+      const strong = allMoves.filter(m =>
+        isDamaging(m) &&
+        m.type === type &&
+        m.category === preferredCategory &&
+        (m.basePower || 0) >= 70
+      );
+      const anyStab = allMoves.filter(m =>
+        isDamaging(m) &&
+        m.type === type &&
+        m.category === preferredCategory
+      );
+      return {sig, strong, anyStab};
+    };
 
-    const allMoves = this.dex.moves.all().filter(m => m.exists && !m.isZ && !m.isMax);
-
-    const isDamaging = (m:any)=>m.category!=='Status' && (m.basePower>0||m.damage||m.ohko);
-    const preferredCategory = (bestOff === 'atk') ? 'Physical' : 'Special';
-
-    const sigPool = allMoves.filter(m =>
-      signatureMoves.includes(m.id) &&
-      isDamaging(m) &&
-      newTypes.includes(m.type) &&
-      m.category === preferredCategory
-    );
-
-    const strongStabPool = allMoves.filter(m =>
-      isDamaging(m) &&
-      newTypes.includes(m.type) &&
-      m.category === preferredCategory &&
-      (m.basePower||0) >= 70
-    );
-
-    const stabFallbackPool = allMoves.filter(m =>
-      isDamaging(m) &&
-      newTypes.includes(m.type) &&
-      m.category === preferredCategory
-    );
-
-    const genericFallbackPool = allMoves.filter(m =>
-      isDamaging(m) &&
-      m.category === preferredCategory
-    );
+    const genericPreferred = allMoves.filter(m => isDamaging(m) && m.category === preferredCategory);
 
     const chosenMoves: string[] = [];
 
-    const tryFill = (pool:any[], count:number)=>{
-      const arr=[...pool];
-      while (chosenMoves.length<count && arr.length){
-        const mv = arr.splice(this.random(arr.length),1)[0];
-        if (!chosenMoves.includes(mv.id)) chosenMoves.push(mv.id);
-      }
+    const pickFrom = (pool: any[]) => {
+      if (!pool.length) return null;
+      // avoid duplicates
+      const candidates = pool.filter(m => !chosenMoves.includes(m.id));
+      if (!candidates.length) return null;
+      return this.sample(candidates).id as string;
     };
 
-    tryFill(sigPool, 2);
-    if (chosenMoves.length<2) tryFill(strongStabPool, 2);
-    if (chosenMoves.length<2) tryFill(stabFallbackPool, 2);
-    if (chosenMoves.length<2) tryFill(genericFallbackPool, 2);
+    const pickBestStabOfType = (type: string) => {
+      const {sig, strong, anyStab} = stabPoolsByTier(type);
+      return (
+        pickFrom(sig) ||
+        pickFrom(strong) ||
+        pickFrom(anyStab) ||
+        null
+      );
+    };
 
-    while (chosenMoves.length<2) chosenMoves.push('tackle');
+    if (newTypes.length >= 2) {
+      // Force one STAB move from each type
+      const tA = newTypes[0];
+      const tB = newTypes[1];
 
+      const mA = pickBestStabOfType(tA) || pickFrom(genericPreferred) || 'tackle';
+      chosenMoves.push(mA);
+
+      const mB = pickBestStabOfType(tB) || pickFrom(genericPreferred) || 'tackle';
+      chosenMoves.push(mB);
+
+      // If we still somehow duplicated by ID, patch it
+      if (chosenMoves[0] === chosenMoves[1]) {
+        chosenMoves[1] = pickBestStabOfType(tB) || pickFrom(genericPreferred) || 'tackle';
+      }
+    } else {
+      // Mono-type: still force STAB twice (your original behavior is fine here)
+      const t = newTypes[0];
+      chosenMoves.push(pickBestStabOfType(t) || pickFrom(genericPreferred) || 'tackle');
+      chosenMoves.push(pickBestStabOfType(t) || pickFrom(genericPreferred) || 'tackle');
+      if (chosenMoves[0] === chosenMoves[1]) {
+        chosenMoves[1] = pickFrom(genericPreferred) || 'tackle';
+      }
+    }
+
+    // Slot 3–4 fixed
     chosenMoves[2] = 'metronome';
     chosenMoves[3] = 'adaptiveforce';
+
 
     // Apply moves
     pokemon.moveSlots.splice(0,pokemon.moveSlots.length);
@@ -10921,7 +10954,11 @@ shortcircuit: {
 	name: "Short Circuit",
 	shortDesc: "When this Pokémon uses a move, it may instead use a random usable move.",
 	rating: 3.5,
-
+onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
 	// Core random-move hijack
 	onBeforeMove(pokemon, target, move) {
 		// Recursion guard so our own useMove call doesn't loop back here
@@ -10986,6 +11023,171 @@ random: {
 
 		// Show a message (setAbility does not always show a clean custom message)
 		this.add('-ability', pokemon, chosen.name, '[from] ability: Random');
+	},
+},
+noxiousspores: {
+		onDamagingHit(damage, target, source, move) {
+  if (!move || source === target) return;
+  if (!this.checkMoveMakesContact(move, source, target)) return;
+
+  if (this.randomChance(1, 3)) {
+    source.setStatus('slp', target);
+  } else if (this.randomChance(1, 2)) {
+    source.setStatus('par', target);
+  } else {
+    source.setStatus('psn', target);
+  }
+},
+
+		onStart(pokemon) { 
+const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+},
+flags: {},
+		name: "Noxious Spores",
+	},
+priolottery: {
+	name: "Priolottery",
+	shortDesc: "This Pokémon's moves use a random priority: -2, 0, or +2.",
+	rating: 3,
+
+	onStart(pokemon) {
+		this.effectState.lastTurn = 0;
+		this.effectState.lastPrio = 0;
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+	},
+
+	// Roll once per turn for this Pokémon (so the message + ordering match)
+	onModifyPriority(priority, pokemon, target, move) {
+		if (this.effectState.lastTurn !== this.turn) {
+			const r = this.random(3); // 0,1,2
+			const p = (r === 0 ? -2 : r === 1 ? 0 : 2);
+			this.effectState.lastTurn = this.turn;
+			this.effectState.lastPrio = p;
+		}
+		return this.effectState.lastPrio as number;
+	},
+
+	// Print right before the move is used
+	onBeforeMove(pokemon, target, move) {
+		// ensure we have the same roll as ordering
+		if (this.effectState.lastTurn !== this.turn) {
+			const r = this.random(3);
+			const p = (r === 0 ? -2 : r === 1 ? 0 : 2);
+			this.effectState.lastTurn = this.turn;
+			this.effectState.lastPrio = p;
+		}
+
+		const p = this.effectState.lastPrio as number;
+		const sign = p > 0 ? '+' : '';
+		this.add('-message', `${pokemon.name} rolled ${sign}${p} priority!`);
+	},
+},
+
+slowbeginning: {
+	name: "Slow Beginning",
+	shortDesc: "Moves start at -2 priority; +1 priority each turn (max +2).",
+	rating: 3.5,
+
+	onStart(pokemon) {
+		this.effectState.turns = 0;
+		this.effectState.lastAnnounced = -999;
+		const cur = pokemon.getTypes(true).join('/'); // runtime types 
+const base = pokemon.species.types.join('/'); // species types 
+this.add('-start', pokemon, 'typechange', cur);
+
+		const p = -2;
+		this.effectState.lastAnnounced = p;
+		this.add('-message', `${pokemon.name}'s priority level is now ${p}.`);
+	},
+
+	onResidual(pokemon) {
+		if (!pokemon.isActive || pokemon.fainted) return;
+
+		// increase the turn counter then compute new priority
+		this.effectState.turns++;
+		const turns = this.effectState.turns as number;
+		const p = Math.min(-2 + turns, 2);
+
+		// only announce when it actually changes
+		if (p !== this.effectState.lastAnnounced) {
+			this.effectState.lastAnnounced = p;
+			this.add('-message', `${pokemon.name}'s priority level increased to ${p}.`);
+		}
+	},
+
+	onModifyPriority(priority, pokemon, target, move) {
+		const turns = (this.effectState.turns || 0) as number;
+		return Math.min(-2 + turns, 2);
+	},
+},
+
+
+typethief: {
+	name: "Type Thief",
+	shortDesc: "On switch-in, steal a random foe's type; mono-type foes become a random new type.",
+	rating: 4,
+
+	onStart(pokemon) {
+		const foes = pokemon.side.foe.active.filter(foe =>
+			foe && !foe.fainted && pokemon.isAdjacent(foe)
+		) as Pokemon[];
+		if (!foes.length) return;
+
+		const target = this.sample(foes);
+
+		// runtime types (respect Soak/terastallize/your custom type changes)
+		const targetTypesRaw = target.getTypes(true).filter(t => t !== '???');
+		if (!targetTypesRaw.length) return;
+
+		// pick one of target's types to steal
+		const stolenType = this.sample(targetTypesRaw);
+
+		// --- Update target types ---
+		let newTargetTypes = targetTypesRaw.filter(t => t !== stolenType);
+
+		if (!newTargetTypes.length) {
+			// target was mono-type; reroll into a random DIFFERENT type (always)
+			const allTypes = this.dex.types.names().filter(t =>
+				t !== 'Stellar' && t !== '???' && t !== stolenType
+			);
+			if (!allTypes.length) return; // extremely unlikely
+			const reroll = this.sample(allTypes);
+			newTargetTypes = [reroll];
+		}
+
+		target.setType(newTargetTypes);
+
+		// IMPORTANT: attribute the change to the thief, not the victim
+		this.add(
+			'-start',
+			target,
+			'typechange',
+			newTargetTypes.join('/'),
+			'[from] ability: Type Thief',
+			'[of] ' + pokemon
+		);
+
+		// --- Update thief types (allow 3+ types if your fork supports it) ---
+		const myTypes = pokemon.getTypes(true).filter(t => t !== '???');
+		let newMyTypes = myTypes;
+
+		if (!myTypes.includes(stolenType)) {
+			newMyTypes = [...myTypes, stolenType];
+			pokemon.setType(newMyTypes);
+			this.add(
+				'-start',
+				pokemon,
+				'typechange',
+				newMyTypes.join('/'),
+				'[from] ability: Type Thief'
+			);
+		}
+
+		this.add('-message', `${pokemon.name} stole the ${stolenType} type from ${target.name}!`);
 	},
 },
 
