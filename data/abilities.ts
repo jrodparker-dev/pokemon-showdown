@@ -10644,39 +10644,43 @@ this.add('-start', pokemon, 'typechange', cur);
 		}
 	},
 },
-
+/*
 scalesofruin: {
-	name: "Scales of Ruin",
-	rating: 4.5,
-	flags: {},
-
 	onStart(pokemon) {
-		const cur = pokemon.getTypes(true).join('/');
+		const cur = pokemon.getTypes(true).join('/'); // runtime types
+		const base = pokemon.species.types.join('/'); // species types
 		this.add('-start', pokemon, 'typechange', cur);
-
 		if (this.suppressingAbility(pokemon)) return;
 		this.add('-ability', pokemon, 'Scales of Ruin');
 		this.add('-message', `Scales of Ruin lowered all other Pokémon's accuracy!`);
 	},
 
 	onAnyAccuracy(accuracy, source, target, move) {
+		const abilityHolder = this.effectState.target;
+
+		// Only apply to numeric accuracies, and only when a move is being used
 		if (typeof accuracy !== 'number') return;
 		if (!source || !move) return;
 
-		// ✅ Exclude the holder by ID (NOT name)
-		if (source.hasAbility?.('scalesofruin')) return;
+		// Vessel-of-Ruin style: check the MOVE USER (source)
+		if (source.hasAbility?.('Scales of Ruin')) return;
 
-		// Non-stacking guard like other ruin abilities
-		const holder = this.effectState.target;
-		const m: any = move;
-		if (!m.ruinedAccHolder) m.ruinedAccHolder = holder;
-		if (m.ruinedAccHolder !== holder) return;
+		// Non-stacking guard: only one Scales of Ruin holder should apply per move
+		// @ts-ignore
+		if (!move.ruinedAcc) move.ruinedAcc = abilityHolder;
+		// @ts-ignore
+		if (move.ruinedAcc !== abilityHolder) return;
 
+		this.debug('Scales of Ruin accuracy drop');
 		return this.chainModify(0.01);
 	},
+
+	flags: {},
+	name: "Scales of Ruin",
+	rating: 4.5,
+	// num: 284, // optional if you're keeping all Ruin abilities aligned
 },
-
-
+*/
 
 randochaos: {
   name: "Randochaos",
@@ -10715,7 +10719,7 @@ randochaos: {
     // ------------------------------------------------------------
     // 2) Random typing
     // ------------------------------------------------------------
-    const allTypes = this.dex.types.names().filter(t => t !== '???');
+    const allTypes = this.dex.types.names().filter(t => t !== '???' && t !== 'Stellar' && t !== 'stellar');
     const primary = this.sample(allTypes);
     let secondary: string | undefined = undefined;
     if (this.randomChance(1, 2)) {
