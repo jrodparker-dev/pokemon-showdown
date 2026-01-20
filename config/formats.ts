@@ -33,7 +33,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		bestOfDefault: true,
 		ruleset: ['PotD', 'Obtainable', 'Species Clause', 'Team Preview', 'Blind Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Sleep Clause Mod', 'Illusion Level Mod'],
 	},
-	/*{
+	{
 		name: "[Custom] Random Battle",
 		desc: 'Random Teams of Pokemon with Jordans sets',
 		mod: 'custom',
@@ -53,7 +53,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		mod: 'camomonsrandom',
 		team: 'randomCamo',
 		ruleset: ['Obtainable', 'Species Clause', 'Team Preview', 'Camomons Mod', 'HP Percentage Mod', 'Cancel Mod', 'Sleep Clause Mod', 'Illusion Level Mod']
-	},*/
+	},
 	{
 		name: "[Gen 9] Unrated Random Battle",
 		mod: 'gen9',
