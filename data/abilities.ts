@@ -8674,14 +8674,53 @@ weatherman: {
   name: "Weatherman",
   shortDesc: "On switch-in, sets a random weather: Sun, Rain, Sandstorm, or Snow.",
   onStart(pokemon) {
-    const choice = this.sample(['sunnyday','raindance','sandstorm','snow']);
-    this.field.setWeather(choice);
-    this.add('-ability', pokemon, 'Weatherman', '[weather] ' + this.field.weather);
-	const cur = pokemon.getTypes(true).join('/'); // runtime types 
-		const base = pokemon.species.types.join('/'); // species types 
-		this.add('-start', pokemon, 'typechange', cur);
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+
+    if (this.suppressingAbility?.(pokemon)) return;
+
+    this.add('-ability', pokemon, 'Weatherman');
+
+    const choice = this.sample(['sunnyday', 'raindance', 'sandstorm', 'snowscape']);
+
+    // IMPORTANT: check success
+    const success = this.field.setWeather(choice);
+
+    if (!success) {
+      // Force a visible debug message so you know it attempted
+      this.add('-message', `(Weatherman tried to set ${choice}, but it failed.)`);
+    }
+  },
+
+  // B) Also trigger when the Pokémon GAINS the ability mid-battle (Skill Swap / Wandering Spirit / etc.)
+  onUpdate(pokemon) {
+    if (!pokemon.isActive || pokemon.fainted) return;
+    if (this.suppressingAbility?.(pokemon)) return;
+
+    // prevent spam: only do this once per time the ability is gained
+    // @ts-ignore
+    if ((pokemon as any).m?.weathermanApplied) return;
+    // @ts-ignore
+    ((pokemon as any).m ??= {}).weathermanApplied = true;
+
+    this.add('-ability', pokemon, 'Weatherman');
+
+    const choice = this.sample(['sunnyday', 'raindance', 'sandstorm', 'snow']);
+    const success = this.field.setWeather(choice);
+
+    if (!success) {
+      this.add('-message', `(Weatherman tried to set ${choice}, but it failed.)`);
+    }
+  },
+
+  // reset the “applied” flag if it loses the ability
+  onEnd(pokemon) {
+    // @ts-ignore
+    if ((pokemon as any).m) (pokemon as any).m.weathermanApplied = false;
   },
 },
+
 
 // 9) Torrential Blizzard — Snow on entry; takes half damage from Ice’s weakness types
 torrentialblizzard: {
@@ -9713,14 +9752,22 @@ bloodhound: {
     "When hit by a move, forces the attacker to switch (like Red Card). Once per battle: if at full HP, survives a KO hit at 1 HP. Marks the attacker; if it switches in while this is active, it takes level/3 damage.",
   rating: 4,
 
+  // Runs when the Pokemon is actually switching in / becoming active
+  onSwitchIn(pokemon) {
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+
+    // keep a reliable reference to the holder for onAnySwitchIn
+    this.effectState.holder = pokemon;
+
+    // Reset once-per-field-instance phaze limiter on entry (belt + suspenders)
+    pokemon.removeVolatile('bloodhoundphazeused');
+  },
+
+  // Keep onStart too if you want, but don't rely on it for entry callouts
   onStart(pokemon) {
-    // keep your UI type info
-const cur = pokemon.getTypes(true).join('/'); // runtime types 
-const base = pokemon.species.types.join('/'); // species types 
-this.add('-start', pokemon, 'typechange', cur);
-
-
-    // store a reliable reference to the holder for onAnySwitchIn
+    // ensure holder is tracked even in odd cases (ability gained while active)
     this.effectState.holder = pokemon;
   },
 
@@ -9751,37 +9798,36 @@ this.add('-start', pokemon, 'typechange', cur);
     const m = ((target as any).m ??= {});
     if (m.bloodhoundSashUsed) return;
 
-    // Only works from full HP, like Focus Sash
     if (target.hp === target.maxhp && damage >= target.hp) {
       m.bloodhoundSashUsed = true;
       this.add('-ability', target, 'Bloodhound');
       this.add('-message', `${target.name} endured the hit!`);
-      return target.hp - 1; // leave at 1 HP
+      return target.hp - 1;
     }
   },
 
   // After taking a damaging hit, mark the attacker and force it to switch (if possible)
+  // LIMITED: once per time Bloodhound is on the field
   onDamagingHit(damage, target, source, move) {
     if (!source || source === target) return;
     if (!move || move.category === 'Status') return;
 
-    // IMPORTANT: do not trigger if Bloodhound holder died from the hit
-    // (onDamagingHit is post-damage; if you're at 0/fainted, bail)
     if (target.fainted || target.hp <= 0) return;
 
-    // Red Card-style "can't be forced out" checks
+    // Once per field instance
+    if (target.volatiles['bloodhoundphazeused']) return;
+
     const anchored = source.hasAbility?.('suctioncups') || source.volatiles['ingrain'];
     if (anchored) return;
     if (!this.canSwitch(source.side)) return;
 
     this.add('-ability', target, 'Bloodhound');
 
-    // Mark the attacker BEFORE the switch
     // @ts-ignore - persistent scratch space
     const m = ((target as any).m ??= {});
     m.bloodhoundMarkedTarget = source;
 
-    // Force switch the attacker
+    target.addVolatile('bloodhoundphazeused');
     source.forceSwitchFlag = true;
   },
 
@@ -10412,7 +10458,7 @@ this.add('-start', pokemon, 'typechange', cur);
   },
 },
 
-
+/*
 echomessenger: {
   name: "Echo Messenger",
   shortDesc: "The first move this Pokémon uses always goes first (+5 priority).",
@@ -10428,6 +10474,70 @@ this.add('-start', pokemon, 'typechange', cur);
   },
   onAfterMove(pokemon, target, move) {
     if (move && !this.effectState.used) this.effectState.used = true;
+  },
+},
+*/
+echomessenger: {
+  name: "Echo Messenger",
+  shortDesc:
+    "On each switch-in, its first move gets priority. First use in battle: +3 priority. After that, first move after each switch-in: +1 priority and 0.5× power.",
+  rating: 5,
+
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+
+    // Announce so the opponent knows the first move will have priority
+    this.add('-ability', pokemon, 'Echo Messenger');
+    this.add('-message', `${pokemon.name} is poised to act with priority!`);
+
+    // Per-Pokémon persistent scratch
+    // @ts-ignore
+    const m = ((pokemon as any).m ??= {});
+    // First move while currently on the field is "boosted"
+    m.echoMessengerEntryPending = true;
+  },
+
+  onModifyPriority(priority, pokemon, target, move) {
+    if (!move) return;
+
+    // @ts-ignore
+    const m = (pokemon as any).m;
+    if (!m?.echoMessengerEntryPending) return;
+
+    // First-ever use in the battle: +3
+    if (!m.echoMessengerUsedBattle) return priority + 3;
+
+    // After it's been used once already: +1 on first move after each switch-in
+    return priority + 1;
+  },
+
+  onBasePower(basePower, attacker, defender, move) {
+    if (!move || move.category === 'Status') return;
+
+    // @ts-ignore
+    const m = (attacker as any).m;
+    if (!m?.echoMessengerEntryPending) return;
+
+    // After the first-ever use in the battle, the first move after each switch-in is halved
+    if (m.echoMessengerUsedBattle) {
+      return this.chainModify(0.5);
+    }
+  },
+
+  onAfterMove(pokemon, target, move) {
+    if (!move) return;
+
+    // @ts-ignore
+    const m = (pokemon as any).m;
+    if (!m?.echoMessengerEntryPending) return;
+
+    // This was the first move on the field; consume the entry boost
+    m.echoMessengerEntryPending = false;
+
+    // Mark that the "battle-first" boost has been used (persists through switches)
+    if (!m.echoMessengerUsedBattle) m.echoMessengerUsedBattle = true;
   },
 },
 
@@ -10644,43 +10754,47 @@ this.add('-start', pokemon, 'typechange', cur);
 		}
 	},
 },
-/*
+
 scalesofruin: {
-	onStart(pokemon) {
-		const cur = pokemon.getTypes(true).join('/'); // runtime types
-		const base = pokemon.species.types.join('/'); // species types
-		this.add('-start', pokemon, 'typechange', cur);
-		if (this.suppressingAbility(pokemon)) return;
-		this.add('-ability', pokemon, 'Scales of Ruin');
-		this.add('-message', `Scales of Ruin lowered all other Pokémon's accuracy!`);
-	},
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
 
-	onAnyAccuracy(accuracy, source, target, move) {
-		const abilityHolder = this.effectState.target;
+    if (this.suppressingAbility(pokemon)) return;
+    this.add('-ability', pokemon, 'Scales of Ruin');
+  },
 
-		// Only apply to numeric accuracies, and only when a move is being used
-		if (typeof accuracy !== 'number') return;
-		if (!source || !move) return;
+  onAnyAccuracy(accuracy, source, target, move) {
+    const abilityHolder = this.effectState.target;
 
-		// Vessel-of-Ruin style: check the MOVE USER (source)
-		if (source.hasAbility?.('Scales of Ruin')) return;
+    // Ruin abilities only care during actual move use
+    if (!move || !source) return;
 
-		// Non-stacking guard: only one Scales of Ruin holder should apply per move
-		// @ts-ignore
-		if (!move.ruinedAcc) move.ruinedAcc = abilityHolder;
-		// @ts-ignore
-		if (move.ruinedAcc !== abilityHolder) return;
+    // Only modify numeric accuracies (true / null / undefined should pass through)
+    if (typeof accuracy !== 'number') return;
 
-		this.debug('Scales of Ruin accuracy drop');
-		return this.chainModify(0.01);
-	},
+    // Vessel-of-Ruin style: check MOVE USER (source)
+    // Use the ID for reliability
+    if (target.hasAbility?.('scalesofruin')) return;
 
-	flags: {},
-	name: "Scales of Ruin",
-	rating: 4.5,
-	// num: 284, // optional if you're keeping all Ruin abilities aligned
+    // Non-stacking guard: only ONE Scales holder applies per move accuracy check
+    // Same pattern as Vessel's ruinedSpA
+    // @ts-ignore
+    if (!move.ruinedAcc) move.ruinedAcc = abilityHolder;
+    // @ts-ignore
+    if (move.ruinedAcc !== abilityHolder) return;
+
+    this.debug('Scales of Ruin accuracy drop');
+    return this.chainModify(0.85); // testing value
+  },
+
+  flags: {},
+  name: "Scales of Ruin",
+  rating: 4.5,
+  // num: 284, // optional
 },
-*/
+
 
 randochaos: {
   name: "Randochaos",
@@ -11195,6 +11309,219 @@ typethief: {
 	},
 },
 
+bombdiffusal: {
+  name: "Bomb Diffusal",
+  shortDesc:
+    "On entry: chooses a random diffusal type (Gen 1–9 18 types), overwrites moves. Hit it with that type to diffuse (it faints and heals the attacker). Other types are resisted. Can't switch. If it faints undiffused: Struggle recoil KOs foe; otherwise deals 25% max HP.",
+  rating: 5,
+  flags: {},
+
+  onStart(pokemon) {
+    // --- Typechange callout (your style) ---
+    const cur = pokemon.getTypes(true).join('/');
+    const base = pokemon.species.types.join('/');
+    this.add('-start', pokemon, 'typechange', cur);
+
+    // Pick one of the standard 18 types (no Stellar, no customs)
+    const STANDARD_TYPES = [
+      'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
+      'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
+    ] as const;
+
+    // @ts-ignore
+    const m = ((pokemon as any).m ??= {});
+    if (!m.bombDiffusalType) {
+      m.bombDiffusalType = this.sample(STANDARD_TYPES);
+      m.bombDiffused = false;
+      m.bombLastAttacker = null;
+      m.bombLastTarget = null;
+      m.bombDiedToStruggleRecoil = false;
+      m.bombLastMoveWasStruggle = false;
+    }
+
+    const diffType: string = m.bombDiffusalType;
+
+    // Announce
+    this.add('-ability', pokemon, 'Bomb Diffusal');
+    this.add('-message', `This Pokémon has a bomb! Hit it with the right type to diffuse it!`);
+
+    // Cannot switch out
+    pokemon.addVolatile('bombdiffusal_trap');
+
+    // Overwrite moves: 4 random moves of DIFFERENT typings, one matches diffType
+const allMoves = this.dex.moves.all().filter(mv =>
+  mv.exists &&
+  !mv.isZ && !mv.isMax &&
+  mv.id !== 'struggle'
+);
+
+// helpers
+const isUsable = (mv: any) => mv && mv.exists && mv.type && mv.category;
+const usedTypes = new Set<string>();
+const usedMoves = new Set<string>();
+
+const pickMove = (filterFn: (mv: any) => boolean) => {
+  const pool = allMoves.filter(mv => filterFn(mv) && !usedMoves.has(mv.id) && !usedTypes.has(mv.type));
+  if (!pool.length) return null;
+  return this.sample(pool);
+};
+
+const chosen: string[] = [];
+
+// 1) Try to pick ONE move of the diffusal type (different type constraint still applies)
+let diffMove = pickMove(mv => isUsable(mv) && mv.type === diffType);
+if (diffMove) {
+  chosen.push(diffMove.id);
+  usedMoves.add(diffMove.id);
+  usedTypes.add(diffMove.type);
+}
+
+// 2) Fill remaining slots with random moves of different types
+while (chosen.length < 4) {
+  const mv = pickMove(m => isUsable(m));
+  if (!mv) break; // should be extremely rare
+  chosen.push(mv.id);
+  usedMoves.add(mv.id);
+  usedTypes.add(mv.type);
+}
+
+// 3) Safety: if we somehow couldn't find 4 unique-type moves, pad with Tackle (won't satisfy uniqueness, but prevents crashes)
+while (chosen.length < 4) chosen.push('tackle');
+
+// 4) Shuffle the final move order so no one knows which slot is the diffusal type
+for (let i = chosen.length - 1; i > 0; i--) {
+  const j = this.random(i + 1);
+  [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+}
+
+  },
+
+  // Hard trap: cannot switch out
+  onTrapPokemon(pokemon) {
+    pokemon.trapped = true;
+  },
+
+  // Resist all move damage that is NOT the diffusal type
+  onSourceModifyDamage(damage, source, target, move) {
+    if (!move || !target) return;
+    // Only apply when the Bomb holder is the TARGET
+    if (target !== this.effectState.target) return;
+
+    // @ts-ignore
+    const m = ((target as any).m ??= {});
+    const diffType: string | undefined = m.bombDiffusalType;
+    if (!diffType) return;
+
+    // Only reduce damage for non-diffusal types; diffusal type is "special"
+    if (move.type !== diffType) {
+      return this.chainModify(0.5);
+    }
+  },
+
+  // If hit by the diffusal type (damaging OR status), immediately diffuse:
+  // Bomb holder faints, attacker heals to full, and we stop further effects.
+  onTryHit(target, source, move) {
+    if (!move || !target) return;
+    if (target !== this.effectState.target) return;
+    if (!source || source === target) return;
+
+    // @ts-ignore
+    const m = ((target as any).m ??= {});
+    const diffType: string | undefined = m.bombDiffusalType;
+    if (!diffType) return;
+
+    if (move.type === diffType) {
+      m.bombDiffused = true;
+      m.bombLastAttacker = source;
+
+      this.add('-ability', target, 'Bomb Diffusal');
+      this.add('-message', `${source.name} diffused the bomb!`);
+
+      // Heal attacker to full
+      this.heal(source.maxhp, source, target);
+
+      // Flavor animation (optional)
+      this.add('-anim', target, 'Memento', target);
+
+      // Bomb holder faints immediately
+      target.faint(source, move);
+
+      // Prevent the move from continuing to do other effects
+      return null;
+    }
+  },
+
+  // Once it uses a move, it can no longer select that move
+  onAfterMove(pokemon, target, move) {
+    if (!move) return;
+
+    // track last target for the "explode on Struggle recoil" case
+    // @ts-ignore
+    const m = ((pokemon as any).m ??= {});
+    m.bombLastTarget = target || null;
+
+    // detect Struggle usage (best-effort for recoil cause)
+    m.bombLastMoveWasStruggle = (move.id === 'struggle');
+
+    // Permanently disable that move
+    pokemon.disableMove(move.id);
+
+    // Also hard-disable the slot in case your client cares
+    for (const slot of pokemon.moveSlots) {
+      if (slot.id === move.id) {
+        slot.disabled = true;
+        slot.disabledSource = 'ability: Bomb Diffusal';
+      }
+    }
+  },
+
+  // Track what last damaged it, and best-effort detect Struggle recoil as the faint cause
+  onDamage(damage, target, source, effect) {
+    if (target !== this.effectState.target) return;
+    if (!source) return;
+
+    // @ts-ignore
+    const m = ((target as any).m ??= {});
+    m.bombLastAttacker = source;
+
+    // Best-effort: Struggle recoil often appears as self-damage after using Struggle.
+    // We mark this if damage is self-inflicted and the last move was Struggle.
+    if (source === target && m.bombLastMoveWasStruggle) {
+      // If this damage would KO, treat it as "Struggle recoil death"
+      if (typeof damage === 'number' && damage >= target.hp) {
+        m.bombDiedToStruggleRecoil = true;
+      }
+    }
+  },
+
+  // On faint: if NOT diffused, explode with different effects
+  onFaint(pokemon) {
+    // @ts-ignore
+    const m = ((pokemon as any).m ??= {});
+    if (m.bombDiffused) return;
+
+    // Choose a victim: last target, else last attacker, else opposing active
+    const victim =
+      (m.bombLastTarget && !m.bombLastTarget.fainted) ? m.bombLastTarget :
+      (m.bombLastAttacker && !m.bombLastAttacker.fainted) ? m.bombLastAttacker :
+      pokemon.side.foe?.active?.find(p => p && !p.fainted) || null;
+
+    if (!victim) return;
+
+    // Flavor: explosion animation
+    this.add('-anim', pokemon, 'Explosion', victim);
+    this.add('-message', `${pokemon.name}'s bomb explodes!`);
+
+    if (m.bombDiedToStruggleRecoil) {
+      // "Undiffused + died to Struggle recoil" -> KO opponent
+      victim.faint(pokemon, this.effect);
+    } else {
+      // Otherwise deal 25% of victim max HP
+      const dmg = Math.floor(victim.maxhp / 4);
+      if (dmg > 0) this.damage(dmg, victim, pokemon, this.effect);
+    }
+  },
+},
 
 
 };
