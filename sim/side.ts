@@ -38,6 +38,7 @@ export interface ChosenAction {
 	mega?: boolean | null; // true if megaing or ultra bursting
 	megax?: boolean | null; // true if megaing x
 	megay?: boolean | null; // true if megaing y
+	echo?: boolean | null; // using Echo Messenger Priority
 	zmove?: string; // if zmoving, the name of the zmove
 	maxMove?: string; // if dynamaxed, the name of the max move
 	terastallize?: string; // if terastallizing, tera type
@@ -521,7 +522,7 @@ export class Side {
 	chooseMove(
 		moveText?: string | number,
 		targetLoc = 0,
-		event: 'mega' | 'megax' | 'megay' | 'zmove' | 'ultra' | 'dynamax' | 'terastallize' | '' = ''
+		event: 'mega' | 'megax' | 'megay' | 'zmove' | 'ultra' | 'dynamax' | 'terastallize' | 'echo' | '' = ''
 	) {
 		if (this.requestState !== 'move') {
 			return this.emitChoiceError(`Can't move: You need a ${this.requestState} response`);
@@ -599,6 +600,14 @@ export class Side {
 			}
 		}
 		const move = this.battle.dex.moves.get(moveid);
+
+		// Echo Messenger toggle
+const echo = (event === 'echo');
+const canEcho = (this.activeRequest as MoveRequest)?.active[this.active.indexOf(pokemon)].canEcho;
+if (echo && !canEcho) {
+  return this.emitChoiceError(`Can't move: ${pokemon.name} can't use Echo Messenger right now.`);
+}
+
 
 		// Z-move
 
@@ -781,6 +790,7 @@ export class Side {
 			zmove: zMove,
 			maxMove: maxMove ? maxMove.id : undefined,
 			terastallize: terastallize ? pokemon.teraType : undefined,
+			echo,
 		});
 
 		if (pokemon.maybeDisabled && (this.battle.gameType === 'singles' || (
@@ -822,6 +832,10 @@ export class Side {
 		if (req.moves.every(m => m.disabled || m.id === 'struggle')) {
 			if (req.canMegaEvo) {
 				req.canMegaEvo = false;
+				updated = true;
+			}
+			if (req.canEcho) {
+				req.canEcho = false;
 				updated = true;
 			}
 			if (req.canMegaEvoX) {
@@ -1169,7 +1183,7 @@ if (hasAidOfRevival) {
 				const original = data;
 				const error = () => this.emitChoiceError(`Conflicting arguments for "move": ${original}`);
 				let targetLoc: number | undefined;
-				let event: 'mega' | 'megax' | 'megay' | 'zmove' | 'ultra' | 'dynamax' | 'terastallize' | '' = '';
+				let event: 'mega' | 'megax' | 'megay' | 'zmove' | 'ultra' | 'dynamax' | 'terastallize' | 'echo' | '' = '';
 				while (true) {
 					// If data ends with a number, treat it as a target location.
 					// We need to special case 'Conversion 2' so it doesn't get
