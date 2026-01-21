@@ -99,6 +99,7 @@ export interface PokemonMoveRequestData {
 	canMegaEvo?: boolean;
 	canMegaEvoX?: boolean;
 	canMegaEvoY?: boolean;
+	canEcho?: boolean;
 	canUltraBurst?: boolean;
 	canZMove?: AnyObject | null;
 	canDynamax?: boolean;

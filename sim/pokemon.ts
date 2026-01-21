@@ -1102,6 +1102,8 @@ export class Pokemon {
 			if (this.canMegaEvo) data.canMegaEvo = true;
 			if (this.canMegaEvoX) data.canMegaEvoX = true;
 			if (this.canMegaEvoY) data.canMegaEvoY = true;
+			if (this.hasAbility('echomessenger') && !(this.m as any)?.echoMessengerUsed) data.canEcho = true;
+
 			if (this.canUltraBurst) data.canUltraBurst = true;
 			const canZMove = this.battle.actions.canZMove(this);
 			if (canZMove) data.canZMove = canZMove;
