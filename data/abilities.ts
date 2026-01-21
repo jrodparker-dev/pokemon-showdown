@@ -11309,199 +11309,240 @@ typethief: {
 	},
 },
 
-bombdiffusal: {
-  name: "Bomb Diffusal",
-  shortDesc:
-    "On entry: chooses a random diffusal type (18 types), overwrites moves. Hit it with that type to diffuse (it faints and heals the attacker). Other types are resisted. Can't switch. If it faints undiffused: Struggle recoil KOs foe; otherwise deals 25% max HP.",
-  rating: 5,
-  flags: {},
+// ============================================================================
+// Bomb Diffusal — THREE VARIANTS (pick ONE; comment out the others)
+// Only differences between versions:
+//  - diffusal type acquisition
+//  - move generator
+// Everything else is identical to your latest skeleton/balance.
+// ============================================================================
 
-  onStart(pokemon) {
-    // --- Typechange callout (your style) ---
-    const cur = pokemon.getTypes(true).join('/');
-    this.add('-start', pokemon, 'typechange', cur);
+/* -------------------------------------------------------------------------- */
+/*  VERSION 1: Random diffusal type from all 18 types + GUARANTEE matching move */
+/* -------------------------------------------------------------------------- */
+  bombdiffusal: {
+    name: "Bomb Diffusal",
+    shortDesc:
+      "V1: On entry chooses random diffusal type (18 types) AND guarantees the bomb holder has a move of that type. Hit it with that type to diffuse (it faints and heals the attacker). Other types are resisted. Can't switch. Moves are disabled permanently after use. If it used Struggle (armed) and then faints to self-move damage, it KOs the foe; otherwise it deals 25% max HP. Damp blocks. Sturdy survives armed blast at 1 HP.",
+    rating: 5,
+    flags: {},
 
-    const STANDARD_TYPES = [
-      'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
-      'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
-    ] as const;
+    onStart(pokemon) {
+      // --- Typechange callout (your style) ---
+      const cur = pokemon.getTypes(true).join('/');
+      this.add('-start', pokemon, 'typechange', cur);
 
-    // @ts-ignore
-    const m = ((pokemon as any).m ??= {});
-    if (!m.bombDiffusalType) m.bombDiffusalType = this.sample(STANDARD_TYPES);
+      const STANDARD_TYPES = [
+        'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
+        'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
+      ] as const;
 
-    // reset per-life flags
-    m.bombDiffused = false;
-    m.bombLastAttacker = null;
-    m.bombLastTarget = null;
-    m.bombDiedToStruggleRecoil = false;
-    m.bombLastMoveWasStruggle = false;
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
 
-    const diffType: string = m.bombDiffusalType;
-
-    // Announce (NO diffusal type leak)
-    this.add('-ability', pokemon, 'Bomb Diffusal');
-    this.add('-message', `This Pokémon has a bomb! Hit it with the right type to diffuse it!`);
-
-    // Cannot switch out
-    pokemon.addVolatile('bombdiffusal_trap');
-
-    // -----------------------------
-    // Pick 4 random ATTACKING moves
-    // - different typings
-    // - include at least one of diffType if possible
-    // - shuffle order so slot doesn't leak
-    // -----------------------------
-    const isAttacking = (mv: any) =>
-      mv && mv.exists &&
-      !mv.isZ && !mv.isMax &&
-      mv.id !== 'struggle' &&
-      mv.category !== 'Status' &&
-      ((mv.basePower && mv.basePower > 0) || mv.damage || mv.ohko);
-
-    const allMoves = this.dex.moves.all().filter(isAttacking);
-
-    const usedTypes = new Set<string>();
-    const usedMoves = new Set<string>();
-
-    const pickMove = (filterFn: (mv: any) => boolean) => {
-      const pool = allMoves.filter(mv =>
-        filterFn(mv) && !usedMoves.has(mv.id) && !usedTypes.has(mv.type)
-      );
-      if (!pool.length) return null;
-      return this.sample(pool);
-    };
-
-    const chosen: ID[] = [];
-
-    // include one move of diffType if possible
-    const diffMove = pickMove(mv => mv.type === diffType);
-    if (diffMove) {
-      chosen.push(diffMove.id as ID);
-      usedMoves.add(diffMove.id);
-      usedTypes.add(diffMove.type);
-    }
-
-    while (chosen.length < 4) {
-      const mv = pickMove(() => true);
-      if (!mv) break;
-      chosen.push(mv.id as ID);
-      usedMoves.add(mv.id);
-      usedTypes.add(mv.type);
-    }
-
-    // safety pad (won't crash)
-    while (chosen.length < 4) chosen.push('tackle' as ID);
-
-    // shuffle move order (hide which slot matches diffType)
-    for (let i = chosen.length - 1; i > 0; i--) {
-      const j = this.random(i + 1);
-      [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
-    }
-
-    // -----------------------------
-    // FORK-PROOF MOVE OVERWRITE:
-    // Only touch moveSlots + baseMoveSlots (no .moves/.baseMoves/.set.moves)
-    // -----------------------------
-    pokemon.moveSlots = [];
-    (pokemon as any).baseMoveSlots = [];
-
-    for (const id of chosen) {
-      const mv = this.dex.moves.get(id);
-      const slot = {
-        move: mv.name,
-        id: mv.id as ID,
-        pp: mv.pp,
-        maxpp: mv.pp,
-        target: mv.target,
-        disabled: false,
-        disabledSource: '',
-        used: false,
-      };
-      pokemon.moveSlots.push({ ...slot });
-      (pokemon as any).baseMoveSlots.push({ ...slot });
-    }
-
-    // If your fork supports it, rebuild caches
-    (pokemon as any).resetMoves?.();
-  },
-
-  // Hard trap: cannot switch out
-  onTrapPokemon(pokemon) {
-    pokemon.trapped = true;
-  },
-
-  // Effectiveness-based damage reduction for non-diffusal types
-  onSourceModifyDamage(damage, source, target, move) {
-    if (!move || !target) return;
-    if (target !== this.effectState.target) return;
-
-    // @ts-ignore
-    const m = ((target as any).m ??= {});
-    const diffType: string | undefined = m.bombDiffusalType;
-    if (!diffType) return;
-
-    // Diffusal type is handled by onTryHit (diffuse on hit)
-    if (move.type === diffType) return;
-
-    if (!this.dex.getImmunity(move, target)) return;
-
-    const typeMod = this.dex.getEffectiveness(move, target);
-    if (typeMod >= 2) return this.chainModify(0.10);
-    if (typeMod === 1) return this.chainModify(0.25);
-    return this.chainModify(0.5);
-  },
-
-  // Diffuse if hit by the diffusal type (damaging OR status)
-  onTryHit(target, source, move) {
-    if (!move || !target) return;
-    if (target !== this.effectState.target) return;
-    if (!source || source === target) return;
-
-    // @ts-ignore
-    const m = ((target as any).m ??= {});
-    const diffType: string | undefined = m.bombDiffusalType;
-    if (!diffType) return;
-
-    if (move.type === diffType) {
-      m.bombDiffused = true;
-      m.bombLastAttacker = source;
-
-      this.add('-ability', target, 'Bomb Diffusal');
-      this.add('-message', `${source.name} diffused the bomb!`);
-
-      this.heal(source.maxhp, source, target);
-      this.add('-anim', target, 'Memento', target);
-
-      target.faint(source, move);
-      return null;
-    }
-  },
-
-  // Disable a move after it is used (slot-based, fork-proof)
-  onAfterMove(pokemon, target, move) {
-    if (!move) return;
-
-    // @ts-ignore
-    const m = ((pokemon as any).m ??= {});
-    m.bombLastTarget = target || null;
-    m.bombLastMoveWasStruggle = (move.id === 'struggle');
-
-    // Disable in moveSlots
-    for (const slot of pokemon.moveSlots) {
-      if (slot.id === move.id) {
-        slot.pp = 0;
-        slot.maxpp = 0;
-        slot.disabled = true;
-        slot.disabledSource = 'ability: Bomb Diffusal';
-        slot.used = true;
+      // -----------------------------
+      // Persisted state (ONLY roll/pick once per battle)
+      // -----------------------------
+      if (!m.bombDiffusalType) {
+        // V1: pure random among all 18
+        m.bombDiffusalType = this.sample(STANDARD_TYPES);
       }
-    }
 
-    // Disable in baseMoveSlots too (some forks consult it)
-    const baseSlots = (pokemon as any).baseMoveSlots;
-    if (Array.isArray(baseSlots)) {
-      for (const slot of baseSlots) {
+      const diffType: string = m.bombDiffusalType;
+
+      // Determine preferred attacking category based on the bomb holder's *current* stats
+      const atkStat =
+        ((pokemon as any).storedStats?.atk ?? pokemon.getStat?.('atk', false, true) ?? pokemon.species.baseStats.atk);
+      const spaStat =
+        ((pokemon as any).storedStats?.spa ?? pokemon.getStat?.('spa', false, true) ?? pokemon.species.baseStats.spa);
+
+      const preferredCategory = atkStat >= spaStat ? 'Physical' : 'Special';
+
+      // Persist chosen moves and used moves across forced switches
+      if (!Array.isArray(m.bombChosenMoves) || m.bombChosenMoves.length !== 4) {
+        const isAttacking = (mv: any) =>
+          mv && mv.exists &&
+          !mv.isZ && !mv.isMax &&
+          mv.id !== 'struggle' &&
+          mv.category !== 'Status' &&
+          ((mv.basePower && mv.basePower > 0) || mv.damage || mv.ohko);
+
+        const matchesPreferred = (mv: any) => mv.category === preferredCategory;
+
+        const allMoves = this.dex.moves.all().filter(isAttacking);
+
+        const usedTypes = new Set<string>();
+        const usedMoves = new Set<string>();
+
+        const pickMove = (filterFn: (mv: any) => boolean) => {
+          const pool = allMoves.filter(mv =>
+            filterFn(mv) &&
+            !usedMoves.has(mv.id) &&
+            !usedTypes.has(mv.type)
+          );
+          if (!pool.length) return null;
+          return this.sample(pool);
+        };
+
+        const chosen: ID[] = [];
+
+        // 1) GUARANTEE one diffType move if possible
+        let diffMove = pickMove(mv => mv.type === diffType && matchesPreferred(mv));
+        if (!diffMove) diffMove = pickMove(mv => mv.type === diffType);
+        if (diffMove) {
+          chosen.push(diffMove.id as ID);
+          usedMoves.add(diffMove.id);
+          usedTypes.add(diffMove.type);
+        }
+
+        // 2) Fill remaining: prefer preferredCategory first, then anything
+        while (chosen.length < 4) {
+          let mv = pickMove(m => matchesPreferred(m));
+          if (!mv) mv = pickMove(() => true);
+          if (!mv) break;
+
+          chosen.push(mv.id as ID);
+          usedMoves.add(mv.id);
+          usedTypes.add(mv.type);
+        }
+
+        while (chosen.length < 4) chosen.push('tackle' as ID);
+
+        // shuffle to hide which slot is diffusal type
+        for (let i = chosen.length - 1; i > 0; i--) {
+          const j = this.random(i + 1);
+          [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+        }
+
+        m.bombChosenMoves = chosen.slice();
+        m.bombUsedMoves = {};
+      } else if (!m.bombUsedMoves) {
+        m.bombUsedMoves = {};
+      }
+
+      // IMPORTANT: "Armed" should persist if it already happened
+      m.bombArmed = !!m.bombArmed;
+
+      // Per-life flags (reset each time it becomes active)
+      m.bombDiffused = false;
+      m.bombLastAttacker = null;
+      m.bombLastTarget = null;
+
+      // Announce (NO diffusal type leak)
+      this.add('-ability', pokemon, 'Bomb Diffusal');
+      this.add('-message', `This Pokémon has a bomb! Hit it with the right type to diffuse it!`);
+
+      // Cannot switch out (player choice)
+      pokemon.addVolatile('bombdiffusal_trap');
+
+      // Re-apply the SAME move set every time it becomes active & re-disable used
+      const chosenMoves: ID[] = (m.bombChosenMoves as ID[]).slice();
+
+      pokemon.moveSlots = [];
+      (pokemon as any).baseMoveSlots = [];
+
+      for (const id of chosenMoves) {
+        const mv = this.dex.moves.get(id);
+        const wasUsed = !!m.bombUsedMoves[mv.id];
+
+        const slot = {
+          move: mv.name,
+          id: mv.id as ID,
+          pp: wasUsed ? 0 : mv.pp,
+          maxpp: wasUsed ? 0 : mv.pp,
+          target: mv.target,
+          disabled: wasUsed,
+          disabledSource: wasUsed ? 'ability: Bomb Diffusal' : '',
+          used: wasUsed,
+        };
+
+        pokemon.moveSlots.push({ ...slot });
+        (pokemon as any).baseMoveSlots.push({ ...slot });
+      }
+
+      (pokemon as any).resetMoves?.();
+    },
+
+    // While Bomb Diffusal is active, do not allow Choice lock to restrict move choice.
+    onBeforeMove(pokemon, target, move) {
+      if (pokemon !== this.effectState.target) return;
+      if (pokemon.volatiles['choicelock']) delete pokemon.volatiles['choicelock'];
+    },
+
+    // Hard trap (player choice)
+    onTrapPokemon(pokemon) {
+      pokemon.trapped = true;
+    },
+
+    // Effectiveness-based damage reduction for non-diffusal types
+    onSourceModifyDamage(damage, source, target, move) {
+      if (!move || !target) return;
+      if (target !== this.effectState.target) return;
+
+      // @ts-ignore
+      const m = ((target as any).m ??= {});
+      const diffType: string | undefined = m.bombDiffusalType;
+      if (!diffType) return;
+
+      // Diffusal type handled by onTryHit
+      if (move.type === diffType) return;
+
+      // respect immunities
+      if (!this.dex.getImmunity(move, target)) return;
+
+      // damage reduction segment. If ability is too strong, remove this. If it is too weak, decrease these numbers to reduce damage taken.
+	// currently it slightly reduces damage to make the bomb holder a bit bulkier, but not unkillable. Making it harder to kill
+	// will incentivize diffusing the bomb instead
+      const typeMod = this.dex.getEffectiveness(move, target);
+      if (typeMod >= 2) return this.chainModify(0.25); // 4x -> 0.25x
+      if (typeMod === 1) return this.chainModify(0.5);  // 2x -> 0.5x
+      return this.chainModify(0.75);                    // neutral/resisted -> 0.75x
+    },
+
+    // Diffuse if hit by the diffusal type (damaging OR status)
+    onTryHit(target, source, move) {
+      if (!move || !target) return;
+      if (target !== this.effectState.target) return;
+      if (!source || source === target) return;
+
+      // @ts-ignore
+      const m = ((target as any).m ??= {});
+      const diffType: string | undefined = m.bombDiffusalType;
+      if (!diffType) return;
+
+      if (move.type === diffType) {
+        m.bombDiffused = true;
+        m.bombLastAttacker = source;
+
+        this.add('-ability', target, 'Bomb Diffusal');
+        this.add('-message', `${source.name} diffused the bomb!`);
+
+        this.heal(source.maxhp, source, target);
+        this.add('-anim', target, 'Memento', target);
+
+        target.faint(source, move);
+        return null;
+      }
+    },
+
+    onAfterMove(pokemon, target, move) {
+      if (!move) return;
+
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+
+      m.bombLastTarget = target || null;
+
+      if (move.id === 'struggle') {
+        m.bombArmed = true;
+        this.add('-ability', pokemon, 'Bomb Diffusal');
+        this.add('-message', `${pokemon.name}'s bomb is armed!`);
+      }
+
+      if (!m.bombUsedMoves) m.bombUsedMoves = {};
+      m.bombUsedMoves[move.id] = true;
+
+      for (const slot of pokemon.moveSlots) {
         if (slot.id === move.id) {
           slot.pp = 0;
           slot.maxpp = 0;
@@ -11510,52 +11551,680 @@ bombdiffusal: {
           slot.used = true;
         }
       }
-    }
+      if (pokemon.volatiles['choicelock']) delete pokemon.volatiles['choicelock'];
 
-    // Optional helper if exists
-    pokemon.disableMove?.(move.id);
-  },
-
-  // Track last attacker + detect Struggle recoil KO best-effort
-  onDamage(damage, target, source, effect) {
-    if (target !== this.effectState.target) return;
-    if (!source) return;
-
-    // @ts-ignore
-    const m = ((target as any).m ??= {});
-    m.bombLastAttacker = source;
-
-    if (source === target && m.bombLastMoveWasStruggle) {
-      if (typeof damage === 'number' && damage >= target.hp) {
-        m.bombDiedToStruggleRecoil = true;
+      const baseSlots = (pokemon as any).baseMoveSlots;
+      if (Array.isArray(baseSlots)) {
+        for (const slot of baseSlots) {
+          if (slot.id === move.id) {
+            slot.pp = 0;
+            slot.maxpp = 0;
+            slot.disabled = true;
+            slot.disabledSource = 'ability: Bomb Diffusal';
+            slot.used = true;
+          }
+        }
       }
-    }
-  },
 
-  // Explosion on undiffused faint
-  onFaint(pokemon) {
-    // @ts-ignore
-    const m = ((pokemon as any).m ??= {});
-    if (m.bombDiffused) return;
+      pokemon.disableMove?.(move.id);
+    },
 
-    const victim =
-      (m.bombLastTarget && !m.bombLastTarget.fainted) ? m.bombLastTarget :
-      (m.bombLastAttacker && !m.bombLastAttacker.fainted) ? m.bombLastAttacker :
-      pokemon.side.foe?.active?.find(p => p && !p.fainted) || null;
+    onFaint(pokemon) {
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+      if (m.bombDiffused) return;
 
-    if (!victim) return;
+      const victim =
+        (m.bombLastTarget && !m.bombLastTarget.fainted) ? m.bombLastTarget :
+        (m.bombLastAttacker && !m.bombLastAttacker.fainted) ? m.bombLastAttacker :
+        pokemon.side.foe?.active?.find((p: any) => p && !p.fainted) || null;
 
-    this.add('-anim', pokemon, 'Explosion', victim);
-    this.add('-message', `${pokemon.name}'s bomb explodes!`);
+      if (!victim) return;
 
-    if (m.bombDiedToStruggleRecoil) {
-      victim.faint(pokemon, this.effect);
-    } else {
+      // Damp blocks ALL explosion effects
+      if (victim.hasAbility?.('damp')) {
+        this.add('-ability', victim, 'Damp');
+        this.add('-message', `${victim.name} prevents the explosion!`);
+        return;
+      }
+
+      this.add('-anim', pokemon, 'Explosion', victim);
+      this.add('-message', `${pokemon.name}'s bomb explodes!`);
+
+      // Armed => would KO, but Sturdy always leaves at 1 HP (even if not full)
+      if (m.bombArmed) {
+        if (victim.hasAbility?.('sturdy')) {
+          this.add('-ability', victim, 'Sturdy');
+          this.add('-message', `${victim.name} endured the blast!`);
+          if (victim.hp > 1) this.damage(victim.hp - 1, victim, pokemon, this.effect);
+          return;
+        }
+        victim.faint(pokemon, this.effect);
+        return;
+      }
+
+      // Not armed => 25% max HP
       const dmg = Math.floor(victim.maxhp / 4);
       if (dmg > 0) this.damage(dmg, victim, pokemon, this.effect);
-    }
+    },
   },
-},
+
+
+
+
+/* -------------------------------------------------------------------------- */
+/*  VERSION 2: Diffusal type from FOE ALIVE STAB pool; NO guaranteed matching move */
+/* -------------------------------------------------------------------------- */
+/*
+  bombdiffusal: {
+    name: "Bomb Diffusal",
+    shortDesc:
+      "V2: On entry chooses diffusal type from opponent's alive STAB types (fallback random). Bomb holder is NOT guaranteed a matching move, making it a puzzle. Hit it with that type to diffuse (it faints and heals the attacker). Other types are resisted. Can't switch. Moves are disabled permanently after use. If it used Struggle (armed) and then faints to self-move damage, it KOs the foe; otherwise it deals 25% max HP. Damp blocks. Sturdy survives armed blast at 1 HP.",
+    rating: 5,
+    flags: {},
+
+    onStart(pokemon) {
+      const cur = pokemon.getTypes(true).join('/');
+      this.add('-start', pokemon, 'typechange', cur);
+
+      const STANDARD_TYPES = [
+        'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
+        'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
+      ] as const;
+
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+
+      // -----------------------------
+      // Persisted state (ONLY roll/pick once per battle)
+      // -----------------------------
+      if (!m.bombDiffusalType) {
+        const foeTeam = pokemon.side.foe?.pokemon || [];
+        const stabPool = new Set<string>();
+
+        for (const foe of foeTeam) {
+          if (!foe || foe.fainted) continue;
+          const types = foe.getTypes?.(true) || foe.getTypes?.() || foe.types || [];
+          for (const t of types) {
+            if (t && t !== '???' && t !== 'Stellar') stabPool.add(t);
+          }
+        }
+
+        const pool = [...stabPool].filter(t => (STANDARD_TYPES as readonly string[]).includes(t));
+        m.bombDiffusalType = pool.length ? this.sample(pool) : this.sample(STANDARD_TYPES);
+      }
+
+      const diffType: string = m.bombDiffusalType;
+
+      const atkStat =
+        ((pokemon as any).storedStats?.atk ?? pokemon.getStat?.('atk', false, true) ?? pokemon.species.baseStats.atk);
+      const spaStat =
+        ((pokemon as any).storedStats?.spa ?? pokemon.getStat?.('spa', false, true) ?? pokemon.species.baseStats.spa);
+
+      const preferredCategory = atkStat >= spaStat ? 'Physical' : 'Special';
+
+      if (!Array.isArray(m.bombChosenMoves) || m.bombChosenMoves.length !== 4) {
+        const isAttacking = (mv: any) =>
+          mv && mv.exists &&
+          !mv.isZ && !mv.isMax &&
+          mv.id !== 'struggle' &&
+          mv.category !== 'Status' &&
+          ((mv.basePower && mv.basePower > 0) || mv.damage || mv.ohko);
+
+        const matchesPreferred = (mv: any) => mv.category === preferredCategory;
+
+        const allMoves = this.dex.moves.all().filter(isAttacking);
+
+        const usedTypes = new Set<string>();
+        const usedMoves = new Set<string>();
+
+        const pickMove = (filterFn: (mv: any) => boolean) => {
+          const pool = allMoves.filter(mv =>
+            filterFn(mv) &&
+            !usedMoves.has(mv.id) &&
+            !usedTypes.has(mv.type)
+          );
+          if (!pool.length) return null;
+          return this.sample(pool);
+        };
+
+        const chosen: ID[] = [];
+
+        // V2: NO guaranteed diffType move.
+        // Just fill 4 unique-type attacking moves, preferring preferredCategory first.
+        while (chosen.length < 4) {
+          let mv = pickMove(m => matchesPreferred(m));
+          if (!mv) mv = pickMove(() => true);
+          if (!mv) break;
+
+          chosen.push(mv.id as ID);
+          usedMoves.add(mv.id);
+          usedTypes.add(mv.type);
+        }
+
+        while (chosen.length < 4) chosen.push('tackle' as ID);
+
+        // shuffle (still hides any accidental diffType presence)
+        for (let i = chosen.length - 1; i > 0; i--) {
+          const j = this.random(i + 1);
+          [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+        }
+
+        m.bombChosenMoves = chosen.slice();
+        m.bombUsedMoves = {};
+      } else if (!m.bombUsedMoves) {
+        m.bombUsedMoves = {};
+      }
+
+      m.bombArmed = !!m.bombArmed;
+
+      m.bombDiffused = false;
+      m.bombLastAttacker = null;
+      m.bombLastTarget = null;
+
+      this.add('-ability', pokemon, 'Bomb Diffusal');
+      this.add('-message', `This Pokémon has a bomb! Hit it with the right type to diffuse it!`);
+
+      pokemon.addVolatile('bombdiffusal_trap');
+
+      const chosenMoves: ID[] = (m.bombChosenMoves as ID[]).slice();
+
+      pokemon.moveSlots = [];
+      (pokemon as any).baseMoveSlots = [];
+
+      for (const id of chosenMoves) {
+        const mv = this.dex.moves.get(id);
+        const wasUsed = !!m.bombUsedMoves[mv.id];
+
+        const slot = {
+          move: mv.name,
+          id: mv.id as ID,
+          pp: wasUsed ? 0 : mv.pp,
+          maxpp: wasUsed ? 0 : mv.pp,
+          target: mv.target,
+          disabled: wasUsed,
+          disabledSource: wasUsed ? 'ability: Bomb Diffusal' : '',
+          used: wasUsed,
+        };
+
+        pokemon.moveSlots.push({ ...slot });
+        (pokemon as any).baseMoveSlots.push({ ...slot });
+      }
+
+      (pokemon as any).resetMoves?.();
+    },
+
+    onBeforeMove(pokemon, target, move) {
+      if (pokemon !== this.effectState.target) return;
+      if (pokemon.volatiles['choicelock']) delete pokemon.volatiles['choicelock'];
+    },
+
+    onTrapPokemon(pokemon) {
+      pokemon.trapped = true;
+    },
+
+    onSourceModifyDamage(damage, source, target, move) {
+      if (!move || !target) return;
+      if (target !== this.effectState.target) return;
+
+      // @ts-ignore
+      const m = ((target as any).m ??= {});
+      const diffType: string | undefined = m.bombDiffusalType;
+      if (!diffType) return;
+
+      if (move.type === diffType) return;
+      if (!this.dex.getImmunity(move, target)) return;
+
+      const typeMod = this.dex.getEffectiveness(move, target);
+      if (typeMod >= 2) return this.chainModify(0.25);
+      if (typeMod === 1) return this.chainModify(0.5);
+      return this.chainModify(0.75);
+    },
+
+    onTryHit(target, source, move) {
+      if (!move || !target) return;
+      if (target !== this.effectState.target) return;
+      if (!source || source === target) return;
+
+      // @ts-ignore
+      const m = ((target as any).m ??= {});
+      const diffType: string | undefined = m.bombDiffusalType;
+      if (!diffType) return;
+
+      if (move.type === diffType) {
+        m.bombDiffused = true;
+        m.bombLastAttacker = source;
+
+        this.add('-ability', target, 'Bomb Diffusal');
+        this.add('-message', `${source.name} diffused the bomb!`);
+
+        this.heal(source.maxhp, source, target);
+        this.add('-anim', target, 'Memento', target);
+
+        target.faint(source, move);
+        return null;
+      }
+    },
+
+    onAfterMove(pokemon, target, move) {
+      if (!move) return;
+
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+
+      m.bombLastTarget = target || null;
+
+      if (move.id === 'struggle') {
+        m.bombArmed = true;
+        this.add('-ability', pokemon, 'Bomb Diffusal');
+        this.add('-message', `${pokemon.name}'s bomb is armed!`);
+      }
+
+      if (!m.bombUsedMoves) m.bombUsedMoves = {};
+      m.bombUsedMoves[move.id] = true;
+
+      for (const slot of pokemon.moveSlots) {
+        if (slot.id === move.id) {
+          slot.pp = 0;
+          slot.maxpp = 0;
+          slot.disabled = true;
+          slot.disabledSource = 'ability: Bomb Diffusal';
+          slot.used = true;
+        }
+      }
+      if (pokemon.volatiles['choicelock']) delete pokemon.volatiles['choicelock'];
+
+      const baseSlots = (pokemon as any).baseMoveSlots;
+      if (Array.isArray(baseSlots)) {
+        for (const slot of baseSlots) {
+          if (slot.id === move.id) {
+            slot.pp = 0;
+            slot.maxpp = 0;
+            slot.disabled = true;
+            slot.disabledSource = 'ability: Bomb Diffusal';
+            slot.used = true;
+          }
+        }
+      }
+
+      pokemon.disableMove?.(move.id);
+    },
+
+    onFaint(pokemon) {
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+      if (m.bombDiffused) return;
+
+      const victim =
+        (m.bombLastTarget && !m.bombLastTarget.fainted) ? m.bombLastTarget :
+        (m.bombLastAttacker && !m.bombLastAttacker.fainted) ? m.bombLastAttacker :
+        pokemon.side.foe?.active?.find((p: any) => p && !p.fainted) || null;
+
+      if (!victim) return;
+
+      if (victim.hasAbility?.('damp')) {
+        this.add('-ability', victim, 'Damp');
+        this.add('-message', `${victim.name} prevents the explosion!`);
+        return;
+      }
+
+      this.add('-anim', pokemon, 'Explosion', victim);
+      this.add('-message', `${pokemon.name}'s bomb explodes!`);
+
+      if (m.bombArmed) {
+        if (victim.hasAbility?.('sturdy')) {
+          this.add('-ability', victim, 'Sturdy');
+          this.add('-message', `${victim.name} endured the blast!`);
+          if (victim.hp > 1) this.damage(victim.hp - 1, victim, pokemon, this.effect);
+          return;
+        }
+        victim.faint(pokemon, this.effect);
+        return;
+      }
+
+      const dmg = Math.floor(victim.maxhp / 4);
+      if (dmg > 0) this.damage(dmg, victim, pokemon, this.effect);
+    },
+  },
+*/
+
+
+/* -------------------------------------------------------------------------- */
+/*  VERSION 3: Diffusal type from FOE ALIVE STAB pool; bomb-move TYPES from same pool */
+/*          If <4 types for moves, expand move-type pool to ALL 18 types        */
+/* -------------------------------------------------------------------------- */
+/*
+  bombdiffusal: {
+    name: "Bomb Diffusal",
+    shortDesc:
+      "V3: On entry chooses diffusal type from opponent's alive STAB types (fallback random). Then generates the bomb holder's move TYPES using the same alive-STAB pool; if <4 types exist, expands the move-type pool to all 18 types. Hit it with the diffusal type to diffuse (it faints and heals the attacker). Other types are resisted. Can't switch. Moves are disabled permanently after use. If it used Struggle (armed) and then faints to self-move damage, it KOs the foe; otherwise it deals 25% max HP. Damp blocks. Sturdy survives armed blast at 1 HP.",
+    rating: 5,
+    flags: {},
+
+    onStart(pokemon) {
+      const cur = pokemon.getTypes(true).join('/');
+      this.add('-start', pokemon, 'typechange', cur);
+
+      const STANDARD_TYPES = [
+        'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
+        'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
+      ] as const;
+
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+
+      // -----------------------------
+      // Helper: alive foe STAB pool
+      // -----------------------------
+      const getAliveFoeStabPool = (): string[] => {
+        const foeTeam = pokemon.side.foe?.pokemon || [];
+        const stabSet = new Set<string>();
+
+        for (const foe of foeTeam) {
+          if (!foe || foe.fainted) continue;
+          const types = foe.getTypes?.(true) || foe.getTypes?.() || foe.types || [];
+          for (const t of types) {
+            if (t && t !== '???' && t !== 'Stellar') stabSet.add(t);
+          }
+        }
+
+        return [...stabSet].filter(t => (STANDARD_TYPES as readonly string[]).includes(t));
+      };
+
+      const foeStabPool = getAliveFoeStabPool();
+
+      // -----------------------------
+      // Persisted state (ONLY roll/pick once per battle)
+      // -----------------------------
+      if (!m.bombDiffusalType) {
+        // V3 diffusal type: from foe alive STAB pool, else random all 18
+        m.bombDiffusalType = foeStabPool.length ? this.sample(foeStabPool) : this.sample(STANDARD_TYPES);
+      }
+
+      const diffType: string = m.bombDiffusalType;
+
+      const atkStat =
+        ((pokemon as any).storedStats?.atk ?? pokemon.getStat?.('atk', false, true) ?? pokemon.species.baseStats.atk);
+      const spaStat =
+        ((pokemon as any).storedStats?.spa ?? pokemon.getStat?.('spa', false, true) ?? pokemon.species.baseStats.spa);
+
+      const preferredCategory = atkStat >= spaStat ? 'Physical' : 'Special';
+
+      if (!Array.isArray(m.bombChosenMoves) || m.bombChosenMoves.length !== 4) {
+        const isAttacking = (mv: any) =>
+          mv && mv.exists &&
+          !mv.isZ && !mv.isMax &&
+          mv.id !== 'struggle' &&
+          mv.category !== 'Status' &&
+          ((mv.basePower && mv.basePower > 0) || mv.damage || mv.ohko);
+
+        const matchesPreferred = (mv: any) => mv.category === preferredCategory;
+
+        const allMoves = this.dex.moves.all().filter(isAttacking);
+
+        // Move-type pool rule:
+        // - Start from foe alive STAB pool
+        // - If fewer than 4 types, expand to ALL 18 for move typing
+        const moveTypePool: string[] =
+          foeStabPool.length >= 4 ? foeStabPool.slice() : Array.from(STANDARD_TYPES);
+
+        // Pick up to 4 unique types from moveTypePool
+        const chosenTypes = new Set<string>();
+        while (chosenTypes.size < 4 && moveTypePool.length) {
+          // sample without replacement-ish: sample then delete
+          const t = this.sample(moveTypePool);
+          chosenTypes.add(t);
+          const idx = moveTypePool.indexOf(t);
+          if (idx >= 0) moveTypePool.splice(idx, 1);
+        }
+
+        const usedMoves = new Set<string>();
+        const usedTypes = new Set<string>();
+
+        const pickMoveForType = (type: string) => {
+          // Prefer preferredCategory for that type
+          let pool = allMoves.filter(mv =>
+            mv.type === type &&
+            matchesPreferred(mv) &&
+            !usedMoves.has(mv.id) &&
+            !usedTypes.has(mv.type)
+          );
+          if (!pool.length) {
+            pool = allMoves.filter(mv =>
+              mv.type === type &&
+              !usedMoves.has(mv.id) &&
+              !usedTypes.has(mv.type)
+            );
+          }
+          if (!pool.length) return null;
+          return this.sample(pool);
+        };
+
+        const pickAnyMoveUniqueType = () => {
+          let pool = allMoves.filter(mv =>
+            matchesPreferred(mv) &&
+            !usedMoves.has(mv.id) &&
+            !usedTypes.has(mv.type)
+          );
+          if (!pool.length) {
+            pool = allMoves.filter(mv =>
+              !usedMoves.has(mv.id) &&
+              !usedTypes.has(mv.type)
+            );
+          }
+          if (!pool.length) return null;
+          return this.sample(pool);
+        };
+
+        const chosen: ID[] = [];
+
+        // First, try to realize the 4 chosen types
+        for (const t of chosenTypes) {
+          const mv = pickMoveForType(t);
+          if (!mv) continue;
+          chosen.push(mv.id as ID);
+          usedMoves.add(mv.id);
+          usedTypes.add(mv.type);
+          if (chosen.length >= 4) break;
+        }
+
+        // If we couldn’t fill 4 (e.g., no valid attacking moves found for a type),
+        // fill remaining with any unique-type attacking moves.
+        while (chosen.length < 4) {
+          const mv = pickAnyMoveUniqueType();
+          if (!mv) break;
+          chosen.push(mv.id as ID);
+          usedMoves.add(mv.id);
+          usedTypes.add(mv.type);
+        }
+
+        while (chosen.length < 4) chosen.push('tackle' as ID);
+
+        // shuffle
+        for (let i = chosen.length - 1; i > 0; i--) {
+          const j = this.random(i + 1);
+          [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+        }
+
+        m.bombChosenMoves = chosen.slice();
+        m.bombUsedMoves = {};
+      } else if (!m.bombUsedMoves) {
+        m.bombUsedMoves = {};
+      }
+
+      m.bombArmed = !!m.bombArmed;
+
+      m.bombDiffused = false;
+      m.bombLastAttacker = null;
+      m.bombLastTarget = null;
+
+      this.add('-ability', pokemon, 'Bomb Diffusal');
+      this.add('-message', `This Pokémon has a bomb! Hit it with the right type to diffuse it!`);
+
+      pokemon.addVolatile('bombdiffusal_trap');
+
+      const chosenMoves: ID[] = (m.bombChosenMoves as ID[]).slice();
+
+      pokemon.moveSlots = [];
+      (pokemon as any).baseMoveSlots = [];
+
+      for (const id of chosenMoves) {
+        const mv = this.dex.moves.get(id);
+        const wasUsed = !!m.bombUsedMoves[mv.id];
+
+        const slot = {
+          move: mv.name,
+          id: mv.id as ID,
+          pp: wasUsed ? 0 : mv.pp,
+          maxpp: wasUsed ? 0 : mv.pp,
+          target: mv.target,
+          disabled: wasUsed,
+          disabledSource: wasUsed ? 'ability: Bomb Diffusal' : '',
+          used: wasUsed,
+        };
+
+        pokemon.moveSlots.push({ ...slot });
+        (pokemon as any).baseMoveSlots.push({ ...slot });
+      }
+
+      (pokemon as any).resetMoves?.();
+    },
+
+    onBeforeMove(pokemon, target, move) {
+      if (pokemon !== this.effectState.target) return;
+      if (pokemon.volatiles['choicelock']) delete pokemon.volatiles['choicelock'];
+    },
+
+    onTrapPokemon(pokemon) {
+      pokemon.trapped = true;
+    },
+
+    onSourceModifyDamage(damage, source, target, move) {
+      if (!move || !target) return;
+      if (target !== this.effectState.target) return;
+
+      // @ts-ignore
+      const m = ((target as any).m ??= {});
+      const diffType: string | undefined = m.bombDiffusalType;
+      if (!diffType) return;
+
+      if (move.type === diffType) return;
+      if (!this.dex.getImmunity(move, target)) return;
+
+      const typeMod = this.dex.getEffectiveness(move, target);
+      if (typeMod >= 2) return this.chainModify(0.25);
+      if (typeMod === 1) return this.chainModify(0.5);
+      return this.chainModify(0.75);
+    },
+
+    onTryHit(target, source, move) {
+      if (!move || !target) return;
+      if (target !== this.effectState.target) return;
+      if (!source || source === target) return;
+
+      // @ts-ignore
+      const m = ((target as any).m ??= {});
+      const diffType: string | undefined = m.bombDiffusalType;
+      if (!diffType) return;
+
+      if (move.type === diffType) {
+        m.bombDiffused = true;
+        m.bombLastAttacker = source;
+
+        this.add('-ability', target, 'Bomb Diffusal');
+        this.add('-message', `${source.name} diffused the bomb!`);
+
+        this.heal(source.maxhp, source, target);
+        this.add('-anim', target, 'Memento', target);
+
+        target.faint(source, move);
+        return null;
+      }
+    },
+
+    onAfterMove(pokemon, target, move) {
+      if (!move) return;
+
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+
+      m.bombLastTarget = target || null;
+
+      if (move.id === 'struggle') {
+        m.bombArmed = true;
+        this.add('-ability', pokemon, 'Bomb Diffusal');
+        this.add('-message', `${pokemon.name}'s bomb is armed!`);
+      }
+
+      if (!m.bombUsedMoves) m.bombUsedMoves = {};
+      m.bombUsedMoves[move.id] = true;
+
+      for (const slot of pokemon.moveSlots) {
+        if (slot.id === move.id) {
+          slot.pp = 0;
+          slot.maxpp = 0;
+          slot.disabled = true;
+          slot.disabledSource = 'ability: Bomb Diffusal';
+          slot.used = true;
+        }
+      }
+      if (pokemon.volatiles['choicelock']) delete pokemon.volatiles['choicelock'];
+
+      const baseSlots = (pokemon as any).baseMoveSlots;
+      if (Array.isArray(baseSlots)) {
+        for (const slot of baseSlots) {
+          if (slot.id === move.id) {
+            slot.pp = 0;
+            slot.maxpp = 0;
+            slot.disabled = true;
+            slot.disabledSource = 'ability: Bomb Diffusal';
+            slot.used = true;
+          }
+        }
+      }
+
+      pokemon.disableMove?.(move.id);
+    },
+
+    onFaint(pokemon) {
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+      if (m.bombDiffused) return;
+
+      const victim =
+        (m.bombLastTarget && !m.bombLastTarget.fainted) ? m.bombLastTarget :
+        (m.bombLastAttacker && !m.bombLastAttacker.fainted) ? m.bombLastAttacker :
+        pokemon.side.foe?.active?.find((p: any) => p && !p.fainted) || null;
+
+      if (!victim) return;
+
+      if (victim.hasAbility?.('damp')) {
+        this.add('-ability', victim, 'Damp');
+        this.add('-message', `${victim.name} prevents the explosion!`);
+        return;
+      }
+
+      this.add('-anim', pokemon, 'Explosion', victim);
+      this.add('-message', `${pokemon.name}'s bomb explodes!`);
+
+      if (m.bombArmed) {
+        if (victim.hasAbility?.('sturdy')) {
+          this.add('-ability', victim, 'Sturdy');
+          this.add('-message', `${victim.name} endured the blast!`);
+          if (victim.hp > 1) this.damage(victim.hp - 1, victim, pokemon, this.effect);
+          return;
+        }
+        victim.faint(pokemon, this.effect);
+        return;
+      }
+
+      const dmg = Math.floor(victim.maxhp / 4);
+      if (dmg > 0) this.damage(dmg, victim, pokemon, this.effect);
+    },
+  },
+*/
+
+
 
 
 

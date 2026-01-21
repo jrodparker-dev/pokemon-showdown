@@ -24167,8 +24167,9 @@ firejab: {
 rainbowpummeling: {
   name: "Rainbow Pummeling",
   shortDesc: "Hits 18×. Each hit is a different type (random order). Continues past immunities.",
-  basePower: 10,
-  accuracy: 100,
+  basePower: 12,
+  multiaccuracy: true,
+  accuracy: 80,
   pp: 5,
   priority: 0,
   category: "Physical", // or "Special"
