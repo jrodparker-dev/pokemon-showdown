@@ -2688,6 +2688,32 @@ if (effect && effect.effectType === 'Move') {
 			// Grassy Glide priority
 			priority = this.singleEvent('ModifyPriority', move, null, action.pokemon, null, null, priority);
 			priority = this.runEvent('ModifyPriority', action.pokemon, null, move, priority);
+						// -----------------------------
+			// Echo Messenger (server action flag + stateful priority)
+			// First move of the entire battle: +3 priority (always)
+			// On later switch-ins: first move can optionally be "echo" (+1 priority + half power)
+			// -----------------------------
+			const p = action.pokemon;
+			if (p?.hasAbility?.('echomessenger')) {
+				// @ts-ignore - persistent scratch space
+				const m = ((p as any).m ??= {});
+				const battleFirstUsed = !!m.echoMessengerBattleFirstMoveUsed;
+				const entryUsed = !!m.echoMessengerEntryMoveUsed;
+
+				// default: no half power unless we explicitly set it
+				(action as any).echoMessengerHalfPower = false;
+
+				if (!battleFirstUsed) {
+					// First move this mon uses all battle: always +3, no button
+					priority += 3;
+				} else if (!entryUsed && action.echo) {
+					// Later entries: first move may be echoed via the checkbox token ("echo")
+					priority += 1;
+					(action as any).echoMessengerHalfPower = true;
+				}
+			}
+
+
 			action.priority = priority + action.fractionalPriority;
 			// In Gen 6, Quick Guard blocks moves with artificially enhanced priority.
 			if (this.gen > 5) action.move.priority = priority;
@@ -2775,14 +2801,37 @@ if (effect && effect.effectType === 'Move') {
 			break;
 		}
 
-		case 'move':
+				case 'move': {
 			if (!action.pokemon.isActive) return false;
 			if (action.pokemon.fainted) return false;
+
+			// Echo Messenger half-power applies only when the action was "echo" and eligible
+			if ((action as any).echoMessengerHalfPower) {
+				action.pokemon.addVolatile('echomessengerhalfpower');
+			}
+
 			this.actions.runMove(action.move, action.pokemon, action.targetLoc, {
 				sourceEffect: action.sourceEffect, zMove: action.zmove,
 				maxMove: action.maxMove, originalTarget: action.originalTarget,
 			});
+
+			// Clean up the one-move half-power modifier
+			if ((action as any).echoMessengerHalfPower) {
+				action.pokemon.removeVolatile('echomessengerhalfpower');
+			}
+
+			// Consume Echo Messenger state after the Pokémon successfully attempts its first move while active
+			if (action.pokemon.hasAbility?.('echomessenger')) {
+				// @ts-ignore - persistent scratch space
+				const m = ((action.pokemon as any).m ??= {});
+				if (!m.echoMessengerBattleFirstMoveUsed) m.echoMessengerBattleFirstMoveUsed = true;
+				// After its first move on the field, further moves are normal until it switches and re-enters
+				m.echoMessengerEntryMoveUsed = true;
+			}
+
 			break;
+		}
+
 		case 'megaEvo':
 			this.actions.runMegaEvo(action.pokemon);
 			break;

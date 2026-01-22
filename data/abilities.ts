@@ -10477,6 +10477,7 @@ this.add('-start', pokemon, 'typechange', cur);
   },
 },
 */
+/*
 echomessenger: {
   name: "Echo Messenger",
   shortDesc:
@@ -10538,6 +10539,33 @@ echomessenger: {
 
     // Mark that the "battle-first" boost has been used (persists through switches)
     if (!m.echoMessengerUsedBattle) m.echoMessengerUsedBattle = true;
+  },
+},
+*/
+
+echomessenger: {
+	//Hopefully this one works with the button
+  name: "Echo Messenger",
+  shortDesc:
+    "First move used in battle: +3 priority (automatic). After that, first move after each switch-in can be toggled: +1 priority and 0.5× power.",
+  rating: 5,
+
+  onStart(pokemon) {
+    const cur = pokemon.getTypes(true).join('/'); // runtime types
+    const base = pokemon.species.types.join('/'); // species types
+    this.add('-start', pokemon, 'typechange', cur);
+
+    this.add('-ability', pokemon, 'Echo Messenger');
+    this.add('-message', `${pokemon.name} is poised to act with priority!`);
+
+    // Reset per-entry state so the "echo" button can appear on this entry
+    // (Your battle.ts sets echoMessengerEntryMoveUsed = true after the first move this entry.)
+    // @ts-ignore
+    const m = ((pokemon as any).m ??= {});
+    m.echoMessengerEntryMoveUsed = false;
+
+    // IMPORTANT: do NOT reset the battle-first flag here
+    // m.echoMessengerBattleFirstMoveUsed should persist all battle
   },
 },
 

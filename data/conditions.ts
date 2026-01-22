@@ -1926,6 +1926,12 @@ serenefocus: {
 		}
 	},
 },
+echomessengerhalfpower: {
+	name: "Echo Messenger (Half Power)",
+	onBasePower(basePower) {
+		return this.chainModify(0.5);
+	}
+},
 
 
 };
