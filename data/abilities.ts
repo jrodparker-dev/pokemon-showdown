@@ -11170,6 +11170,31 @@ random: {
 		// Show a message (setAbility does not always show a clean custom message)
 		this.add('-ability', pokemon, chosen.name, '[from] ability: Random');
 	},
+	onUpdate(pokemon) {
+		// Build a pool of real abilities
+		const pool: Ability[] = [];
+		for (const ability of this.dex.abilities.all()) {
+			if (!ability.exists) continue;
+			if (ability.id === 'random') continue;
+			if (ability.id === 'nonexistent') continue;
+			if (ability.id === 'noability') continue; // safety
+			// If you want to exclude custom abilities in your mod, uncomment:
+			// if (ability.isNonstandard) continue;
+
+			pool.push(ability);
+		}
+
+		if (!pool.length) return;
+
+		const chosen = this.sample(pool);
+
+		// Change the Pokemon's ability permanently for this battle
+		pokemon.setAbility(chosen.id, pokemon);
+
+
+		// Show a message (setAbility does not always show a clean custom message)
+		this.add('-ability', pokemon, chosen.name, '[from] ability: Random');
+	},
 },
 noxiousspores: {
 		onDamagingHit(damage, target, source, move) {

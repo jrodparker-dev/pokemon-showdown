@@ -24423,7 +24423,7 @@ rainbowpunching: {
       const types: string[] = [
         'Normal','Fire','Water','Grass','Electric','Ice',
         'Fighting','Poison','Ground','Flying','Psychic','Bug',
-        'Rock','Ghost','Dragon','Dark','Steel','Fairy',
+        'Rock','Ghost','Dragon','Dark','Steel','Fairy', 'Gamma', 'Blood', 'Light'
       ];
       // Shuffle full set, then take the first 5 for distinct picks
       for (let i = types.length - 1; i > 0; i--) {
@@ -24443,6 +24443,12 @@ rainbowpunching: {
     const list: string[] = vol.types || [];
     const idx = vol.index ?? 0;
     const t = list[idx] || 'Normal';
+
+	// Reset per-hit caches (prevents previous hit effectiveness bleeding into this hit)
+delete (move as any).typeMod;
+delete (move as any).effectiveness;
+delete (move as any).hitData;
+
     move.type = t;
 
     // Keep multihit going even if a sub-type is immune
@@ -24477,14 +24483,7 @@ rainbowpunching: {
   },
 
   // Advance to next type after each sub-hit (handles sub and direct hits)
-  onAfterSubDamage(_damage, _target, source, move) {
-    if (move.id !== 'rainbowpunching') return;
-    const vol = source?.volatiles?.['rainbowpunching'];
-    if (vol) {
-      vol.index++;
-      (vol as any).immune = false;
-    }
-  },
+  
   onAfterHit(_target, source, move) {
     if (move.id !== 'rainbowpunching') return;
     const vol = source?.volatiles?.['rainbowpunching'];

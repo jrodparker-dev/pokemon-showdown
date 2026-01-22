@@ -1531,51 +1531,28 @@ onFieldEnd() {
   this.add('-fieldend', 'move: All Terrain');
 },
 },
+
 twisteddimensions: {
-  duration: 0,
+  // Field effect tied to the ability
+  duration: 0, // lasts until ability is gone
 
-  // NEW: mark the move if it would've been immune (and record which defending type caused it)
-  onTryHit(target, source, move) {
-    if (!target || !move || !move.type) return;
-
-    const types = target.getTypes ? target.getTypes() : target.types;
-
-    let immuneDefType: string | null = null;
-    for (const defType of types) {
-      // This is type-chart immunity only
-      if (this.dex.getEffectiveness(move.type, defType) === 0) {
-        immuneDefType = defType;
-        break;
-      }
-    }
-
-    if (immuneDefType) {
-      (move as any).ignoreImmunity = true; // allow the hit through the immunity gate
-      (move as any).twistedImmuneType = immuneDefType; // remember which defending type was immune
-    } else {
-      (move as any).twistedImmuneType = null;
-    }
-  },
-
+  // modify type effectiveness
   onEffectiveness(typeMod, target, type, move) {
-    // typeMod: -2 -1 0 1 2 (your comment)
+    // typeMod is in steps of 1:
+    // -2 = 0.25×, -1 = 0.5×, 0 = neutral, 1 = 2×, 2 = 4×
     if (typeMod < 0) {
-      return -typeMod; // resistance -> weakness
+      // resistance → weakness
+      return -typeMod; // flip sign
     } else if (typeMod > 0) {
-      return -typeMod; // weakness -> resistance
-    } else {
-      // neutral -> neutral, BUT: if this specific defending type was the immunity, make it 2x
-      if (!move || !target) return 0;
-
-      // IMPORTANT: `type` here is the DEFENDING type being evaluated
-      if ((move as any).twistedImmuneType === type) {
-        return 1; // immunity -> super effective (2x)
-      }
-
-      return 0;
+      // weakness → resistance
+      return -typeMod; // flip sign
     }
+    // neutral → neutral (do nothing)
+    return 0;
   },
 },
+
+
 
 
 shapeshiftermovecat: {
