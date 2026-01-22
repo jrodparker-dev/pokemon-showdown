@@ -306,6 +306,7 @@ export class Side {
 				if (action.zmove) details += ` zmove`;
 				if (action.maxMove) details += ` dynamax`;
 				if (action.terastallize) details += ` terastallize`;
+				if (action.echo) details += ` echo`;
 				return `move ${action.moveid}${details}`;
 			case 'switch':
 			case 'instaswitch':
@@ -603,7 +604,7 @@ export class Side {
 
 		// Echo Messenger toggle
 const echo = (event === 'echo');
-const canEcho = (this.activeRequest as MoveRequest)?.active[this.active.indexOf(pokemon)].canEcho;
+const canEcho = (this.activeRequest as MoveRequest)?.active[pokemon.position]?.canEcho;
 if (echo && !canEcho) {
   return this.emitChoiceError(`Can't move: ${pokemon.name} can't use Echo Messenger right now.`);
 }
@@ -1233,6 +1234,11 @@ if (hasAidOfRevival) {
 						if (event) return error();
 						event = 'terastallize';
 						data = data.slice(0, -13);
+					} else if (data.endsWith(' echo')) {
+						if (event) return error();
+						event = 'echo';
+						data = data.slice(0, -5);
+
 					} else {
 						break;
 					}
