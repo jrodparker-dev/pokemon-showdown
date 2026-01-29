@@ -20546,6 +20546,52 @@ oinkolognemega: {
   color: "Pink",         // shows on /dexsearch color filters
   eggGroups: ["Fairy"],  // flavor; adjust if you care about breeding in your mod
 },
+  mondra: {
+    num: -5001,
+    name: "Mondra",
+    baseSpecies: "Mondra",
+    forme: "Mondra",
+    types: ["Dragon"],
+    baseStats: {hp: 150, atk: 100, def: 75, spa: 80, spd: 100, spe: 80},
+    abilities: {0: "Single Minded"},
+    weightkg: 100,
+    heightm: 2.0,
+    color: "Blue",
+    eggGroups: ["Undiscovered"],
+  },
+
+  duodra: {
+    num: -5002,
+    name: "Duodra",
+    baseSpecies: "Mondra",
+    forme: "Duodra",
+    types: ["Psychic", "Dragon"],
+    baseStats: {hp: 100, atk: 80, def: 120, spa: 120, spd: 60, spe: 105},
+    abilities: {0: "Two Heads"},
+    weightkg: 110,
+    heightm: 2.1,
+    color: "Purple",
+    eggGroups: ["Undiscovered"],
+    requiredAbility: "Single Minded",
+    battleOnly: "Mondra",
+  },
+
+  polydra: {
+    num: -5003,
+    name: "Polydra",
+    baseSpecies: "Mondra",
+    forme: "Polydra",
+    types: ["Fairy", "Water", "Electric", "Steel", "Flying"],
+    baseStats: {hp: 95, atk: 150, def: 150, spa: 150, spd: 150, spe: 30},
+    abilities: {0: "Divide"},
+    weightkg: 140,
+    heightm: 2.3,
+    color: "Pink",
+    eggGroups: ["Undiscovered"],
+    requiredAbility: "Two Heads",
+    battleOnly: "Mondra",
+  },
+
 
 
 

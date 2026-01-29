@@ -12276,6 +12276,234 @@ typethief: {
     },
   },
 */
+  singleminded: {
+    name: "Single Minded",
+    shortDesc:
+      "Power rises with consecutive uses of the same move (+0/+20/+50/+90 BP). On fatal damage: lives at 1 HP, fully heals, and becomes Duodra.",
+    rating: 5,
+
+    onStart(pokemon) {
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+      m.singleMindedLastMove = '';
+      m.singleMindedStreak = 0;
+      m.singleMindedCurStreak = 0;
+      m.mondraPhase = m.mondraPhase ?? 1; // 1=Mondra, 2=Duodra, 3=Polydra
+    },
+
+    onSwitchOut(pokemon) {
+      // Reset streak if it ever switches (if you later decide it can’t switch, this still is fine)
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+      m.singleMindedLastMove = '';
+      m.singleMindedStreak = 0;
+      m.singleMindedCurStreak = 0;
+    },
+
+    onBeforeMove(pokemon, target, move) {
+      // Track streak for damaging moves only
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+
+      if (!move || move.category === 'Status' || move.id === 'struggle') {
+        m.singleMindedLastMove = '';
+        m.singleMindedStreak = 0;
+        m.singleMindedCurStreak = 0;
+        return;
+      }
+
+      if (m.singleMindedLastMove === move.id) {
+        m.singleMindedStreak = (m.singleMindedStreak || 0) + 1;
+      } else {
+        m.singleMindedLastMove = move.id;
+        m.singleMindedStreak = 1;
+      }
+      m.singleMindedCurStreak = m.singleMindedStreak;
+    },
+
+    onBasePower(basePower, pokemon, target, move) {
+      if (!move || move.category === 'Status') return;
+
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+      const n: number = m.singleMindedCurStreak || 1;
+
+      let bonus = 0;
+      if (n === 2) bonus = 20;
+      else if (n === 3) bonus = 50;
+      else if (n >= 4) bonus = 90;
+
+      if (bonus) return basePower + bonus;
+    },
+
+    onDamage(damage, target, source, effect) {
+      // Phase 1 -> Phase 2 transition
+      if (damage < target.hp) return;
+
+      // @ts-ignore
+      const m = ((target as any).m ??= {});
+      if (m.mondraPhase >= 2) return; // already past Mondra
+      m.mondraPhase = 2;
+
+      this.add('-activate', target, 'ability: Single Minded');
+      this.add('-message', `${target.name} refuses to fall!`);
+      target.hp = 1;
+
+      // Change into Duodra and fully heal
+      target.formeChange('Duodra', this.effect, true);
+      // Fully heal (use sethp if your fork has it)
+      if ((target as any).sethp) (target as any).sethp(target.maxhp);
+      else target.hp = target.maxhp;
+
+      target.clearVolatile();
+      this.add('-message', `${target.name} transformed into Duodra!`);
+
+      // Prevent the KO
+      return 0;
+    },
+  },
+  twoheads: {
+    name: "Two Heads",
+    shortDesc:
+      "Singles: attacks hit twice at 0.5× power. Doubles: attacks target all foes at 0.65× power. On fatal damage: lives at 1 HP, fully heals, becomes Polydra. 10%: burn on contact, heal 50% damage, frostbite from special.",
+    rating: 5,
+
+    onStart(pokemon) {
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+      m.mondraPhase = m.mondraPhase ?? 2;
+    },
+
+    onModifyMove(move, source, target) {
+      if (!move || move.category === 'Status') return;
+
+      // Doubles+ (two opposing slots exist)
+      const isMulti = source.battle?.gameType && source.battle.gameType !== 'singles';
+
+      if (isMulti) {
+        // Hit both opposing slots at 0.65x
+        move.target = 'allAdjacentFoes';
+        // Power modifier
+        // @ts-ignore
+        move.twoHeadsMod = 0.65;
+      } else {
+        // Singles: hit twice at half power
+        move.multihit = 2;
+        // @ts-ignore
+        move.twoHeadsMod = 0.5;
+      }
+    },
+
+    onBasePower(basePower, source, target, move) {
+      // @ts-ignore
+      const mod = move?.twoHeadsMod;
+      if (!mod) return;
+      return this.chainModify(mod);
+    },
+
+    onDamagingHit(damage, target, source, move) {
+  if (!source || source.fainted) return;
+
+  // 10% burn attacker if contact move
+  if (move?.flags?.contact && this.randomChance(1, 10)) {
+    source.trySetStatus('brn', target, this.effect);
+  }
+
+  // 10% heal 50% of damage taken
+  if (damage && this.randomChance(1, 10)) {
+    target.heal(damage / 2);
+  }
+
+  // 10% frostbite attacker if hit was special
+  if (move?.category === 'Special' && this.randomChance(1, 10)) {
+    source.trySetStatus('frb', target, this.effect);
+  }
+},
+
+
+    onDamage(damage, target, source, effect) {
+      // Phase 2 -> Phase 3 transition
+      if (damage < target.hp) return;
+
+      // @ts-ignore
+      const m = ((target as any).m ??= {});
+      if (m.mondraPhase >= 3) return;
+      m.mondraPhase = 3;
+
+      this.add('-activate', target, 'ability: Two Heads');
+      this.add('-message', `${target.name} refuses to fall again!`);
+      target.hp = 1;
+
+      target.formeChange('Polydra', this.effect, true);
+      if ((target as any).sethp) (target as any).sethp(target.maxhp);
+      else target.hp = target.maxhp;
+
+      target.clearVolatile();
+      this.add('-message', `${target.name} transformed into Polydra!`);
+
+      return 0;
+    },
+  },
+  divide: {
+    name: "Divide",
+    shortDesc:
+      "On hit: lower target's Atk (if Physical) or SpA (if Special) by 1. When hit: randomly lose 1 type (max 1/turn; multihit counts once) until 1 type remains. Immune to non-volatile status.",
+    rating: 5,
+
+    onStart(pokemon) {
+      // @ts-ignore
+      const m = ((pokemon as any).m ??= {});
+      m.divideLastTypeRemoveTurn = -1;
+    },
+
+    // Status immunity (like Purifying Salt but no Ghost reduction)
+    onSetStatus(status, target, source, effect) {
+      if (!status) return;
+      // block all non-volatile status
+      this.add('-immune', target, '[from] ability: Divide');
+      return false;
+    },
+
+    // Offensive debuff: run for each affected target (works well in doubles too)
+    onAfterMoveSecondarySelf(source, target, move) {
+      if (!target || target.fainted) return;
+      if (!move || move.category === 'Status') return;
+      if (!move.damage && move.damage !== 0 && !move.basePower) return; // skip weird non-damaging moves
+
+      if (move.category === 'Physical') {
+        this.boost({atk: -1}, target, source, this.effect);
+      } else if (move.category === 'Special') {
+        this.boost({spa: -1}, target, source, this.effect);
+      }
+    },
+
+    // Defensive type shedding: once per turn, once even for multihit
+    onDamagingHit(damage, target, source, move) {
+      // @ts-ignore
+      const m = ((target as any).m ??= {});
+      if (m.divideLastTypeRemoveTurn === this.turn) return;
+      m.divideLastTypeRemoveTurn = this.turn;
+
+      const types: string[] = (target as any).getTypes ? (target as any).getTypes(true) : (target as any).types;
+      if (!types || types.length <= 1) return;
+
+      const removed = this.sample(types);
+      const newTypes = types.filter(t => t !== removed);
+      if (!newTypes.length) return;
+
+      if ((target as any).setType) {
+        (target as any).setType(newTypes);
+      } else {
+        // fallback if your fork stores types directly
+        (target as any).types = newTypes;
+      }
+
+      // Nice feedback
+      this.add('-message', `${target.name}'s ${removed} type shattered!`);
+      this.add('-start', target, 'typechange', newTypes.join('/'), '[from] ability: Divide');
+    },
+  },
+
 
 
 

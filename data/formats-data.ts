@@ -6110,6 +6110,9 @@ draughollow: { tier: "OU", natDexTier: "AG",   },
 mindhoggr: { tier: "OU", natDexTier: "AG",   },
 narcissa: { tier: "OU", natDexTier: "AG",   },
 mintwirl: { tier: "OU", natDexTier: "AG",   },
+mondra: { tier: "OU", natDexTier: "AG",   },
+duodra: { tier: "OU", natDexTier: "AG",   },
+polydra: { tier: "OU", natDexTier: "AG",   },
 
 
 };

@@ -1535,11 +1535,41 @@ onFieldEnd() {
 twisteddimensions: {
   // Field effect tied to the ability
   duration: 0, // lasts until ability is gone
+  onModifyMove(move, source, target) {
+    // If we don't know the target yet, just do nothing here; onTryHit will catch it.
+    if (!target) return;
+
+    // Default: ignore immunities
+    (move as any).ignoreImmunity = true;
+
+    // Exception: do NOT ignore Ground immunity from Levitate or Air Balloon
+    if (move.type === 'Ground') {
+      if (target.hasAbility?.('levitate') || target.hasItem?.('airballoon')) {
+        delete (move as any).ignoreImmunity; // or set to false
+      }
+    }
+  },
+
+  // Fallback hook (target is definitely known here)
+  onTryHit(target, source, move) {
+    // Default: ignore immunities
+    (move as any).ignoreImmunity = true;
+
+    // Exception: do NOT ignore Ground immunity from Levitate or Air Balloon
+    if (move.type === 'Ground') {
+      if (target.hasAbility?.('levitate') || target.hasItem?.('airballoon')) {
+        delete (move as any).ignoreImmunity; // or set to false
+      }
+    }
+  },
 
   // modify type effectiveness
   onEffectiveness(typeMod, target, type, move) {
     // typeMod is in steps of 1:
     // -2 = 0.25×, -1 = 0.5×, 0 = neutral, 1 = 2×, 2 = 4×
+	    // If runImmunity allowed a type-chart immune hit through, pretend it was resisted.
+    // Your existing "flip resistances/weaknesses" will then turn this into super-effective.
+
     if (typeMod < 0) {
       // resistance → weakness
       return -typeMod; // flip sign
