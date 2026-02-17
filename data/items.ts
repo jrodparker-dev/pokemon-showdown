@@ -9119,7 +9119,7 @@ steelfangs: {
 
 	mimicwand: {
   name: "Mimic Wand",
-  shortDesc: "When hit by a damaging move, immediately use it back at 60% power.",
+  shortDesc: "When hit by a damaging move, immediately use it back at 45% power.",
   gen: 9,
 
   onStart(pokemon) {
@@ -9139,10 +9139,10 @@ steelfangs: {
 
     // Scale numeric base power directly; otherwise flag to scale in BasePower hook
     if (typeof moveCopy.basePower === 'number' && moveCopy.basePower > 0) {
-      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.60));
+      moveCopy.basePower = Math.max(1, Math.floor(moveCopy.basePower * 0.45));
     } else {
       // Covers variable-BP / fixed-damage / OHKO style moves where BP isn't a number
-      (moveCopy as any).mimicWandScale60 = true;
+      (moveCopy as any).mimicWandScale45 = true;
     }
 
     // Avoid interacting with other reflectors/counters
@@ -9155,9 +9155,9 @@ steelfangs: {
   },
 
   onBasePower(basePower, user, target, move) {
-    // Apply 0.60 scaling for echoed moves that couldn't be pre-scaled numerically
-    if ((move as any)?.mimicWandScale60) {
-      return this.chainModify(0.60);
+    // Apply 0.45 scaling for echoed moves that couldn't be pre-scaled numerically
+    if ((move as any)?.mimicWandScale45) {
+      return this.chainModify(0.45);
     }
   },
 },
