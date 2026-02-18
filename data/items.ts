@@ -9779,6 +9779,186 @@ brutebonnetite: {
 	gen: 9
 },
 
+electricrod: {
+	name: "Electric Rod",
+	shortDesc: "Absorbs the first Electric-type move that hits the holder, then is consumed.",
+	onTryHit(target, source, move) {
+		if (!target || target.fainted) return;
+		if (!move || move.type !== 'Electric') return;
+
+		// Don't block self-targeting moves, if any exist
+		if (move.target === 'self') return;
+
+		this.add('-immune', target, '[from] item: Lightning Rod');
+		target.useItem();
+		return null;
+	},
+},
+unstablespecs: {
+	name: "Unstable Specs",
+	shortDesc: "SpA is 1.75x, but successful damaging moves deal recoil equal to 50% of damage dealt.",
+	onModifySpA(spa) {
+		return this.chainModify([7168, 4096]); // 1.75x
+	},
+	onAfterMoveSecondarySelf(source, target, move) {
+		// Mirror Life Orb guards (but we do NOT care if target fainted)
+		if (!source || !move || move.category === 'Status' || source.forceSwitchFlag) return;
+		if (source === target) return;
+
+		// Damage just dealt by the move
+		const dealt = ((move as any).totalDamage ?? this.lastDamage) as number;
+		if (!dealt || dealt <= 0) return;
+
+		const recoil = Math.max(1, Math.floor(dealt / 2));
+		this.damage(recoil, source, source, this.dex.items.get('unstablespecs'));
+	},
+},
+
+unstableband: {
+	name: "Unstable Band",
+	shortDesc: "Atk is 1.75x, but successful damaging moves deal recoil equal to 50% of damage dealt.",
+	onModifyAtk(atk) {
+		return this.chainModify([7168, 4096]); // 1.75x
+	},
+	onAfterMoveSecondarySelf(source, target, move) {
+		if (!source || !move || move.category === 'Status' || source.forceSwitchFlag) return;
+		if (source === target) return;
+
+		const dealt = ((move as any).totalDamage ?? this.lastDamage) as number;
+		if (!dealt || dealt <= 0) return;
+
+		const recoil = Math.max(1, Math.floor(dealt / 2));
+		this.damage(recoil, source, source, this.dex.items.get('unstableband'));
+	},
+},
+
+unstablescarf: {
+	name: "Unstable Scarf",
+	shortDesc: "Spe is 1.75x, but successful damaging moves deal recoil equal to 50% of damage dealt.",
+	onModifySpe(spe) {
+		return this.chainModify([7168, 4096]); // 1.75x
+	},
+	onAfterMoveSecondarySelf(source, target, move) {
+		if (!source || !move || move.category === 'Status' || source.forceSwitchFlag) return;
+		if (source === target) return;
+
+		const dealt = ((move as any).totalDamage ?? this.lastDamage) as number;
+		if (!dealt || dealt <= 0) return;
+
+		const recoil = Math.max(1, Math.floor(dealt / 2));
+		this.damage(recoil, source, source, this.dex.items.get('unstablescarf'));
+	},
+},
+
+
+explosiveorb: {
+	name: "Explosive Orb",
+	shortDesc: "2x power, but after an attacking move hits, the user loses 50% of its max HP.",
+	fling: {basePower: 30},
+
+	onModifyDamage(damage, source, target, move) {
+		// 2.0x
+		return this.chainModify(2);
+	},
+
+	onAfterMoveSecondarySelf(source, target, move) {
+		// Mirror Life Orb timing/guards exactly
+		if (source && source !== target && move && move.category !== 'Status' && !source.forceSwitchFlag) {
+			this.damage(source.baseMaxhp / 2, source, source, this.dex.items.get('explosiveorb'));
+		}
+	},
+},
+
+grassypill: {
+	name: "Grassy Pill",
+	shortDesc: "On switch-in, consumes to set Grassy Terrain.",
+	onStart(pokemon) {
+		if (!pokemon.isActive) return;
+		if (this.field.setTerrain('grassyterrain', pokemon, this.effect)) {
+			pokemon.eatItem();
+		}
+	},
+},
+
+mistypill: {
+	name: "Misty Pill",
+	shortDesc: "On switch-in, consumes to set Misty Terrain.",
+	onStart(pokemon) {
+		if (!pokemon.isActive) return;
+		if (this.field.setTerrain('mistyterrain', pokemon, this.effect)) {
+			pokemon.eatItem();
+		}
+	},
+},
+
+electricpill: {
+	name: "Electric Pill",
+	shortDesc: "On switch-in, consumes to set Electric Terrain.",
+	onStart(pokemon) {
+		if (!pokemon.isActive) return;
+		if (this.field.setTerrain('electricterrain', pokemon, this.effect)) {
+			pokemon.eatItem();
+		}
+	},
+},
+
+psychicpill: {
+	name: "Psychic Pill",
+	shortDesc: "On switch-in, consumes to set Psychic Terrain.",
+	onStart(pokemon) {
+		if (!pokemon.isActive) return;
+		if (this.field.setTerrain('psychicterrain', pokemon, this.effect)) {
+			pokemon.eatItem();
+		}
+	},
+},
+
+darkpill: {
+	name: "Dark Pill",
+	shortDesc: "On switch-in, consumes to set Dark Terrain.",
+	onStart(pokemon) {
+		if (!pokemon.isActive) return;
+		// Assumes you already implemented 'darkterrain' as a real terrain id in your mod
+		if (this.field.setTerrain('darkterrain', pokemon, this.effect)) {
+			pokemon.eatItem();
+		}
+	},
+},
+
+choicesash: {
+	name: "Choice Sash",
+	shortDesc: "Survive one KO hit once; while held, you're choice-locked.",
+
+	// Match Choice items: never add choicelock on switch-in (activeMove can be null)
+	onStart(pokemon) {
+		if (pokemon.volatiles['choicelock']) this.debug('removing choicelock');
+		pokemon.removeVolatile('choicelock');
+	},
+	onModifyMove(move, pokemon) {
+		pokemon.addVolatile('choicelock');
+	},
+	isChoice: true,
+
+	// Survive one damaging move that would KO, at any HP
+	onDamage(damage, target, source, effect) {
+		if (!damage) return;
+		if (damage < target.hp) return;
+
+		// Only from damaging MOVES (not hazards/poison/weather/etc.)
+		if (!effect || (effect as any).effectType !== 'Move') return;
+		const move = effect as any;
+		if (move.category === 'Status') return;
+
+		// If already at 1 HP, can't save you
+		if (target.hp <= 1) return;
+
+		this.add('-activate', target, 'item: Choice Sash');
+		// prevent KO: set damage to leave you at 1
+		target.useItem(); // <-- correct for non-berries in your fork
+		return target.hp - 1;
+	},
+},
+
 
 }
 const MYSTERY_BOX_POOL: string[] = [
