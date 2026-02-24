@@ -17959,7 +17959,7 @@ castformmega: {
 		name: "Iron Moth",
 		types: ["Fire", "Poison"],
 		gender: "N",
-		baseStats: { hp: 80, atk: 80, def: 80, spa: 80, spd: 80, spe: 80 },
+		baseStats: { hp: 80, atk: 70, def: 60, spa: 140, spd: 110, spe: 110 },
 		abilities: { 0: "Quark Drive" },
 		heightm: 1.2,
 		weightkg: 36,
