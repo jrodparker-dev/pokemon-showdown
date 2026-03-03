@@ -113,6 +113,10 @@ export interface PokemonSet {
 	 * Tera Type
 	 */
 	teraType?: string;
+	/**
+	 * Optional per-Pokemon base stat overrides.
+	 */
+	baseStats?: Partial<StatsTable>;
 }
 
 export const Teams = new class Teams {
@@ -122,6 +126,16 @@ export const Teams = new class Teams {
 		function getIv(ivs: StatsTable, s: keyof StatsTable): string {
 			return ivs[s] === 31 || ivs[s] === undefined ? '' : ivs[s].toString();
 		}
+
+		const packBaseStats = (baseStats?: Partial<StatsTable>) => {
+			if (!baseStats) return '';
+			const packed = Dex.stats.ids().map(stat => {
+				const value = baseStats[stat];
+				return value === undefined ? '' : `${value}`;
+			});
+			if (!packed.join('')) return '';
+			return packed.join('/');
+		};
 
 		let buf = '';
 		for (const set of team) {
@@ -198,13 +212,16 @@ export const Teams = new class Teams {
 				buf += '|';
 			}
 
+			const packedBaseStats = packBaseStats(set.baseStats);
+
 			if (set.pokeball || set.hpType || set.gigantamax ||
-				(set.dynamaxLevel !== undefined && set.dynamaxLevel !== 10) || set.teraType) {
+				(set.dynamaxLevel !== undefined && set.dynamaxLevel !== 10) || set.teraType || packedBaseStats) {
 				buf += `,${set.hpType || ''}`;
 				buf += `,${this.packName(set.pokeball || '')}`;
 				buf += `,${set.gigantamax ? 'G' : ''}`;
 				buf += `,${set.dynamaxLevel !== undefined && set.dynamaxLevel !== 10 ? set.dynamaxLevel : ''}`;
 				buf += `,${set.teraType || ''}`;
+				buf += `,${packedBaseStats}`;
 			}
 		}
 
@@ -221,6 +238,21 @@ export const Teams = new class Teams {
 				return null;
 			}
 		}
+
+		const unpackBaseStats = (packed?: string): Partial<StatsTable> | undefined => {
+			if (!packed) return undefined;
+			const values = packed.split('/');
+			if (values.length !== 6) return undefined;
+			const baseStats: Partial<StatsTable> = {};
+			for (const [index, stat] of Dex.stats.ids().entries()) {
+				if (!values[index]) continue;
+				const value = Number.parseInt(values[index]);
+				if (Number.isNaN(value)) continue;
+				baseStats[stat] = value;
+			}
+			if (!Object.keys(baseStats).length) return undefined;
+			return baseStats;
+		};
 
 		const team = [];
 		let i = 0;
@@ -325,9 +357,9 @@ export const Teams = new class Teams {
 			j = buf.indexOf(']', i);
 			let misc;
 			if (j < 0) {
-				if (i < buf.length) misc = buf.substring(i).split(',', 6);
+				if (i < buf.length) misc = buf.substring(i).split(',', 7);
 			} else {
-				if (i !== j) misc = buf.substring(i, j).split(',', 6);
+				if (i !== j) misc = buf.substring(i, j).split(',', 7);
 			}
 			if (misc) {
 				set.happiness = (misc[0] ? Number(misc[0]) : 255);
@@ -336,6 +368,7 @@ export const Teams = new class Teams {
 				set.gigantamax = !!misc[3];
 				set.dynamaxLevel = (misc[4] ? Number(misc[4]) : 10);
 				set.teraType = misc[5];
+				set.baseStats = unpackBaseStats(misc[6]);
 			}
 			if (j < 0) break;
 			i = j + 1;
@@ -416,6 +449,14 @@ export const Teams = new class Teams {
 		}
 		if (set.teraType) {
 			out += `Tera Type: ${set.teraType}  \n`;
+		}
+		if (set.baseStats) {
+			const stats = Dex.stats.ids().map(stat => {
+				const value = set.baseStats?.[stat];
+				if (value === undefined) return '';
+				return `${value} ${Dex.stats.shortNames[stat]}`;
+			}).filter(Boolean);
+			if (stats.length) out += `Base Stats: ${stats.join(' / ')}  \n`;
 		}
 
 		// stats
@@ -501,6 +542,18 @@ export const Teams = new class Teams {
 		} else if (line.startsWith('Tera Type: ')) {
 			line = line.slice(11).trim();
 			set.teraType = aggressive ? toID(line) : line;
+		} else if (line.startsWith('Base Stats: ')) {
+			line = line.slice(12);
+			set.baseStats = {};
+			for (const baseStatLine of line.split('/')) {
+				const [valueString, statName] = baseStatLine.trim().split(' ');
+				const statid = Dex.stats.getID(statName);
+				if (!statid) continue;
+				const value = Number.parseInt(valueString);
+				if (Number.isNaN(value)) continue;
+				set.baseStats[statid] = value;
+			}
+			if (!Object.keys(set.baseStats).length) delete set.baseStats;
 		} else if (line === 'Gigantamax: Yes') {
 			set.gigantamax = true;
 		} else if (line.startsWith('EVs: ')) {

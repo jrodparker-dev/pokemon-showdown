@@ -1367,7 +1367,19 @@ export class Pokemon {
 		this.knownType = true;
 		this.weighthg = species.weighthg;
 
-		const stats = this.battle.spreadModify(this.species.baseStats, this.set);
+		let baseStats = this.species.baseStats;
+		if (!isTransform && this.set.baseStats && species.id === this.baseSpecies.id) {
+			baseStats = {
+				...baseStats,
+				hp: this.set.baseStats.hp ?? baseStats.hp,
+				atk: this.set.baseStats.atk ?? baseStats.atk,
+				def: this.set.baseStats.def ?? baseStats.def,
+				spa: this.set.baseStats.spa ?? baseStats.spa,
+				spd: this.set.baseStats.spd ?? baseStats.spd,
+				spe: this.set.baseStats.spe ?? baseStats.spe,
+			};
+		}
+		const stats = this.battle.spreadModify(baseStats, this.set);
 		if (this.species.maxHP) stats.hp = this.species.maxHP;
 
 		if (!this.maxhp) {
