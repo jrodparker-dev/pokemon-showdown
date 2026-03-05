@@ -1137,7 +1137,7 @@ export class Pokemon {
 				spe: this.baseStoredStats['spe'],
 			},
 			baseStats: this.set.baseStats,
-			types: this.baseTypes,
+			types: [...this.baseTypes],
 			moves: this[forAlly ? 'baseMoves' : 'moves'].map(move => {
 				if (move === 'hiddenpower') {
 					return `${move}${toID(this.hpType)}${this.battle.gen < 6 ? '' : this.hpPower}` as ID;
@@ -1373,6 +1373,7 @@ export class Pokemon {
 		}
 
 		this.setType(types, true);
+		if (!isTransform) this.baseTypes = [...types];
 		this.apparentType = types.join('/');
 		this.addedType = species.addedType || '';
 		this.knownType = true;
