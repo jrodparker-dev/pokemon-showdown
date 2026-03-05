@@ -74,6 +74,10 @@ export interface PokemonSwitchRequestData {
 	condition: string;
 	active: boolean;
 	stats: StatsExceptHPTable;
+	/** Optional base stats override from team data. */
+	baseStats?: Partial<StatsTable>;
+	/** Optional type override from team data. */
+	types?: string[];
 	/**
 	 * Move IDs for choosable moves. Also includes Hidden Power Type, Frustration/Return power.
 	 */

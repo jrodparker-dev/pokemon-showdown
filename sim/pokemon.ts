@@ -1136,6 +1136,8 @@ export class Pokemon {
 				spd: this.baseStoredStats['spd'],
 				spe: this.baseStoredStats['spe'],
 			},
+			baseStats: this.set.baseStats,
+			types: this.baseTypes,
 			moves: this[forAlly ? 'baseMoves' : 'moves'].map(move => {
 				if (move === 'hiddenpower') {
 					return `${move}${toID(this.hpType)}${this.battle.gen < 6 ? '' : this.hpPower}` as ID;
@@ -1361,8 +1363,17 @@ export class Pokemon {
 		if (!species) return null;
 		this.species = species;
 
-		this.setType(species.types, true);
-		this.apparentType = rawSpecies.types.join('/');
+		let types = species.types;
+		if (!isTransform && this.set.newTypes?.[0] && species.id === this.baseSpecies.id) {
+			const type1 = this.battle.dex.types.get(this.set.newTypes[0]);
+			const type2 = this.set.newTypes[1] ? this.battle.dex.types.get(this.set.newTypes[1]) : null;
+			if (type1.exists) {
+				types = type2?.exists ? [type1.name, type2.name] : [type1.name];
+			}
+		}
+
+		this.setType(types, true);
+		this.apparentType = types.join('/');
 		this.addedType = species.addedType || '';
 		this.knownType = true;
 		this.weighthg = species.weighthg;

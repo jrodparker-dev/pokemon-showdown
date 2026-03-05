@@ -117,6 +117,10 @@ export interface PokemonSet {
 	 * Optional per-Pokemon base stat overrides.
 	 */
 	baseStats?: Partial<StatsTable>;
+	/**
+	 * Optional per-Pokemon type overrides.
+	 */
+	newTypes?: [string, string?];
 }
 
 export const Teams = new class Teams {
@@ -213,15 +217,18 @@ export const Teams = new class Teams {
 			}
 
 			const packedBaseStats = packBaseStats(set.baseStats);
+			const hasNewTypes = !!set.newTypes?.[0];
 
 			if (set.pokeball || set.hpType || set.gigantamax ||
-				(set.dynamaxLevel !== undefined && set.dynamaxLevel !== 10) || set.teraType || packedBaseStats) {
+				(set.dynamaxLevel !== undefined && set.dynamaxLevel !== 10) || set.teraType || packedBaseStats || hasNewTypes) {
 				buf += `,${set.hpType || ''}`;
 				buf += `,${this.packName(set.pokeball || '')}`;
 				buf += `,${set.gigantamax ? 'G' : ''}`;
 				buf += `,${set.dynamaxLevel !== undefined && set.dynamaxLevel !== 10 ? set.dynamaxLevel : ''}`;
 				buf += `,${set.teraType || ''}`;
 				buf += `,${packedBaseStats}`;
+				buf += `,${set.newTypes?.[0] || ''}`;
+				buf += `,${set.newTypes?.[1] || ''}`;
 			}
 		}
 
@@ -357,9 +364,9 @@ export const Teams = new class Teams {
 			j = buf.indexOf(']', i);
 			let misc;
 			if (j < 0) {
-				if (i < buf.length) misc = buf.substring(i).split(',', 7);
+				if (i < buf.length) misc = buf.substring(i).split(',', 9);
 			} else {
-				if (i !== j) misc = buf.substring(i, j).split(',', 7);
+				if (i !== j) misc = buf.substring(i, j).split(',', 9);
 			}
 			if (misc) {
 				set.happiness = (misc[0] ? Number(misc[0]) : 255);
@@ -369,6 +376,10 @@ export const Teams = new class Teams {
 				set.dynamaxLevel = (misc[4] ? Number(misc[4]) : 10);
 				set.teraType = misc[5];
 				set.baseStats = unpackBaseStats(misc[6]);
+				if (misc[7]) {
+					set.newTypes = [misc[7]];
+					if (misc[8]) set.newTypes.push(misc[8]);
+				}
 			}
 			if (j < 0) break;
 			i = j + 1;
@@ -449,6 +460,9 @@ export const Teams = new class Teams {
 		}
 		if (set.teraType) {
 			out += `Tera Type: ${set.teraType}  \n`;
+		}
+		if (set.newTypes?.[0]) {
+			out += `New Typing: ${set.newTypes[0]} / ${set.newTypes[1] || 'None'}  \n`;
 		}
 		if (set.baseStats) {
 			const stats = Dex.stats.ids().map(stat => {
@@ -542,6 +556,12 @@ export const Teams = new class Teams {
 		} else if (line.startsWith('Tera Type: ')) {
 			line = line.slice(11).trim();
 			set.teraType = aggressive ? toID(line) : line;
+		} else if (line.startsWith('New Typing: ')) {
+			const [type1, type2] = line.slice(12).split('/').map(type => type.trim());
+			if (Dex.types.isName(type1)) {
+				set.newTypes = [type1];
+				if (Dex.types.isName(type2)) set.newTypes.push(type2);
+			}
 		} else if (line.startsWith('Base Stats: ')) {
 			line = line.slice(12);
 			set.baseStats = {};
