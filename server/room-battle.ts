@@ -470,6 +470,9 @@ export interface RoomBattlePlayerOptions {
 	hidden?: boolean;
 	ai?: boolean;
 }
+export interface RoomBattlePlayerData extends Omit<RoomBattlePlayerOptions, 'user'> {
+	user: User | string | null;
+}
 
 export interface RoomBattleOptions {
 	format: string;
@@ -481,7 +484,7 @@ export interface RoomBattleOptions {
 	 * - restoring saved battles after a restart (players should be manually restored)
 	 * In all special cases, either `delayedStart` or `inputLog` must be set
 	 */
-	players: RoomBattlePlayerOptions[];
+	players: RoomBattlePlayerData[];
 	delayedStart?: boolean | 'multi';
 	challengeType?: ChallengeType;
 	allowRenames?: boolean;
@@ -646,7 +649,6 @@ export class RoomBattle extends RoomGame<RoomBattlePlayer> {
 		this.writeChoice(player, choice);
 	}
 	writeChoice(player: RoomBattlePlayer, choice: string) {
-
 		void this.stream.write(`>${player.slot} ${choice}`);
 	}
 	override undo(user: User, data: string) {
@@ -1063,7 +1065,7 @@ export class RoomBattle extends RoomGame<RoomBattlePlayer> {
 	 * playerOpts should be empty only if importing an inputlog
 	 * (so the player isn't recreated)
 	 */
-	override addPlayer(user: User | string | null, playerOpts?: RoomBattlePlayerOptions | null) {
+	override addPlayer(user: User | string | null, playerOpts?: RoomBattlePlayerData | null) {
 		const player = super.addPlayer(user);
 		if (typeof user === 'string') user = null;
 		if (!player) return null;
@@ -1328,6 +1330,7 @@ export class RoomBattle extends RoomGame<RoomBattlePlayer> {
 		return result;
 	}
 }
+
 class AIPlayerStream extends Streams.ObjectReadWriteStream<string> {
 	constructor(battle: RoomBattle, player: RoomBattlePlayer) {
 		super({
@@ -1356,7 +1359,6 @@ class RoomBattleAIPlayer {
 		void this.stream.destroy();
 	}
 }
-
 
 export class RoomBattleStream extends BattleStream {
 	override readonly battle: Battle;
