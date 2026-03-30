@@ -8374,54 +8374,46 @@ elegantband: {
   // Run after Serene Grace so it overwrites its effect
   onModifyMovePriority: -1,
   onModifyMove(move) {
-    // Helper: normalize to move.secondaries (PS supports both `secondary` and `secondaries`)
     const pushSecondary = (sec: any) => {
       if (!move.secondaries) move.secondaries = [];
       move.secondaries.push(sec);
     };
 
-    // 1) Target secondaries (effects on the opponent)
-    if (move.secondaries?.length) {
-      this.debug('setting target secondary chances to 30%');
-      for (const secondary of move.secondaries) {
-        // If it already has a chance, clamp it; if not, give it one
-        if (secondary.chance === undefined || secondary.chance > 30) secondary.chance = 30;
-      }
-    }
-
-    // Some moves use singular `secondary` instead of `secondaries`
+    // 1) Normalize singular -> secondaries
     const singular = (move as any).secondary;
     if (singular) {
-      this.debug('normalizing singular secondary and clamping to 30%');
-      if (singular.chance === undefined || singular.chance > 30) singular.chance = 30;
       pushSecondary(singular);
       (move as any).secondary = null;
     }
 
-    // 2) Self effects (like Close Combat / V-create stat drops)
-    // NOTE: `move.self` does NOT support `chance` in typings or engine logic.
-    // To make it probabilistic, convert it into a normal secondary with `self: ...`.
+    // 2) Force ALL target secondaries to 30%
+    if (move.secondaries?.length) {
+      this.debug('forcing all secondary chances to 30%');
+      for (const secondary of move.secondaries) {
+        secondary.chance = 30;
+      }
+    }
+
+    // 3) Convert deterministic self effects into 30% secondary
     if (move.self) {
       const self: any = move.self;
 
-      // Only bother if it's actually doing something to the user
       if (self.boosts || self.volatileStatus || self.sideCondition || self.weather || self.terrain || self.status) {
         this.debug('converting self-effect to 30% secondary');
+
         pushSecondary({
           chance: 30,
           self,
         });
 
-        // Remove deterministic self so it doesn't always happen
         delete (move as any).self;
       }
     }
 
-    // 3) Some moves use selfBoost separately (mainly boosts on hit)
-    // `selfBoost` also doesn't have a typed `chance`, and isn't rolled by engine.
-    // Convert to a secondary the same way.
+    // 4) Convert selfBoost into 30% secondary
     if ((move as any).selfBoost) {
       const selfBoost: any = (move as any).selfBoost;
+
       this.debug('converting selfBoost to 30% secondary');
 
       pushSecondary({
@@ -8433,8 +8425,6 @@ elegantband: {
     }
   },
 },
-
-
 
 
 adrenalineshot: {
