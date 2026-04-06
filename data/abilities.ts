@@ -13440,24 +13440,54 @@ wonderheal: {
 
 yolo: {
 	name: 'YOLO',
-	shortDesc: 'Each move can only be used once. Moves are 1.5x power. If re-used, this Pokemon faints.',
+	shortDesc: 'Each move can only be used once. Damaging moves have 1.5x power. Used moves become disabled; after the 4th unique move is used, the user faints.',
 	rating: 4,
+
 	onStart(pokemon) {
 		const cur = pokemon.getTypes(true).join('/');
 		this.add('-start', pokemon, 'typechange', cur);
-		(pokemon as any).m.yoloUsed = {};
+
+		// @ts-ignore
+		const m = ((pokemon as any).m ??= {});
+		m.yoloUsed = m.yoloUsed || {};
 	},
+
 	onBasePower(basePower, attacker, defender, move) {
 		if (move.category !== 'Status') return this.chainModify(1.5);
 	},
-	onBeforeMove(pokemon, target, move) {
-		const used = ((pokemon as any).m.yoloUsed ||= {});
-		if (used[move.id]) {
-			this.add('-message', `${pokemon.name} is out of chances!`);
-			this.faint(pokemon);
-			return false;
+
+	// Disable already-used moves whenever move availability is recalculated
+	onDisableMove(pokemon) {
+		// @ts-ignore
+		const used = (pokemon as any).m?.yoloUsed || {};
+		for (const moveSlot of pokemon.moveSlots) {
+			if (used[moveSlot.id]) {
+				pokemon.disableMove(moveSlot.id);
+			}
 		}
+	},
+
+	// Mark the move as spent only after it successfully executes
+	onAfterMove(pokemon, target, move) {
+		if (!move || move.id === 'struggle') return;
+
+		// @ts-ignore
+		const m = ((pokemon as any).m ??= {});
+		const used = (m.yoloUsed ??= {});
+
 		used[move.id] = true;
+
+		// Count unique non-empty moves that have been used
+		let usedCount = 0;
+		for (const moveSlot of pokemon.moveSlots) {
+			if (moveSlot.id && used[moveSlot.id]) usedCount++;
+		}
+
+		// After the 4th move is used, faint
+		if (usedCount >= pokemon.moveSlots.length) {
+			this.add('-message', `${pokemon.name} is out of chances!`);
+			pokemon.faint();
+		}
 	},
 },
 
