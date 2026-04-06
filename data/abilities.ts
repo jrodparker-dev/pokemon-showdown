@@ -8956,37 +8956,35 @@ yinyang: {
   },
 },
 bottomfeeder: {
-    name: "Bottom Feeder",
-    shortDesc: "When hit by a move, heals 5–50% of damage taken (skewed low).",
+	name: "Bottom Feeder",
+	shortDesc: "Immune to Dark moves. When hit by a move, heals 10%–40% max HP.",
 	onStart(source) {
-			const pokemon = source;
-			const cur = pokemon.getTypes(true).join('/'); // runtime types 
-			const base = pokemon.species.types.join('/'); // species types 
-			this.add('-start', pokemon, 'typechange', cur);},
-    // Rough average ≈ 20% (since E[r^2] = 1/3, so 0.05 + 0.45*(1/3) ≈ 0.20)
-    onDamagingHit(damage, target, source, move) {
-      // Only trigger for real damage from a move and if the target is still alive
-      if (!damage || target.hp <= 0) return;
+		const pokemon = source;
+		const cur = pokemon.getTypes(true).join('/'); // runtime types
+		const base = pokemon.species.types.join('/'); // species types
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onTryHit(target, source, move) {
+		if (move?.type === 'Dark') {
+			this.add('-immune', target, '[from] ability: Bottom Feeder');
+			return null;
+		}
+	},
+	onDamagingHit(damage, target, source, move) {
+		// Only trigger for real move damage and if the target survived
+		if (!damage || !move || move.category === 'Status' || target.hp <= 0) return;
 
-      // Quadratic skew: favors lower values but still allows high rolls
-      const r = this.random();            // r in [0, 1)
-      const frac = 0.05 + 0.45 * (r * r); // 5%..50%, skewed toward 5%
+		// Uniform random heal from 10% to 40% of max HP
+		const percent = this.random(10, 41); // 10..40 inclusive
+		const healAmount = Math.floor(target.baseMaxhp * percent / 100);
 
-      // Heal is based on the damage just taken
-      const healAmount = this.clampIntRange(
-        Math.floor(damage * frac),
-        1,
-        target.maxhp - target.hp
-      );
-      if (healAmount > 0) {
-        this.heal(healAmount, target, target, this.effect);
-        // Optional: uncomment if you want visible roll info each time
-        // this.add('-message', `${target.name}'s Bottom Feeder restored ~${Math.round(frac * 1000) / 10}% of the damage!`);
-      }
-    },
-    rating: 3.5,
-    num: -1001, // custom id
-  },
+		if (healAmount > 0) {
+			this.heal(healAmount, target, target, this.effect);
+		}
+	},
+	rating: 3.5,
+	num: -1001, // custom id
+},
   fordf150: {
 		onStart(source) {
 			const pokemon = source;
