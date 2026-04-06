@@ -12852,11 +12852,632 @@ typethief: {
   },
 },
 
+ballpit: {
+	name: 'Ball Pit',
+	shortDesc: 'Ball moves used by this Pokemon have 1.25x power; this Pokemon is immune to Ball moves.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onBasePower(basePower, attacker, defender, move) {
+		if (move?.name?.includes(' Ball')) return this.chainModify([5, 4]);
+	},
+	onTryHit(target, source, move) {
+		if (move?.name?.includes(' Ball')) {
+			this.add('-immune', target, '[from] ability: Ball Pit');
+			return null;
+		}
+	},
+},
 
+berrygulp: {
+	name: 'BerryGulp',
+	shortDesc: 'On switch-in, this Pokemon eats its held Berry if it is not a healing Berry. Healing Berries trigger at 50% HP.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
 
+		const item = pokemon.getItem();
+		if (!item.isBerry) return;
+		const healingBerries = [
+			'aguavberry', 'enigmaberry', 'figyberry', 'iapapaberry',
+			'magoberry', 'wikiberry', 'oranberry', 'sitrusberry', 'berryjuice',
+		];
+		if (!healingBerries.includes(item.id)) pokemon.eatItem();
+	},
+	onUpdate(pokemon) {
+		const item = pokemon.getItem();
+		if (!item.isBerry) return;
+		const healingBerries = [
+			'aguavberry', 'enigmaberry', 'figyberry', 'iapapaberry',
+			'magoberry', 'wikiberry', 'oranberry', 'sitrusberry', 'berryjuice',
+		];
+		if (healingBerries.includes(item.id) && pokemon.hp <= pokemon.maxhp / 2) {
+			pokemon.eatItem();
+		}
+	},
+},
 
+bounceback: {
+		name: 'Bounceback',
+		shortDesc: 'When hit by an attack, 25% chance to use that move back at the attacker with its normal power.',
+		onDamagingHit(damage, target, source, move) {
+			if (!source || !move || move.category === 'Status') return;
+			if (!this.randomChance(1, 4)) return;
+			if ((move as any).hasBouncedBack) return;
+			const bounced = this.dex.getActiveMove(move.id);
+			(bounced as any).hasBouncedBack = true;
+			this.actions.useMove(bounced, target, { target: source });
+		},
+		rating: 3.5,
+	},
 
+burnheal: {
+	name: 'Burn Heal',
+	shortDesc: 'This Pokemon heals 1/8 per turn while burned and does not take burn damage.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onDamage(damage, target, source, effect) {
+		if (effect?.id === 'brn') return false;
+	},
+	onResidualOrder: 5,
+	onResidual(pokemon) {
+		if (pokemon.status === 'brn') this.heal(pokemon.baseMaxhp / 8);
+	},
+},
 
+clippedwings: {
+	name: 'Clipped Wings',
+	shortDesc: 'This Pokemon is immune to Flying-type moves.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onTryHit(target, source, move) {
+		if (move?.type === 'Flying') {
+			this.add('-immune', target, '[from] ability: Clipped Wings');
+			return null;
+		}
+	},
+},
+
+falcontactics: {
+		name: 'Falcon Tactics',
+		shortDesc: 'This Pokemon has Choice Scarf effects: 1.5x Speed and move lock until switching out.',
+		onStart(pokemon) {
+			pokemon.abilityState.choiceLock = '';
+		},
+		onBeforeMove(pokemon, target, move) {
+			if (move.isZOrMaxPowered || move.id === 'struggle') return;
+			if (pokemon.abilityState.choiceLock && pokemon.abilityState.choiceLock !== move.id) {
+				this.addMove('move', pokemon, move.name);
+				this.attrLastMove('[still]');
+				this.add('-fail', pokemon);
+				return false;
+			}
+		},
+		onModifyMove(move, pokemon) {
+			if (pokemon.abilityState.choiceLock || move.isZOrMaxPowered || move.id === 'struggle') return;
+			pokemon.abilityState.choiceLock = move.id;
+		},
+		onModifySpe(spe, pokemon) {
+			if (pokemon.volatiles['dynamax']) return;
+			return this.chainModify(1.5);
+		},
+		onDisableMove(pokemon) {
+			if (!pokemon.abilityState.choiceLock || pokemon.volatiles['dynamax']) return;
+			for (const moveSlot of pokemon.moveSlots) {
+				if (moveSlot.id !== pokemon.abilityState.choiceLock) {
+					pokemon.disableMove(moveSlot.id, false, this.effectState.sourceEffect);
+				}
+			}
+		},
+		onEnd(pokemon) {
+			pokemon.abilityState.choiceLock = '';
+		},
+		rating: 3.5,
+	},
+firefighter: {
+	name: 'Firefighter',
+	shortDesc: 'Moves used by this Pokemon are super effective against Fire types.',
+	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onSourceModifyDamage(damage, source, target, move) {
+		if (!move || move.category === 'Status') return;
+		if (target.hasType('Fire')) return this.chainModify(2);
+	},
+},
+
+geologist: {
+	name: 'Geologist',
+	shortDesc: 'Immune to entry hazards and Rock- and Ground-type attacks.',
+	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onDamage(damage, target, source, effect) {
+		if (effect && ['spikes', 'stealthrock', 'toxicspikes'].includes(effect.id)) return false;
+	},
+	onTryHit(target, source, move) {
+		if (move?.type === 'Rock' || move?.type === 'Ground') {
+			this.add('-immune', target, '[from] ability: Geologist');
+			return null;
+		}
+	},
+	onSideConditionStart(side, source, effect) {
+		if (effect.id === 'stickyweb' && side.active.includes(this.effectState.target)) {
+			return false;
+		}
+	},
+},
+
+godmother: {
+	name: 'Godmother',
+	shortDesc: 'Immune to Fairy-type moves.',
+	rating: 2.5,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onTryHit(target, source, move) {
+		if (move?.type === 'Fairy') {
+			this.add('-immune', target, '[from] ability: Godmother');
+			return null;
+		}
+	},
+},
+
+icyskin: {
+	name: 'Icy Skin',
+	shortDesc: 'When hit by an attack, 30% chance to inflict Frostbite.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onDamagingHit(damage, target, source, move) {
+		if (!source || !move || move.category === 'Status') return;
+		if (source.status) return;
+		if (this.randomChance(3, 10)) source.trySetStatus('frb', target);
+	},
+},
+
+martyr: {
+		name: 'Martyr',
+		shortDesc: 'On faint, passes this Pokemon\'s stat stages to the next ally that switches in.',
+		onFaint(pokemon) {
+			(pokemon.side as any).martyrBoosts = { ...pokemon.boosts };
+		},
+		onAnySwitchIn(pokemon) {
+			const boosts = (pokemon.side as any).martyrBoosts;
+			if (!boosts) return;
+			delete (pokemon.side as any).martyrBoosts;
+			this.boost(boosts, pokemon);
+		},
+		rating: 3.5,
+	},
+
+metrognome: {
+	name: 'Metrognome',
+	shortDesc: 'On switch-in, both active Pokemon have all moves replaced with Metronome.',
+	rating: 2,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+
+		const metronome = this.dex.moves.get('metronome');
+		for (const mon of this.getAllActive()) {
+			if (!mon || mon.fainted) continue;
+
+			const newSlots = [0, 1, 2, 3].map(() => ({
+				move: metronome.name,
+				id: metronome.id,
+				pp: metronome.pp,
+				maxpp: metronome.pp,
+				target: metronome.target,
+				disabled: false,
+				used: false,
+			}));
+
+			mon.moveSlots.length = 0;
+			mon.moveSlots.push(...newSlots);
+
+			mon.baseMoveSlots.length = 0;
+			mon.baseMoveSlots.push(...newSlots.map(slot => ({...slot})));
+
+			this.add('-message', `${mon.name}'s moves became Metronome!`);
+		}
+	},
+},
+
+mirror: {
+	name: 'Mirror',
+	shortDesc: 'Immune to Light- and Dark-type moves.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onTryHit(target, source, move) {
+		if (move?.type === 'Dark' || move?.type === 'Light') {
+			this.add('-immune', target, '[from] ability: Mirror');
+			return null;
+		}
+	},
+},
+
+monsterhunter: {
+	name: 'Monster Hunter',
+	shortDesc: "At turn start, announces a random type. This Pokemon's moves do 2x damage to that type until changed.",
+	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+
+		this.effectState.currentType = this.sample(this.dex.types.names());
+		this.add('-message', `${pokemon.name} is hunting ${this.effectState.currentType}-types!`);
+	},
+	onResidualOrder: 28,
+	onResidual(pokemon) {
+		this.effectState.currentType = this.sample(this.dex.types.names());
+		this.add('-message', `${pokemon.name} switched targets to ${this.effectState.currentType}!`);
+	},
+	onSourceModifyDamage(damage, source, target, move) {
+		if (!move || move.category === 'Status') return;
+		if (this.effectState.currentType && target.hasType(this.effectState.currentType)) {
+			return this.chainModify(2);
+		}
+	},
+},
+
+nocloak: {
+	name: 'No Cloak',
+	shortDesc: 'Secondary effects from and against this Pokemon are guaranteed.',
+	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+		(pokemon as any).m.noCloakCounts = {};
+	},
+	onAnyModifyMove(move, source, target) {
+		if (!source || !target) return;
+		if (source !== this.effectState.target && target !== this.effectState.target) return;
+		if (!move.secondaries?.length) return;
+
+		move.secondaries = move.secondaries.map(secondary => {
+			const copy = {...secondary};
+			if (copy.chance) copy.chance = 100;
+			return copy;
+		});
+	},
+},
+
+nowonder: {
+	name: 'No Wonder',
+	shortDesc: 'This Pokemon only takes damage from resisted attacks, and those attacks deal triple damage.',
+	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onTryHit(target, source, move) {
+		if (!move || move.category === 'Status') return;
+		const mod = this.dex.getEffectiveness(move.type, target);
+		if (mod >= 0) {
+			this.add('-immune', target, '[from] ability: No Wonder');
+			return null;
+		}
+	},
+	onSourceModifyDamage(damage, source, target, move) {
+		if (!move || move.category === 'Status') return;
+		const mod = this.dex.getEffectiveness(move.type, target);
+		if (mod < 0) return this.chainModify(3);
+	},
+},
+
+paralyzeheal: {
+	name: 'Paralyze Heal',
+	shortDesc: 'This Pokemon heals 1/8 max HP each turn while paralyzed.',
+	rating: 2,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onResidualOrder: 5,
+	onResidual(pokemon) {
+		if (pokemon.status === 'par') this.heal(pokemon.baseMaxhp / 8);
+	},
+},
+
+sleepheal: {
+	name: 'Sleep Heal',
+	shortDesc: 'This Pokemon heals 1/8 max HP each turn while asleep.',
+	rating: 2,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onResidualOrder: 5,
+	onResidual(pokemon) {
+		if (pokemon.status === 'slp') this.heal(pokemon.baseMaxhp / 8);
+	},
+},
+
+slipperyskin: {
+	name: 'Slippery Skin',
+	shortDesc: 'Contacting this Pokemon causes the attacker to lose its held item.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onDamagingHit(damage, target, source, move) {
+		if (!source || !move?.flags?.contact) return;
+		const item = source.takeItem(target);
+		if (item) {
+			this.add('-enditem', source, item.name, '[from] ability: Slippery Skin', `[of] ${target}`);
+		}
+	},
+},
+
+soullink: {
+	name: 'Soul Link',
+	shortDesc: 'Both active Pokemon are destiny-bonded while this Pokemon is active. Also has a Sturdy effect.',
+	rating: 4.5,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onDamage(damage, target, source, effect) {
+		if (effect?.effectType === 'Move' && damage >= target.hp && target.hp === target.maxhp) {
+			return target.hp - 1;
+		}
+	},
+	onAnyFaint(target) {
+		const holder = this.effectState.target;
+		if (!holder?.isActive || holder.fainted) return;
+		if (this.effectState.triggered) return;
+
+		this.effectState.triggered = true;
+		for (const mon of this.getAllActive()) {
+			if (!mon || mon.fainted || mon === target) continue;
+			this.damage(mon.maxhp, mon, holder, this.dex.abilities.get('soullink'));
+		}
+		this.effectState.triggered = false;
+	},
+},
+
+speedcopy: {
+	name: 'Speedcopy',
+	shortDesc: "On switch-in, this Pokemon copies an adjacent foe's current Speed.",
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+
+		const foe = pokemon.adjacentFoes()[0];
+		if (!foe) return;
+		const newSpe = foe.getStat('spe', false, true);
+		if (pokemon.storedStats.spe > 0) {
+			pokemon.storedStats.spe = newSpe;
+			this.add('-message', `${pokemon.name} copied ${foe.name}'s Speed!`);
+		}
+	},
+},
+
+speedshare: {
+	name: 'Speedshare',
+	shortDesc: 'This Pokemon always uses the same Speed stat as its adjacent foe.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onModifySpe(spe, pokemon) {
+		const foe = pokemon.adjacentFoes()[0];
+		if (!foe) return;
+		return foe.getStat('spe', false, true);
+	},
+},
+
+statusmaster: {
+	name: 'Statusmaster',
+	shortDesc: 'On switch-in, all active Pokemon are inflicted with a random status condition.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+
+		const statuses: ('brn' | 'par' | 'psn' | 'slp' | 'frz' | 'frb')[] = ['brn', 'par', 'psn', 'slp', 'frz', 'frb'];
+		for (const mon of this.getAllActive()) {
+			if (mon && !mon.status) mon.trySetStatus(this.sample(statuses), pokemon);
+		}
+	},
+},
+
+trickcloset: {
+	name: 'Trick Closet',
+	shortDesc: 'On switch-in, sets Trick Room for 2 turns.',
+	rating: 3,
+	onStart(pokemon) {
+	const cur = pokemon.getTypes(true).join('/');
+	this.add('-start', pokemon, 'typechange', cur);
+
+	this.field.addPseudoWeather('trickroom', pokemon, this.effect);
+
+	const tr = this.field.pseudoWeather['trickroom'];
+	if (tr) tr.duration = 2;
+},
+},
+
+trickster: {
+	name: 'Trickster',
+	shortDesc: 'On switch-in, swaps items with an adjacent foe.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+
+		const foe = pokemon.adjacentFoes()[0];
+		if (!foe) return;
+
+		const myItem = pokemon.item;
+		const foeItem = foe.item;
+		if (!myItem && !foeItem) return;
+
+		const removedMine = pokemon.takeItem(foe);
+		const removedFoe = foe.takeItem(pokemon);
+
+		if (removedMine) foe.setItem(removedMine);
+		if (removedFoe) pokemon.setItem(removedFoe);
+
+		this.add('-item', pokemon, pokemon.getItem(), '[from] ability: Trickster');
+		this.add('-item', foe, foe.getItem(), '[from] ability: Trickster');
+	},
+},
+
+typetwister: {
+	name: 'Type Twister',
+	shortDesc: 'While this Pokemon is active, all moves used by any Pokemon become a random type.',
+	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onAnyModifyType(move, source, target) {
+		const holder = this.effectState.target;
+		if (!holder?.isActive || holder.fainted) return;
+		const types = this.dex.types.names().filter(t => t !== 'Stellar');
+		move.type = this.sample(types);
+	},
+},
+
+ultimateinsect: {
+	name: 'Ultimate Insect',
+	shortDesc: 'Compound Eyes + Tinted Lens + Shield Dust + Swarm + Unnerve.',
+	rating: 5,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onFoeTryEatItem(item, pokemon) {
+		if (item.isBerry) return false;
+	},
+	onModifyAccuracy(accuracy) {
+		if (typeof accuracy !== 'number') return;
+		return this.chainModify([13, 10]);
+	},
+	onModifyDamage(damage, source, target, move) {
+		if (move.category !== 'Status' && target.getMoveHitData(move).typeMod < 0) {
+			return this.chainModify(2);
+		}
+	},
+	onBasePower(basePower, attacker, defender, move) {
+		if (attacker.hp <= attacker.maxhp / 3 && move.type === 'Bug') return this.chainModify(1.5);
+	},
+	onModifySecondaries(secondaries) {
+		return secondaries?.filter(secondary => !!secondary.self).map(secondary => ({...secondary}));
+	},
+},
+
+unstablepower: {
+	name: 'Unstable Power',
+	shortDesc: 'On switch-in: +4 Attack. This Pokemon cannot deal super-effective damage.',
+	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+		this.boost({atk: 4}, pokemon);
+	},
+	onEffectiveness(typeMod, target, type, move) {
+		if (!move || move.category === 'Status') return;
+		if (typeMod > 0) return 0;
+	},
+},
+
+whitegoodman: {
+	name: 'White Goodman',
+	shortDesc: "When hit, this Pokemon's moves gain +25 Base Power each time.",
+	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+		this.effectState.bpBonus = 0;
+	},
+	onDamagingHit(damage, target) {
+		this.effectState.bpBonus = (this.effectState.bpBonus || 0) + 25;
+		this.add('-message', 'No one makes me bleed my own blood!');
+	},
+	onBasePower(basePower, attacker, defender, move) {
+		if (!this.effectState.bpBonus || move.category === 'Status') return;
+		return basePower + this.effectState.bpBonus;
+	},
+},
+
+wonderheal: {
+	name: 'Wonder Heal',
+	shortDesc: 'When this Pokemon deals super-effective damage, it heals 50% of damage dealt.',
+	rating: 3.5,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+	},
+	onSourceDamagingHit(damage, target, source, move) {
+		if (!damage || !move || move.category === 'Status') return;
+		if (target.getMoveHitData(move).typeMod > 0) this.heal(Math.floor(damage / 2), source);
+	},
+},
+
+yolo: {
+	name: 'YOLO',
+	shortDesc: 'Each move can only be used once. Moves are 1.5x power. If re-used, this Pokemon faints.',
+	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+		(pokemon as any).m.yoloUsed = {};
+	},
+	onBasePower(basePower, attacker, defender, move) {
+		if (move.category !== 'Status') return this.chainModify(1.5);
+	},
+	onBeforeMove(pokemon, target, move) {
+		const used = ((pokemon as any).m.yoloUsed ||= {});
+		if (used[move.id]) {
+			this.add('-message', `${pokemon.name} is out of chances!`);
+			this.faint(pokemon);
+			return false;
+		}
+		used[move.id] = true;
+	},
+},
+
+zoolander: {
+	name: 'Zoolander',
+	shortDesc: 'On switch-in and switch-out, adjacent foes become confused.',
+	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		this.add('-start', pokemon, 'typechange', cur);
+		for (const foe of pokemon.adjacentFoes()) {
+			foe.addVolatile('confusion', pokemon);
+		}
+	},
+	onEnd(pokemon) {
+		for (const foe of pokemon.adjacentFoes()) {
+			foe.addVolatile('confusion', pokemon);
+		}
+	},
+},
 
 
 };
