@@ -9331,8 +9331,8 @@ this.add('-start', pokemon, 'typechange', cur);
     if (!target.hp) return;
     if ((move.type === 'Fire' || move.type === 'Steel') && !target.volatiles['snowveil_trig']) {
       target.addVolatile('snowveil_trig');
-      if (!this.field.isWeather('snow')) {
-        this.field.setWeather('snow');
+      if (!this.field.isWeather('snowscape')) {
+        this.field.setWeather('snowscape');
         this.add('-weather', 'Snow');
       }
     }
@@ -11067,7 +11067,7 @@ flags: {},
 
 solarcore: {
 	name: "Solar Core",
-	shortDesc: "In sun: Fire & Rock moves 1.2x power; heals 1/16 max HP each turn.",
+	shortDesc: "In sun: Ground & Rock moves 1.2x power; heals 1/8 max HP each turn.",
 	rating: 3.5,
 	onStart(pokemon) { 
 const cur = pokemon.getTypes(true).join('/'); // runtime types 
@@ -11077,7 +11077,7 @@ this.add('-start', pokemon, 'typechange', cur);
 
 	// 50% boost to Fire and Rock moves in sun / Desolate Land
 	onBasePower(basePower, attacker, defender, move) {
-		if ((move.type === 'Fire' || move.type === 'Rock') &&
+		if ((move.type === 'Ground' || move.type === 'Rock') &&
 			['sunnyday', 'desolateland'].includes(this.field.effectiveWeather())) {
 			this.debug('Solar Core boost');
 			return this.chainModify(1.2);
@@ -11088,7 +11088,7 @@ this.add('-start', pokemon, 'typechange', cur);
 	onWeather(target, source, effect) {
 		if (!target.isActive) return;
 		if (effect.id === 'sunnyday' || effect.id === 'desolateland') {
-			this.heal(target.baseMaxhp / 16, target, target);
+			this.heal(target.baseMaxhp / 8, target, target);
 		}
 	},
 },
