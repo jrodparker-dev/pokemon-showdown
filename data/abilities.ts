@@ -8455,18 +8455,50 @@ hypnoticeyes: {
 
 // 2) Rainbow — all 18 types at once
 rainbow: {
-  name: "Rainbow",
-  shortDesc: "This Pokémon is all 18 types at once.",
-  onStart(pokemon) {
-    const allTypes = [
-      'Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison',
-      'Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy',
-    ];
-    pokemon.setType(allTypes);
-    this.add('-start', pokemon, 'typechange', allTypes.join('/'), '[from] ability: Rainbow');
-  },
-},
+	name: "Rainbow",
+	shortDesc: "This Pokémon constantly changes into a random dual typing.",
+	rating: 4,
 
+	onStart(pokemon) {
+		this.add('-ability', pokemon, 'Rainbow');
+		this.effectState.rollRainbowTypes = (target: Pokemon) => {
+			const allTypes = [
+				'Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice',
+				'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug',
+				'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy',
+				'Light', 'Blood', 'Gamma',
+			];
+
+			const type1 = this.sample(allTypes);
+			let type2 = this.sample(allTypes);
+			while (type2 === type1) {
+				type2 = this.sample(allTypes);
+			}
+
+			const newTypes: string[] = [type1, type2];
+			target.setType(newTypes);
+			this.add('-start', target, 'typechange', newTypes.join('/'), '[from] ability: Rainbow');
+		};
+
+		this.effectState.rollRainbowTypes(pokemon);
+	},
+
+	onTryMove(pokemon, target, move) {
+		if (!move) return;
+		this.effectState.rollRainbowTypes?.(pokemon);
+	},
+
+	onDamagingHit(damage, target, source, move) {
+		if (!damage || !move || move.category === 'Status' || !target.hp) return;
+		this.effectState.rollRainbowTypes?.(target);
+	},
+
+	onResidualOrder: 28,
+	onResidual(pokemon) {
+		if (!pokemon.hp) return;
+		this.effectState.rollRainbowTypes?.(pokemon);
+	},
+},
 
 // 4) Normalize (random type each time it attacks)
 normalizeplus: {
