@@ -1322,7 +1322,7 @@ antiswitchertrap: {
   // punishes opposing switches
   onSwitchOut(pokemon) {
     if (pokemon.hp > 0) {
-      const dmg = Math.max(1, Math.floor(pokemon.baseMaxhp / 3));
+      const dmg = Math.max(1, Math.floor(pokemon.baseMaxhp / 4));
       const source = this.effectState.source; // the mon that set the side condition
       this.damage(dmg, pokemon, source, {id: 'antiswitcher'} as any);
 

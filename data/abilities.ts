@@ -8750,7 +8750,7 @@ momentumburst: {
 // 12) Anti-switcher — while holder is active, foes take 1/3 max HP when they switch out
 antiswitcher: {
   name: "Anti-switcher",
-  shortDesc: "Opposing Pokémon take 1/3 max HP when they switch out while this is active.",
+  shortDesc: "Opposing Pokémon take 1/4 max HP when they switch out while this is active.",
   onStart(pokemon) {
 	const cur = pokemon.getTypes(true).join('/'); // runtime types
     const base = pokemon.species.types.join('/'); // species types
