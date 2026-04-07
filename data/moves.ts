@@ -4567,7 +4567,7 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 	},
 	earthquake: {
 		num: 89,
-		accuracy: 100,
+		accuracy: 90,
 		basePower: 100,
 		category: "Physical",
 		name: "Earthquake",
