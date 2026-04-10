@@ -27974,41 +27974,60 @@ chromaticclaw: {
 
 
     explosivespores: {
-        name: "Explosive Spores",
-        shortDesc: "Consumes all stat boosts. BP = 40×#boosts; heal 1/16 max per boost. Combines Ground effectiveness.",
-        type: "Grass",
-        category: "Special",
-        accuracy: true,
-        basePower: 0,
-        pp: 5,
-        priority: 0,
-        flags: {protect: 1, mirror: 1, bullet: 1},
-        onEffectiveness(typeMod, target, type) {
-            if (!target) return;
-            return typeMod + this.dex.getEffectiveness('Ground', type);
-        },
-        onModifyMove(move, pokemon) {
-            const boosts = pokemon.boosts;
-            let count = 0;
-            for (const stat of ['atk','def','spa','spd','spe','accuracy','evasion'] as const) {
-                if ((boosts[stat] || 0) !== 0) count += Math.abs(boosts[stat]!);
-            }
-            move.basePower = Math.max(0, 40 * count);
-        },
-        onAfterHit(_target, pokemon) {
-            const boosts = pokemon.boosts;
-            let count = 0;
-            for (const stat of ['atk','def','spa','spd','spe','accuracy','evasion'] as const) {
-                if ((boosts[stat] || 0) !== 0) count += Math.abs(boosts[stat]!);
-            }
-            if (count > 0) {
-                this.heal(Math.floor(pokemon.baseMaxhp / 16) * count, pokemon);
-            }
-            pokemon.clearBoosts();
-            this.add('-clearboost', pokemon);
-        },
-        target: "normal",
-    },
+	name: "Explosive Spores",
+	shortDesc: "BP = 40x all stat changes; heals 1/16 max HP per stat change. Combines Ground effectiveness. Halves boosts after use.",
+	type: "Grass",
+	category: "Special",
+	accuracy: true,
+	basePower: 20,
+	pp: 5,
+	priority: 0,
+	flags: {protect: 1, mirror: 1, bullet: 1},
+
+	onEffectiveness(typeMod, target, type) {
+		if (!target) return;
+		return typeMod + this.dex.getEffectiveness('Ground', type);
+	},
+
+	onModifyMove(move, pokemon) {
+		let count = 0;
+		for (const stat of ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion'] as const) {
+			const boost = pokemon.boosts[stat] || 0;
+			if (boost !== 0) count += Math.abs(boost);
+		}
+		move.basePower = 40 * count;
+	},
+
+	onAfterHit(_target, pokemon) {
+		let count = 0;
+		const boostTable: SparseBoostsTable = {};
+
+		for (const stat of ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion'] as const) {
+			const boost = pokemon.boosts[stat] || 0;
+
+			if (boost !== 0) {
+				count += Math.abs(boost);
+
+				// Build the delta needed to cut the boost in half, rounding toward 0
+				if (boost > 0) {
+					boostTable[stat] = -Math.ceil(boost / 2);
+				} else {
+					boostTable[stat] = Math.ceil(Math.abs(boost) / 2);
+				}
+			}
+		}
+
+		if (count > 0) {
+			this.heal(Math.floor(pokemon.baseMaxhp / 16) * count, pokemon);
+		}
+
+		if (Object.keys(boostTable).length) {
+			this.boost(boostTable, pokemon, pokemon, null, true);
+		}
+	},
+
+	target: "normal",
+},
 capcrush: {
 		accuracy: 100,
 		basePower: 70,
