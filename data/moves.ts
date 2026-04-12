@@ -27091,8 +27091,11 @@ serratedspikes: {
         target: "foeSide",
         sideCondition: 'serratedspikes',
         condition: {
-            onStart(side) {
-                this.add('-sidestart', side, 'Serrated Spikes');
+            onSideStart(side) {
+                this.add('-sidestart', side, 'move: Serrated Spikes');
+            },
+            onSideRestart() {
+                return false;
             },
             onSwitchIn(pokemon) {
                 if (!pokemon.isGrounded() || pokemon.hasItem('heavydutyboots')) return;
@@ -27101,8 +27104,8 @@ serratedspikes: {
                     this.add('-message', `${pokemon.name} started bleeding due to Serrated Spikes!`);
                 }
             },
-            onEnd(side) {
-                this.add('-sideend', side, 'Serrated Spikes');
+            onSideEnd(side) {
+                this.add('-sideend', side, 'move: Serrated Spikes');
             },
         },
     },
