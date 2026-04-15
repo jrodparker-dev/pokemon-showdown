@@ -14410,7 +14410,7 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 	},
 	precipiceblades: {
 		num: 619,
-		accuracy: 85,
+		accuracy: 95,
 		basePower: 120,
 		category: "Physical",
 		name: "Precipice Blades",
@@ -25236,7 +25236,7 @@ soulrend: {
   
   lifesap: {
   name: "Life Sap",
-  shortDesc: "Drains 50% of target's current HP and heals the user.",
+  shortDesc: "Drains 50% of target's current HP and heals the user for half that amount.",
   accuracy: 100,
   basePower: 0,
   priority: 0,
@@ -25249,7 +25249,7 @@ soulrend: {
     const amount = Math.floor(target.hp / 2);
     if (amount <= 0) return false;
     this.damage(amount, target, source);
-    this.heal(amount, source);
+    this.heal(amount / 2, source);
   },
   target: "normal",
   type: "Grass",
