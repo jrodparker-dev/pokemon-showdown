@@ -6184,5 +6184,6 @@ tatsugiricurlymega: { tier: "OU", natDexTier: "AG",   },
 tatsugiridroopymega: { tier: "OU", natDexTier: "AG",   },
 tatsugiristretchymega: { tier: "OU", natDexTier: "AG",   },
 baxcaliburmega: { tier: "OU", natDexTier: "AG",   },
+gladifin: { tier: "OU", natDexTier: "AG"},
 
 };

@@ -21428,5 +21428,14 @@ oinkolognemega: {
 		requiredItem: "Baxcaliburite",
 		isMega: true,
 	},
+	gladifin: {
+		num: -6023,
+		name: "Gladifin",
+		types: ["Water", "Steel"],
+		baseStats: {hp: 75, atk: 120, def: 90, spa: 60, spd: 80, spe: 115},
+		abilities: {0: "Sharpness", 1: "Piercing Sword"},
+		weightkg: 50,
+		eggGroups: ["Undiscovered"],
+	},
 
 };

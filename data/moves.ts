@@ -1912,6 +1912,12 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 			pokemon.side.removeSideCondition('reflect');
 			pokemon.side.removeSideCondition('lightscreen');
 			pokemon.side.removeSideCondition('auroraveil');
+			pokemon.side.removeSideCondition('clarityveil');
+			pokemon.side.removeSideCondition('darkmoon');
+			pokemon.side.removeSideCondition('hallofmirrors');
+			pokemon.side.removeSideCondition('phantomguard');
+			pokemon.side.removeSideCondition('pyrokinesis');
+			pokemon.side.removeSideCondition('retaliationscreen');
 		},
 		secondary: null,
 		target: "normal",
@@ -28632,4 +28638,28 @@ serenefocus: {
 		secondary: {chance: 100, boosts: {spe: -1}},
 		target: "normal",
 	},
+	tidalslice: {
+		name: "Tidal Slice",
+		type: "Water",
+		category: "Physical",
+		basePower: 75,
+		accuracy: 100,
+		pp: 10,
+		priority: 0,
+		shortDesc: "Breaks through screens. Slicing.",
+		flags: {protect: 1, mirror: 1, metronome: 1, slicing: 1},
+		onTryHit(pokemon) {
+			// will shatter screens through sub, before you hit
+			pokemon.side.removeSideCondition('reflect');
+			pokemon.side.removeSideCondition('lightscreen');
+			pokemon.side.removeSideCondition('auroraveil');
+			pokemon.side.removeSideCondition('clarityveil');
+			pokemon.side.removeSideCondition('darkmoon');
+			pokemon.side.removeSideCondition('hallofmirrors');
+			pokemon.side.removeSideCondition('phantomguard');
+			pokemon.side.removeSideCondition('pyrokinesis');
+			pokemon.side.removeSideCondition('retaliationscreen');
+		},
+		target: "normal",
+	}
 };
