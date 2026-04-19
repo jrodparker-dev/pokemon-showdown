@@ -9686,11 +9686,36 @@ tacticalmind: {
 },
 terrainshift: {
 	name: "Terrain Shift",
-	shortDesc: "On switch-in, sets a random terrain.",
+	shortDesc: "On switch-in, sets random terrain and changes forme to match active terrain.",
 	rating: 3.5,
 	onStart(pokemon) {
 		const terrain = this.sample(['grassyterrain', 'mistyterrain', 'electricterrain', 'psychicterrain', 'darkterrain'] as const);
 		this.field.setTerrain(terrain, pokemon);
+		this.singleEvent('TerrainChange', this.effect, this.effectState, pokemon);
+	},
+	onTerrainChange(pokemon) {
+		if (pokemon.baseSpecies.baseSpecies !== 'Mutador' || pokemon.transformed) return;
+		let targetForme = 'mutador';
+		switch (this.field.terrain) {
+		case 'darkterrain':
+			targetForme = 'mutadordark';
+			break;
+		case 'electricterrain':
+			targetForme = 'mutadorelectric';
+			break;
+		case 'grassyterrain':
+			targetForme = 'mutadorgrass';
+			break;
+		case 'mistyterrain':
+			targetForme = 'mutadormisty';
+			break;
+		case 'psychicterrain':
+			targetForme = 'mutadorpsychic';
+			break;
+		}
+		if (pokemon.species.id !== targetForme && pokemon.isActive) {
+			pokemon.formeChange(targetForme, this.effect, false, '0', '[msg]');
+		}
 	},
 },
 underworldveil: {
