@@ -9606,12 +9606,6 @@ firemind: {
 			this.damage(dmg, foe, pokemon);
 		}
 	},
-	onEnd(pokemon) {
-		for (const foe of pokemon.adjacentFoes()) {
-			const dmg = Math.max(1, Math.floor(foe.level / 2));
-			this.damage(dmg, foe, pokemon);
-		}
-	},
 },
 huntersinstinct: {
 	name: "Hunter's Instinct",
