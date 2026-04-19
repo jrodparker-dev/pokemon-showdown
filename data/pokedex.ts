@@ -20315,6 +20315,7 @@ oinkolognemega: {
 	mutador: {
 		num: -1009,
 		name: "Mutador",
+		otherFormes: ["Mutador-Dark", "Mutador-Electric", "Mutador-Grass", "Mutador-Misty", "Mutador-Psychic"],
 		types: ["Normal"],
 		baseStats: {hp: 95, atk: 95, def: 95, spa: 95, spd: 95, spe: 95},
 		abilities: {0: "Terrain Shift"},
