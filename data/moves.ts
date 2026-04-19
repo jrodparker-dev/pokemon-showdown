@@ -1917,7 +1917,7 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 			pokemon.side.removeSideCondition('hallofmirrors');
 			pokemon.side.removeSideCondition('phantomguard');
 			pokemon.side.removeSideCondition('pyrokinesis');
-			pokemon.side.removeSideCondition('retaliationscreen');
+			pokemon.side.removeSideCondition('retaliationscreen'); 
 		},
 		secondary: null,
 		target: "normal",
@@ -3170,7 +3170,10 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 		flags: { mirror: 1, metronome: 1 },
 		onHitField(target, source) {
 			const sideConditions = [
-				'mist', 'lightscreen', 'reflect', 'spikes', 'safeguard', 'tailwind', 'toxicspikes', 'poop', 'serratedspikes', 'puddle', 'stealthrock', 'waterpledge', 'firepledge', 'grasspledge', 'stickyweb', 'auroraveil', 'luckychant', 'gmaxsteelsurge', 'gmaxcannonade', 'gmaxvinelash', 'gmaxwildfire', 'gmaxvolcalith', 'gasoline', 'twinvines',
+				'mist', 'lightscreen', 'reflect', 'spikes', 'safeguard', 'tailwind', 'toxicspikes', 'poop', 'serratedspikes', 
+				'puddle', 'stealthrock', 'waterpledge', 'firepledge', 'grasspledge', 'stickyweb', 'auroraveil', 'luckychant',
+				 'gmaxsteelsurge', 'gmaxcannonade', 'gmaxvinelash', 'gmaxwildfire', 'gmaxvolcalith', 'gasoline', 'twinvines',
+				'clarityveil', 'darkmoon', 'hallofmirrors', 'phantomguard', 'pyrokinesis', 'retaliationscreen',
 			];
 			let success = false;
 			if (this.gameType === "freeforall") {
@@ -3601,7 +3604,7 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 		onHit(target, source, move) {
 			let success = false;
 			if (!target.volatiles['substitute'] || move.infiltrates) success = !!this.boost({ evasion: -1 });
-			const removeAll = ['spikes', 'toxicspikes', 'poop', 'serratedspikes', 'puddle', 'stealthrock', 'stickyweb', 'gmaxsteelsurge', 'gasoline', 'twinvines'];
+			const removeAll = ['spikes', 'toxicspikes', 'poop', 'serratedspikes', 'puddle', 'stealthrock', 'stickyweb', 'gmaxsteelsurge', 'gasoline', 'twinvines', 'clarityveil', 'darkmoon', 'hallofmirrors', 'phantomguard', 'pyrokinesis', 'retaliationscreen',];
 			const removeTarget = ['reflect', 'lightscreen', 'auroraveil', 'safeguard', 'mist', ...removeAll];
 			for (const targetCondition of removeTarget) {
 				if (target.side.removeSideCondition(targetCondition)) {
@@ -7804,7 +7807,7 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 		self: {
 			onHit(source) {
 				let success = false;
-				const removeAll = ['spikes', 'toxicspikes', 'poop', 'serratedspikes', 'puddle', 'stealthrock', 'stickyweb', 'gmaxsteelsurge', 'gasoline', 'twinvines'];
+				const removeAll = ['spikes', 'toxicspikes', 'poop', 'serratedspikes', 'puddle', 'stealthrock', 'stickyweb', 'gmaxsteelsurge', 'gasoline', 'twinvines', 'clarityveil', 'darkmoon', 'hallofmirrors', 'phantomguard', 'pyrokinesis', 'retaliationscreen',];
 				const removeTarget = ['reflect', 'lightscreen', 'auroraveil', 'safeguard', 'mist', ...removeAll];
 				for (const targetCondition of removeTarget) {
 					if (source.side.foe.removeSideCondition(targetCondition)) {
@@ -14624,6 +14627,12 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 			pokemon.side.removeSideCondition('reflect');
 			pokemon.side.removeSideCondition('lightscreen');
 			pokemon.side.removeSideCondition('auroraveil');
+			pokemon.side.removeSideCondition('clarityveil');
+			pokemon.side.removeSideCondition('darkmoon');
+			pokemon.side.removeSideCondition('hallofmirrors');
+			pokemon.side.removeSideCondition('phantomguard');
+			pokemon.side.removeSideCondition('pyrokinesis');
+			pokemon.side.removeSideCondition('retaliationscreen'); 
 		},
 		secondary: null,
 		target: "normal",
@@ -15191,6 +15200,12 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 			pokemon.side.removeSideCondition('reflect');
 			pokemon.side.removeSideCondition('lightscreen');
 			pokemon.side.removeSideCondition('auroraveil');
+			pokemon.side.removeSideCondition('clarityveil');
+			pokemon.side.removeSideCondition('darkmoon');
+			pokemon.side.removeSideCondition('hallofmirrors');
+			pokemon.side.removeSideCondition('phantomguard');
+			pokemon.side.removeSideCondition('pyrokinesis');
+			pokemon.side.removeSideCondition('retaliationscreen'); 
 		},
 		onModifyType(move, pokemon) {
 			switch (pokemon.species.name) {
@@ -24991,7 +25006,7 @@ soulrend: {
     flags: {protect: 1, contact: 1, wind: 1},
     onAfterHit(target, source) {
       const side = target.side;
-      for (const cond of ['spikes', 'toxicspikes', 'poop', 'serratedspikes', 'puddle', 'stealthrock', 'stickyweb', 'gmaxsteelsurge', 'gasoline', 'twinvines', 'reflect', 'lightscreen', 'auroraveil']) {
+      for (const cond of ['spikes', 'toxicspikes', 'poop', 'serratedspikes', 'puddle', 'stealthrock', 'stickyweb', 'gmaxsteelsurge', 'gasoline', 'twinvines', 'reflect', 'lightscreen', 'auroraveil', 'clarityveil', 'darkmoon', 'hallofmirrors', 'phantomguard', 'pyrokinesis', 'retaliationscreen',]) {
         if (side.removeSideCondition(cond)) {
           this.add('-sideend', side, this.dex.conditions.get(cond).name, '[from] move: Cyclone Wing');
         }
@@ -28480,7 +28495,7 @@ serenefocus: {
 		shortDesc: "Breaks screens before damage; 10% chance to confuse.",
 		flags: {protect: 1, mirror: 1, metronome: 1},
 		onTryHit(target) {
-			const screens = ['reflect', 'lightscreen', 'auroraveil', 'clarityveil', 'darkmoon'];
+			const screens = ['reflect', 'lightscreen', 'auroraveil', 'clarityveil', 'darkmoon', 'clarityveil', 'darkmoon', 'hallofmirrors', 'phantomguard', 'pyrokinesis', 'retaliationscreen',];
 			for (const sc of screens) target.side.removeSideCondition(sc);
 		},
 		secondary: {chance: 10, volatileStatus: 'confusion'},

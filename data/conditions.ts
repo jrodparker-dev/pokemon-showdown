@@ -1780,7 +1780,7 @@ sting: {
   onBeforeMovePriority: 2,
   onBeforeMove(pokemon) {
     // Mirror standard Attract 50% fail chance; tweak if you want different odds
-    this.add('-activate', pokemon, 'move: Attract');
+    this.add('-activate', pokemon, 'move: Attract', '[of] ' + this.effectState.source);
     if (this.randomChance(1, 2)) {
       this.add('cant', pokemon, 'Attract');
       return false;
