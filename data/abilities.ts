@@ -9741,11 +9741,11 @@ terrainshift: {
 		}
 	},
 	onDamagingHit(damage, target, source, move) {
-		if (target.species.id !== 'mutadormisty') return;
-		if (this.checkMoveMakesContact(move, source, target) && this.randomChance(3, 10)) {
-			source.addVolatile('attractionvolatile', target);
-		}
-	},
+	if (target.species.id !== 'mutadormisty') return;
+	if (this.randomChance(3, 10)) {
+		source.addVolatile('attractionvolatile', target);
+	}
+},
 	onModifyMove(move, source) {
 		if (source.species.id !== 'mutadorpsychic' || move.category === 'Status') return;
 		if (!move.secondaries) {
