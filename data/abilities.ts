@@ -9434,6 +9434,11 @@ allure: {
 	name: "Allure",
 	shortDesc: "On contact: 50% to infatuate or lower attacker's Accuracy by 1.",
 	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
+	},
 	onDamagingHit(damage, target, source, move) {
 		if (!source || !move?.flags['contact'] || !this.randomChance(1, 2)) return;
 		if (!source.volatiles['attract'] && this.randomChance(1, 2)) {
@@ -9449,6 +9454,9 @@ bartender: {
 	rating: 3.5,
 
 	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
 		this.effectState.turnsActive = 0;
 
 		// Pending next-move drink effects
@@ -9590,6 +9598,9 @@ firemind: {
 		if (type === 'Ground') return false;
 	},
 	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
 		for (const foe of pokemon.adjacentFoes()) {
 			const dmg = Math.max(1, Math.floor(foe.level / 2));
 			this.damage(dmg, foe, pokemon);
@@ -9606,6 +9617,11 @@ huntersinstinct: {
 	name: "Hunter's Instinct",
 	shortDesc: "Deals 1.25x damage to targets at full HP.",
 	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
+	},
 	onBasePower(basePower, attacker, defender, move) {
 		if (defender.hp === defender.maxhp && move.category !== 'Status') {
 			return this.chainModify([5120, 4096]);
@@ -9617,6 +9633,9 @@ necromancer: {
 	shortDesc: "On switch-in: +1 random stat per fainted ally; if last Pokemon, +1 all stats.",
 	rating: 3.5,
 	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
 		const faintedAllies = pokemon.side.pokemon.filter(p => p.fainted).length;
 		const remaining = pokemon.side.pokemon.filter(p => !p.fainted).length;
 		if (remaining <= 1) {
@@ -9642,6 +9661,10 @@ nightvision: {
 	},
 
 	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
+	
 		for (const target of this.getAllActive()) {
 			if (target === pokemon || target.fainted) continue;
 			target.addVolatile('nightvisionweak');
@@ -9653,6 +9676,11 @@ regalaura: {
 	name: "Regal Aura",
 	shortDesc: "Opponents cannot raise their stats while this Pokemon is active.",
 	rating: 3.5,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
+	},
 	onAnyTryBoost(boost, target, source, effect) {
 		if (target.side === this.effectState.target.side) return;
 		let blocked = false;
@@ -9669,6 +9697,11 @@ sacredflame: {
 	name: "Sacred Flame",
 	shortDesc: "When hit by a Fire move, raises Sp. Def by 1.",
 	rating: 3,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
+	},
 	onTryHit(target, source, move) {
 		if (move.type === 'Fire') {
 			this.boost({spd: 1}, target);
@@ -9679,6 +9712,11 @@ spicyspray: {
 	name: "Spicy Spray",
 	shortDesc: "If this Pokemon is hit by an attack, the attacker is burned.",
 	rating: 4,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
+	},
 	onDamagingHit(damage, target, source) {
 		source.trySetStatus('brn', target);
 	},
@@ -9687,6 +9725,11 @@ tacticalmind: {
 	name: "Tactical Mind",
 	shortDesc: "Prevents additional effects from foes' attacks.",
 	rating: 3.5,
+	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
+	},
 	onModifySecondaries(secondaries, target, source, move) {
 		if (target === source || move.category === 'Status') return;
 		return secondaries.filter(s => !!s.self);
@@ -9697,13 +9740,10 @@ terrainshift: {
 	shortDesc: "On switch-in, sets random terrain and changes forme to match active terrain with form-based effects.",
 	rating: 3.5,
 	onStart(pokemon) {
-		if (!this.field.terrain) {
+		
 			const terrain = this.sample(['grassyterrain', 'mistyterrain', 'electricterrain', 'psychicterrain', 'darkterrain'] as const);
 			this.field.setTerrain(terrain, pokemon);
-		}
-		// Uncomment this to always spawn a new terrain on switch-in, even if one is already active.
-		// const terrain = this.sample(['grassyterrain', 'mistyterrain', 'electricterrain', 'psychicterrain', 'darkterrain'] as const);
-		// this.field.setTerrain(terrain, pokemon);
+		
 		this.singleEvent('TerrainChange', this.effect, this.effectState, pokemon);
 	},
 	onModifyPriority(priority, pokemon, target, move) {
@@ -9778,6 +9818,11 @@ terrainshift: {
 		}
 		if (pokemon.species.id !== targetForme && pokemon.isActive) {
 			const changed = pokemon.formeChange(targetForme, this.effect, false, '0', '[msg]');
+			if (changed) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
+	}
 			if (changed && targetForme === 'mutadorpsychic') {
 				for (const target of pokemon.side.foe.active) {
 					if (!target?.hp) continue;
@@ -9796,6 +9841,9 @@ underworldveil: {
 		((this.effect as any).onStart as (p: Pokemon) => void).call(this, pokemon);
 	},
 	onStart(pokemon) {
+		const cur = pokemon.getTypes(true).join('/');
+		const base = pokemon.species.types.join('/'); // optional if you need it later
+		this.add('-start', pokemon, 'typechange', cur);
 		pokemon.abilityState.ending = false;
 		this.eachEvent('WeatherChange', this.effect);
 	},
@@ -9813,18 +9861,30 @@ underworldveil: {
 },
 aliensymbiote: {
 	name: "Alien Symbiote",
-	shortDesc: "Heals on KO. On fainting, grants this Ability to the foe that KOed it.",
+	shortDesc: "Whoever gets a KO heals 25%. If this Pokémon is KOed, the attacker gains this Ability.",
 	rating: 3,
-	onSourceFaint(target, source, effect) {
-		if (!source || source.fainted) return;
-		this.heal(source.baseMaxhp / 4, source);
+
+	onStart(pokemon) {
+		this.add('-start', pokemon, 'typechange', pokemon.getTypes(true).join('/'));
 	},
+
+	onSourceAfterFaint(length, target, source, effect) {
+		if (!source || source.fainted) return;
+		if (effect?.effectType !== 'Move') return;
+
+		this.heal(source.baseMaxhp / 4, source, source, this.dex.abilities.get('aliensymbiote'));
+	},
+
 	onFaint(pokemon, source, effect) {
 		if (!source || source.fainted) return;
-		source.setAbility('aliensymbiote', pokemon, false, true);
+		if (effect?.effectType !== 'Move') return;
+
+		const changed = source.setAbility('aliensymbiote', pokemon, false, true);
+		if (changed) {
+			this.add('-ability', source, 'Alien Symbiote', '[from] ability: Alien Symbiote', `[of] ${pokemon}`);
+		}
 	},
 },
-
 
 
 
