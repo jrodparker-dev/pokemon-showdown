@@ -9686,12 +9686,60 @@ tacticalmind: {
 },
 terrainshift: {
 	name: "Terrain Shift",
-	shortDesc: "On switch-in, sets random terrain and changes forme to match active terrain.",
+	shortDesc: "On switch-in, sets random terrain and changes forme to match active terrain with form-based effects.",
 	rating: 3.5,
 	onStart(pokemon) {
 		const terrain = this.sample(['grassyterrain', 'mistyterrain', 'electricterrain', 'psychicterrain', 'darkterrain'] as const);
 		this.field.setTerrain(terrain, pokemon);
 		this.singleEvent('TerrainChange', this.effect, this.effectState, pokemon);
+	},
+	onModifyPriority(priority, pokemon, target, move) {
+		if (pokemon.species.id === 'mutadordark' && move?.type === 'Dark') return priority + 1;
+	},
+	onTryHit(pokemon, target, move) {
+		if (pokemon.species.id !== 'mutadorelectric') return;
+		if (move.ohko) {
+			this.add('-immune', pokemon, '[from] ability: Terrain Shift');
+			return null;
+		}
+	},
+	onDamagePriority: -30,
+	onDamage(damage, target, source, effect) {
+		if (target.species.id !== 'mutadorelectric') return;
+		if (target.hp === target.maxhp && damage >= target.hp && effect?.effectType === 'Move') {
+			this.add('-ability', target, 'Terrain Shift');
+			return target.hp - 1;
+		}
+	},
+	onSourceModifyAtkPriority: 6,
+	onSourceModifyAtk(atk, attacker, defender, move) {
+		if (defender.species.id === 'mutadorgrass' && (move.type === 'Fire' || move.type === 'Ice')) {
+			this.debug('Terrain Shift Thick Fat weaken');
+			return this.chainModify(0.5);
+		}
+	},
+	onSourceModifySpAPriority: 5,
+	onSourceModifySpA(atk, attacker, defender, move) {
+		if (defender.species.id === 'mutadorgrass' && (move.type === 'Fire' || move.type === 'Ice')) {
+			this.debug('Terrain Shift Thick Fat weaken');
+			return this.chainModify(0.5);
+		}
+	},
+	onDamagingHit(damage, target, source, move) {
+		if (target.species.id !== 'mutadormisty') return;
+		if (this.checkMoveMakesContact(move, source, target) && this.randomChance(3, 10)) {
+			source.addVolatile('attractionvolatile', target);
+		}
+	},
+	onModifyMove(move, source) {
+		if (source.species.id !== 'mutadorpsychic' || move.category === 'Status') return;
+		if (!move.secondaries) {
+			move.secondaries = [];
+		}
+		move.secondaries.push({
+			chance: 15,
+			volatileStatus: 'flinch',
+		});
 	},
 	onTerrainChange(pokemon) {
 		if (pokemon.baseSpecies.baseSpecies !== 'Mutador' || pokemon.transformed) return;
@@ -9714,7 +9762,13 @@ terrainshift: {
 			break;
 		}
 		if (pokemon.species.id !== targetForme && pokemon.isActive) {
-			pokemon.formeChange(targetForme, this.effect, false, '0', '[msg]');
+			const changed = pokemon.formeChange(targetForme, this.effect, false, '0', '[msg]');
+			if (changed && targetForme === 'mutadorpsychic') {
+				for (const target of pokemon.side.foe.active) {
+					if (!target?.hp) continue;
+					target.addVolatile('confusion', pokemon);
+				}
+			}
 		}
 	},
 },
