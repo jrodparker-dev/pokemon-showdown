@@ -20658,16 +20658,6 @@ oinkolognemega: {
 		weightkg: 50,
 		eggGroups: ["Undiscovered"],
 	},
-	mutadorbase: {
-		num: -6008,
-		name: "Mutador (Base)",
-		baseSpecies: "Mutador",
-		types: ["Normal"],
-		baseStats: {hp: 95, atk: 95, def: 95, spa: 95, spd: 95, spe: 95},
-		abilities: {0: "Terrain Shift"},
-		weightkg: 50,
-		eggGroups: ["Undiscovered"],
-	},
 	mutadordark: {
 		num: -6009,
 		name: "Mutador - Dark",
