@@ -9701,10 +9701,15 @@ terrainshift: {
 			const terrain = this.sample(['grassyterrain', 'mistyterrain', 'electricterrain', 'psychicterrain', 'darkterrain'] as const);
 			this.field.setTerrain(terrain, pokemon);
 		}
+		// Uncomment this to always spawn a new terrain on switch-in, even if one is already active.
+		// const terrain = this.sample(['grassyterrain', 'mistyterrain', 'electricterrain', 'psychicterrain', 'darkterrain'] as const);
+		// this.field.setTerrain(terrain, pokemon);
 		this.singleEvent('TerrainChange', this.effect, this.effectState, pokemon);
 	},
 	onModifyPriority(priority, pokemon, target, move) {
-		if (pokemon.species.id === 'mutadordark' && move?.type === 'Dark') return priority + 1;
+		if (pokemon.species.id !== 'mutadordark' || !move) return;
+		if (move.type === 'Dark') return priority + 1;
+		if (move.id === 'terrainpulse' && this.field.isTerrain('darkterrain') && pokemon.isGrounded()) return priority + 1;
 	},
 	onTryHit(pokemon, target, move) {
 		if (pokemon.species.id !== 'mutadorelectric') return;
