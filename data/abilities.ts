@@ -9675,6 +9675,14 @@ sacredflame: {
 		}
 	},
 },
+spicyspray: {
+	name: "Spicy Spray",
+	shortDesc: "If this Pokemon is hit by an attack, the attacker is burned.",
+	rating: 4,
+	onDamagingHit(damage, target, source) {
+		source.trySetStatus('brn', target);
+	},
+},
 tacticalmind: {
 	name: "Tactical Mind",
 	shortDesc: "Prevents additional effects from foes' attacks.",
@@ -9689,8 +9697,10 @@ terrainshift: {
 	shortDesc: "On switch-in, sets random terrain and changes forme to match active terrain with form-based effects.",
 	rating: 3.5,
 	onStart(pokemon) {
-		const terrain = this.sample(['grassyterrain', 'mistyterrain', 'electricterrain', 'psychicterrain', 'darkterrain'] as const);
-		this.field.setTerrain(terrain, pokemon);
+		if (!this.field.terrain) {
+			const terrain = this.sample(['grassyterrain', 'mistyterrain', 'electricterrain', 'psychicterrain', 'darkterrain'] as const);
+			this.field.setTerrain(terrain, pokemon);
+		}
 		this.singleEvent('TerrainChange', this.effect, this.effectState, pokemon);
 	},
 	onModifyPriority(priority, pokemon, target, move) {
