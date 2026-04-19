@@ -20021,12 +20021,15 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 		pp: 10,
 		priority: 0,
 		flags: { protect: 1, mirror: 1, metronome: 1, pulse: 1 },
-		onModifyType(move, pokemon) {
-			if (!pokemon.isGrounded()) return;
-			switch (this.field.terrain) {
-			case 'electricterrain':
-				move.type = 'Electric';
-				break;
+			onModifyType(move, pokemon) {
+				if (!pokemon.isGrounded()) return;
+				switch (this.field.terrain) {
+				case 'darkterrain':
+					move.type = 'Dark';
+					break;
+				case 'electricterrain':
+					move.type = 'Electric';
+					break;
 			case 'grassyterrain':
 				move.type = 'Grass';
 				break;
