@@ -7071,7 +7071,7 @@ castformmega: {
 		forme: "Mega",
 		types: ["Dragon", "Flying"],
 		gender: "N",
-		baseStats: { hp: 115, atk: 180, def: 110, spa: 180, spd: 110, spe: 135 },
+		baseStats: { hp: 105, atk: 180, def: 100, spa: 180, spd: 100, spe: 115 },
 		abilities: { 0: "Delta Stream" },
 		heightm: 10.8,
 		weightkg: 392,
