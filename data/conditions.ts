@@ -1775,8 +1775,14 @@ sting: {
   attractionvolatile: {
   // Uncopyable (no Baton Pass)
   noCopy: true,
+  onUpdate(pokemon) {
+	const source = this.effectState.source;
+	if (!source || !source.isActive || source.fainted) {
+		this.debug(`Removing attractionvolatile on ${pokemon}`);
+		pokemon.removeVolatile('attractionvolatile');
+	}
+},
 
-  // No gender check, no immunity checks, does not fall off when source leaves
   onBeforeMovePriority: 2,
   onBeforeMove(pokemon) {
     // Mirror standard Attract 50% fail chance; tweak if you want different odds
