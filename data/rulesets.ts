@@ -691,7 +691,20 @@ blindteampreview: {
 	name: 'Blind Team Preview',
 	desc: 'Players choose a lead without seeing the opponent\u2019s team.',
 },
+/*
+custom player mods go here. Allows for extra crit ratio, extra damage, lower accuracy, etc
+kronkifycrit: {
+  name: "Kronkify Always Crit",
+  desc: "All damaging attacks against the player Kronkify always result in critical hits.",
+  effectType: 'Rule',
 
+  onModifyCritRatio(critRatio, source, target, move) {
+    if (this.toID(target.side.name) === 'kronkify' && move.category !== 'Status') {
+      return 6; // guaranteed crit
+    }
+  },
+},
+*/
 
 bst600: {
     name: "BST 600",
