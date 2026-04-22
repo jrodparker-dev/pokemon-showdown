@@ -5253,15 +5253,14 @@ flags: {},
 	},
 	sheerforce: {
 		onModifyMove(move, pokemon) {
-			if (move.secondaries) {
-				delete move.secondaries;
-				// Technically not a secondary effect, but it is negated
-				delete move.self;
-				if (move.id === 'clangoroussoulblaze') delete move.selfBoost;
-				// Actual negation of `AfterMoveSecondary` effects implemented in scripts.js
-				move.hasSheerForce = true;
-			}
-		},
+	if (move.secondaries || move.secondary) {
+		delete move.secondaries;
+		delete move.secondary;
+		delete move.self;
+		if (move.id === 'clangoroussoulblaze') delete move.selfBoost;
+		move.hasSheerForce = true;
+	}
+},
 		onBasePowerPriority: 21,
 		onBasePower(basePower, pokemon, target, move) {
 			if (move.hasSheerForce) return this.chainModify([5325, 4096]);
