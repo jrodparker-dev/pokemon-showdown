@@ -33,6 +33,28 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		bestOfDefault: true,
 		ruleset: ['PotD', 'Obtainable', 'Species Clause', 'Team Preview', 'Blind Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Sleep Clause Mod', 'Illusion Level Mod'],
 	},
+	{
+	name: "[Gen 9] 24v24 Hackmons Cup",
+	desc: `Hackmons Cup, but with 24 random Pokémon per side.`,
+	mod: 'gen9',
+	team: 'randomHC',
+	searchShow: true,
+	bestOfDefault: true,
+	ruleset: [
+		'Max Team Size = 24',
+		'Picked Team Size = 24',
+		'HP Percentage Mod',
+		'Cancel Mod',
+	],
+	banlist: [
+		'CAP', 'LGPE', 'MissingNo.', 'Pikachu-Cosplay', 'Pichu-Spiky-eared',
+		'Pokestar Smeargle', 'Pokestar UFO', 'Pokestar UFO-2', 'Pokestar Brycen-Man',
+		'Pokestar MT', 'Pokestar MT2', 'Pokestar Transport', 'Pokestar Giant',
+		'Pokestar Humanoid', 'Pokestar Monster', 'Pokestar F-00', 'Pokestar F-002',
+		'Pokestar Spirit', 'Pokestar Black Door', 'Pokestar White Door',
+		'Pokestar Black Belt', 'Pokestar UFO-PropU2', 'Xerneas-Neutral',
+	],
+},
 
 	//Comment out these custom ones before building the client or it throws errors
 	/*
