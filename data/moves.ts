@@ -28679,5 +28679,19 @@ serenefocus: {
 			pokemon.side.removeSideCondition('retaliationscreen');
 		},
 		target: "normal",
+	},
+	lowpitch: {
+		name: "Low Pitch",
+		type: "Dark",
+		category: "Special",
+		basePower: 85,
+		accuracy: 100,
+		pp: 10,
+		priority: 0,
+		target: "normal",
+		shortDesc: "Sound based dark move",
+		flags: {protect: 1, mirror: 1, metronome: 1, sound: 1, bypasssub: 1},
+
+
 	}
 };
