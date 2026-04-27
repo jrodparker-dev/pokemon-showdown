@@ -7072,7 +7072,7 @@ castformmega: {
 		types: ["Dragon", "Flying"],
 		gender: "N",
 		baseStats: { hp: 105, atk: 180, def: 100, spa: 180, spd: 100, spe: 115 },
-		abilities: { 0: "Contrary" },
+		abilities: { 0: "Wonder Guard" },
 		heightm: 10.8,
 		weightkg: 392,
 		color: "Green",
