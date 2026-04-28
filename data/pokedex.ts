@@ -20936,7 +20936,7 @@ oinkolognemega: {
 		baseSpecies: "Absol",
 		forme: "Mega-Z",
 		types: ["Dark", "Ghost"],
-		baseStats: {hp: 65, atk: 154, def: 60, spa: 75, spd: 60, spe: 151},
+		baseStats: {hp: 65, atk: 154, def: 120, spa: 75, spd: 60, spe: 151},
 		abilities: {0: "Dark Aura"},
 		weightkg: 47,
 		eggGroups: ["Field"],

@@ -22251,15 +22251,19 @@ superpunch: {
 	accuracy: true,
 	basePower: 50,
 	pp: 5,
-	name:"Super Punch",
-	shortDesc: "Always super effective",
+	name: "Super Punch",
+	shortDesc: "Always super effective (max 2x).",
 	priority: 0,
 	category: "Physical",
 	flags: {protect: 1, mirror: 1, metronome: 1, contact: 1, punch: 1},
 	ignoreImmunity: true,
+
 	onEffectiveness(typeMod, target, type) {
+		// Only apply +1 once. If already positive, stop further boosts.
+		if (typeMod > 0) return 0;
 		return 1;
 	},
+
 	secondary: null,
 	target: "normal",
 	type: "Normal",
@@ -23210,6 +23214,11 @@ dnalaser: {
     // Flavor line
     this.add('-message', `${target.name} was rewritten by the DNA Laser!`);
 
+	// Count DNA Laser replacement as the first Call for Aid usage for this Pokémon object.
+    (target as any).m ??= {};
+    (target as any).m.callforaidUses = 1;
+
+
     return true;
   },
 },
@@ -23932,7 +23941,8 @@ poop: {
   name: "Poop",
   shortDesc:
     "Sets Poop on user's side (hazard). Blocks contact moves against that side. Fades if a Water/Ground ally switches in.",
-  pp: 10,
+  pp: 1,
+  noPPBoosts: true,
   priority: 0,
   target: "allySide",
   type: "Ground",                 // pick any type you want
@@ -27330,42 +27340,40 @@ bloodoath: {
             },
             onTryHitPriority: 3,
             onTryHit(target, source, move) {
-                if (!move) return;
+    if (!move) return;
 
+    if (!move.flags['protect']) {
+        if (['gmaxoneblow', 'gmaxrapidflow'].includes(move.id)) return;
+        if (move.isZ || move.isMax) target.getMoveHitData(move).zBrokeProtect = true;
+        return;
+    }
 
-                if (!move.flags['protect']) {
-                    if (['gmaxoneblow', 'gmaxrapidflow'].includes(move.id)) return;
-                    if (move.isZ || move.isMax) target.getMoveHitData(move).zBrokeProtect = true;
-                    return;
-                }
+    if (move.smartTarget) {
+        move.smartTarget = false;
+    } else {
+        this.add('-activate', target, 'move: Protect');
+    }
 
+    const locked = source.getVolatile('lockedmove');
+    if (locked && locked.duration === 2) {
+        delete source.volatiles['lockedmove'];
+    }
 
-                if (move.smartTarget) {
-                    move.smartTarget = false;
-                } else {
-                    this.add('-activate', target, 'move: Protect');
-                }
+    // Only disable Physical/Special attacks, never Status moves
+    if (move.id !== 'struggle' && move.category !== 'Status') {
+        if (!source.volatiles['disable']) {
+            source.addVolatile('disable', target);
+        }
+        const vol = source.volatiles['disable'];
+        if (vol) {
+            vol.move = move.id;
+            vol.duration = 3;
+        }
+        this.add('-message', `${source.name}'s ${move.name} was disabled by Talk to the Hand!`);
+    }
 
-
-                const locked = source.getVolatile('lockedmove');
-                if (locked && locked.duration === 2) {
-                    delete source.volatiles['lockedmove'];
-                }
-
-
-                if (move.id !== 'struggle') {
-                    if (!source.volatiles['disable']) {
-                        source.addVolatile('disable', target);
-                    }
-                    const vol = source.volatiles['disable'];
-                    if (vol) {
-                        vol.move = move.id;
-                        vol.duration = 3;
-                    }
-                    this.add('-message', `${source.name}'s ${move.name} was disabled by Talk to the Hand!`);
-                }
-                return this.NOT_FAIL;
-            },
+    return this.NOT_FAIL;
+},
             onHit(target, source, move) {
                 if (!move || !move.isZOrMaxPowered || move.category === 'Status' || move.id === 'struggle') return;
                 if (!source.volatiles['disable']) {
